@@ -20,11 +20,11 @@ The workflow restores and builds a .NET 8 console project against the published 
 
 ### 02 — Fox and sheepdog state trace
 
-**Status:** Implemented; CI verification pending.
+**Status:** Verified in CI.
 
-**Recipe:** [Scenario source](src/Foundry.FoxSheepdog/Program.cs) · [UML](docs/UML/FoundryFoxSheepdogUML.md) · [Source notes](src/Foundry.FoxSheepdog/Program.md) · [Workflow](.github/workflows/foundry-fsm-api-probe.yml)
+**Recipe:** [Scenario source](src/Foundry.FoxSheepdog/Program.cs) · [UML](docs/UML/FoundryFoxSheepdogUML.md) · [Source notes](src/Foundry.FoxSheepdog/Program.md) · [Workflow](.github/workflows/foundry-fsm-api-probe.yml) · [Successful CI run](https://github.com/TrentBest/TheSingularityWorkshop.Foundry/actions/runs/40025709384)
 
-The bounded scenario runs real FSM_API definitions for fox states Walking/Jumping/Fleeing/Mangled and dog states Sleeping/Awake/Chasing/Mangling. The dog requests the fox's terminal state through the fox FSM handle. Assertions fail the process if expected states are not observed. CI runs it twice and compares the trace and generated SVG byte-for-byte.
+The bounded scenario runs real FSM_API definitions for fox states Walking/Jumping/Fleeing/Mangled and dog states Sleeping/Awake/Chasing/Mangling. The dog requests the fox's terminal state through the fox FSM handle. Assertions fail the process if expected states are not observed. CI runs it twice and compares the trace and generated SVG byte-for-byte. This passed in [run 40025709384](https://github.com/TrentBest/TheSingularityWorkshop.Foundry/actions/runs/40025709384).
 
 **Evidence boundary:** sensor inputs are scripted to make the run deterministic; this is not the original interactive SimpleDemos loop. The SVG is generated from recorded C# state-entry events, not an animation that independently invents behavior.
 
