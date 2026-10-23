@@ -1,6 +1,6 @@
 # Foundry Roadmap and Readiness
 
-**Current readiness: 10%.** This is a bootstrap estimate, not a release claim. No executable Foundry behavior or end-to-end Foundry CI run has been verified.
+**Current readiness: 20%.** This is a progress estimate, not a release claim. A narrow real-package FSM_API probe now builds and passes in GitHub Actions; the Foundry workflow-manifest/runtime is still unimplemented.
 
 ## Milestones
 
@@ -20,15 +20,15 @@
 - [ ] Record final decisions and source-derived UML.
 
 ### M2 — First executable workflow
-- [ ] Add a minimal buildable project and focused tests.
+- [x] Add a minimal buildable .NET 8 probe project (focused test suite still pending).
 - [ ] Define and validate one versioned workflow definition using a representation chosen from evidence.
-- [ ] Execute deterministic state transitions through the actual FSM_API API if the focused prototype confirms suitability.
-- [ ] Demonstrate deterministic terminal results.
+- [x] Execute and assert a deterministic state transition through the actual published FSM_API API in a probe.
+- [x] Demonstrate a deterministic terminal state in the API probe; workflow-level terminal-result model remains pending.
 - [ ] Add happy-path, invalid-definition, and handled-failure tests.
 
 ### M3 — CI proof
-- [ ] Run the same workflow in GitHub Actions.
-- [ ] Verify output artifacts and exit-code mapping.
+- [x] Run the FSM_API probe in GitHub Actions; the manifest-driven workflow itself remains pending.
+- [x] Verify CI exit-code mapping and upload a probe-output artifact; workflow result/artifact contract remains pending.
 - [ ] Exercise timeout/cancellation and repeat-run behavior.
 - [ ] Harden permissions for untrusted pull requests.
 - [ ] Publish workflow logs and a concise evidence summary.
@@ -53,10 +53,10 @@
 | Gate | Weight | Current evidence |
 |---|---:|---|
 | Purpose and dependency boundaries | 15% | Initial docs plus source-level contract inspection |
-| Contracts and implementation | 20% | Foundry implementation absent |
+| Contracts and implementation | 20% | Thin FSM_API probe implemented; workflow contract/runtime absent |
 | Automated tests | 20% | No Foundry tests |
-| CI execution and security | 20% | No Foundry CI proof verified |
-| Demonstration and reproducibility | 15% | Planned |
+| CI execution and security | 20% | Pinned-action workflow passes with read-only contents permission and 10-minute timeout; broader threat cases pending |
+| Demonstration and reproducibility | 15% | Successful run and output artifact verified for the probe; repeat-run comparison pending |
 | Documentation/UML completeness | 10% | Bootstrap docs and source-inspection notes; source-derived Foundry UML awaits code |
 
-**No release recommendation yet.** Readiness rises when gates are supported by verifiable implementation and test evidence, not merely by adding documents. Documentation-only progress does not by itself increase the 10% estimate.
+**No release recommendation yet.** Readiness rises when gates are supported by verifiable implementation and test evidence, not merely by adding documents. Documentation-only progress does not by itself increase readiness. The 20% estimate reflects the verified probe, not a release-ready workflow system.
