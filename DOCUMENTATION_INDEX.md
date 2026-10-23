@@ -19,14 +19,14 @@
 | Product vision and boundaries | Documented | README and architecture note |
 | Source contract exploration | First pass recorded | [Contract inspection ledger](docs/CONTRACT_INSPECTION.md); deeper tests and WebApp source remain |
 | Runnable workflow definition | Not implemented | Compare typed contract and persisted-manifest paths before schema commitment; current probe is not a workflow manifest |
-| FSM_API integration | Real-package probe passes | [Probe source](src/Foundry.FsmApiProbe/Program.cs) and [successful CI run](https://github.com/TrentBest/TheSingularityWorkshop.Foundry/actions/runs/40021885286); reusable adapter and broader workflow test suite pending |
+| FSM_API integration | Basic real-package probe passes; expanded state scenario added | [Probe source](src/Foundry.FsmApiProbe/Program.cs), [fox/sheepdog scenario](src/Foundry.FoxSheepdog/Program.cs), and [CI workflow](.github/workflows/foundry-fsm-api-probe.yml); expanded verification pending |
 | FSM_COS integration | Boundary inspected; Foundry integration not implemented | Only use for composition if a concrete workflow requires it |
 | FSM_Serialization integration | Responsibility inspected; format not selected | Keep domain semantics in the owning contract; do not assume arbitrary-object serialization |
 | CI execution | Probe workflow passes | [Workflow](.github/workflows/foundry-fsm-api-probe.yml); add manifest-level tests, failure cases, cancellation and timeout |
 | Source-derived UML | Not implemented | Add diagrams after source types exist |
-| Living Gallery | First probe demonstrated | [Gallery recipe](Gallery.md#01--real-fsm_api-exercised-by-ci-first-proof); broader live workflow remains planned |
+| Living Gallery | Basic probe verified; trace-derived SVG scenario added | [Gallery](Gallery.md); expanded fox/sheepdog CI verification pending |
 | Optional article publishing | Design documented; not implemented | Build source-grounded article preview and excerpt images; keep external publishing opt-in |
-| Tests and abuse cases | One executable happy-path assertion | Add invalid input, handled failure/recovery, repeatability, cancellation and timeout behavior |
+| Tests and abuse cases | Basic happy path plus scripted multi-state assertions; expanded run pending | Add invalid input, handled failure/recovery, cancellation and timeout behavior |
 | Release/publication | Not in scope | Requires explicit approval |
 
 ## Update rule
