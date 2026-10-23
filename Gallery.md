@@ -2,17 +2,21 @@
 
 Foundry is intended to demonstrate manifest-defined, state-driven computation using The Singularity Workshop's own technologies.
 
-**Current state:** no executable Foundry demonstration exists yet. Do not treat the concepts below as implemented behavior.
+**Current state:** one executable CI probe is verified. The broader workflow demonstrations below remain planned and must not be treated as implemented behavior.
 
 ## Planned demonstrations
 
-### 01 — A workflow executed by CI
+### 01 — Real FSM_API exercised by CI (first proof)
 
-**Goal:** GitHub Actions invokes a Foundry workflow definition, captures a structured outcome, and reports success or failure.
+**Status:** Verified on `development`.
 
-**Recipe:** To be added with the first runnable implementation.
+**Recipe:** [Probe source](src/Foundry.FsmApiProbe/Program.cs) · [CI workflow](.github/workflows/foundry-fsm-api-probe.yml) · [Successful run](https://github.com/TrentBest/TheSingularityWorkshop.Foundry/actions/runs/40021885286)
 
-**Evidence required:** source commit, test results, workflow run, emitted result/artifact, and repeat-run comparison.
+The workflow restores and builds a .NET 8 console project against the published `TheSingularityWorkshop.FSM_API` 1.0.13 package, creates an FSM definition, verifies its initial `Ready` state, calls the public update path, and asserts transition to `Complete`. It cleans up only the definition it owns and uploads the output artifact.
+
+**Scope limit:** this is a thin API integration probe, not a manifest-driven Foundry workflow runtime. No FSM_API global reset is used.
+
+**Evidence:** successful build and run, four PASS lines in the job log, and the `foundry-fsm-api-probe` artifact.
 
 ### 02 — Explicit failure and recovery
 
