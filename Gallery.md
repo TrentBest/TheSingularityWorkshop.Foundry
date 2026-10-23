@@ -2,7 +2,7 @@
 
 Foundry is intended to demonstrate manifest-defined, state-driven computation using The Singularity Workshop's own technologies.
 
-**Current state:** one executable CI probe is verified. The broader workflow demonstrations below remain planned and must not be treated as implemented behavior.
+**Current state:** the basic FSM_API CI probe is verified. A fox/sheepdog scenario now exercises multiple states and a cross-FSM transition and produces trace/SVG artifacts; the expanded workflow is awaiting its first CI verification. The broader workflow demonstrations below remain planned and must not be treated as implemented behavior.
 
 ## Planned demonstrations
 
@@ -18,7 +18,17 @@ The workflow restores and builds a .NET 8 console project against the published 
 
 **Evidence:** [latest workflow runs](https://github.com/TrentBest/TheSingularityWorkshop.Foundry/actions/workflows/foundry-fsm-api-probe.yml), successful build and execution, identical output from two fresh processes, four PASS lines per run, and the `foundry-fsm-api-probe` artifact.
 
-### 02 — Explicit failure and recovery
+### 02 — Fox and sheepdog state trace
+
+**Status:** Implemented; CI verification pending.
+
+**Recipe:** [Scenario source](src/Foundry.FoxSheepdog/Program.cs) · [UML](docs/UML/FoundryFoxSheepdogUML.md) · [Source notes](src/Foundry.FoxSheepdog/Program.md) · [Workflow](.github/workflows/foundry-fsm-api-probe.yml)
+
+The bounded scenario runs real FSM_API definitions for fox states Walking/Jumping/Fleeing/Mangled and dog states Sleeping/Awake/Chasing/Mangling. The dog requests the fox's terminal state through the fox FSM handle. Assertions fail the process if expected states are not observed. CI runs it twice and compares the trace and generated SVG byte-for-byte.
+
+**Evidence boundary:** sensor inputs are scripted to make the run deterministic; this is not the original interactive SimpleDemos loop. The SVG is generated from recorded C# state-entry events, not an animation that independently invents behavior.
+
+### 03 — Explicit failure and recovery
 
 **Goal:** A task failure follows a declared transition, produces an inspectable result, and does not silently report success.
 
@@ -26,7 +36,7 @@ The workflow restores and builds a .NET 8 console project against the published 
 
 **Evidence required:** deterministic test for the failure edge and the final CI exit status.
 
-### 03 — Source-derived documentation
+### 04 — Source-derived documentation
 
 **Goal:** A declared task produces documentation from actual source evidence and verifies generated output.
 
@@ -34,7 +44,7 @@ The workflow restores and builds a .NET 8 console project against the published 
 
 **Evidence required:** source identity and spans, generated Markdown/SVG, stale-output check, and a test proving that a relevant source change updates only affected outputs.
 
-### 04 — Article with code-excerpt images (optional)
+### 05 — Article with code-excerpt images (optional)
 
 **Goal:** Build a technical article from a pinned source revision, with selected code excerpts rendered as readable images and the same code available as selectable text.
 
