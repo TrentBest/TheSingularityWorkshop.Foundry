@@ -1,5 +1,6 @@
 using System;
 using TheSingularityWorkshop.FSM_API;
+using Engine = TheSingularityWorkshop.FSM_API.FSM_API;
 
 namespace TheSingularityWorkshop.Foundry.FsmApiProbe
 {
@@ -13,13 +14,13 @@ namespace TheSingularityWorkshop.Foundry.FsmApiProbe
             try
             {
                 // This executable runs in a fresh process. It never resets global FSM_API state.
-                if (FSM_API.Interaction.Exists(FsmName, ProcessingGroup))
+                if (Engine.Interaction.Exists(FsmName, ProcessingGroup))
                 {
                     throw new InvalidOperationException(
                         $"The probe-owned FSM '{FsmName}' unexpectedly already exists.");
                 }
 
-                FSM_API.Create.CreateFiniteStateMachine(
+                Engine.Create.CreateFiniteStateMachine(
                         FsmName, processRate: -1, processingGroup: ProcessingGroup)
                     .State("Ready", null, null, null)
                     .State("Complete", null, null, null)
@@ -28,7 +29,7 @@ namespace TheSingularityWorkshop.Foundry.FsmApiProbe
                     .BuildDefinition();
 
                 var context = new ProbeContext();
-                var handle = FSM_API.Create.CreateInstance(
+                var handle = Engine.Create.CreateInstance(
                     FsmName, context, ProcessingGroup);
 
                 if (handle.CurrentState != "Ready")
@@ -37,7 +38,7 @@ namespace TheSingularityWorkshop.Foundry.FsmApiProbe
                         $"Expected initial state 'Ready', got '{handle.CurrentState}'.");
                 }
 
-                FSM_API.Interaction.Update(ProcessingGroup);
+                Engine.Interaction.Update(ProcessingGroup);
 
                 if (handle.CurrentState != "Complete")
                 {
@@ -59,9 +60,9 @@ namespace TheSingularityWorkshop.Foundry.FsmApiProbe
             finally
             {
                 // Cleanup is deliberately scoped to this probe's known name and processing group.
-                if (FSM_API.Interaction.Exists(FsmName, ProcessingGroup))
+                if (Engine.Interaction.Exists(FsmName, ProcessingGroup))
                 {
-                    FSM_API.Interaction.DestroyFiniteStateMachine(FsmName, ProcessingGroup);
+                    Engine.Interaction.DestroyFiniteStateMachine(FsmName, ProcessingGroup);
                 }
             }
         }
