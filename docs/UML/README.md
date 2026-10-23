@@ -1,6 +1,6 @@
 # Foundry UML and Source Documentation
 
-**Status:** policy established; source-derived diagrams are pending implementation.
+**Status:** policy established; the first C# probe source exists. Companion documentation and its source-grounded neighborhood are now recorded manually; automated generation remains absent.
 
 ## Principles
 
@@ -32,7 +32,7 @@ Only add a view when there is sufficient evidence. Mark unimplemented flows as t
 
 ## Current inventory
 
-No C# source files or implementation types have been verified in this repository yet. Therefore, no source-derived class diagram is claimed. Create the inventory and type-neighborhood pages when the first source files are added.
+The first C# source is `src/Foundry.FsmApiProbe/Program.cs`. See its [companion note](../../src/Foundry.FsmApiProbe/Program.md) and [Program neighborhood](FoundryFsmApiProbeUML.md). The diagram is a manually maintained source-grounded view, not generated output. The workflow manifest/runtime has no source types yet.
 
 ## Validation expectations
 
