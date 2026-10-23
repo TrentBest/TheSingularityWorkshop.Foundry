@@ -1,6 +1,6 @@
 # Foundry Roadmap and Readiness
 
-**Current readiness: 20% pending expanded CI verification.** The original real-package FSM_API probe passes. A second fox/sheepdog scenario has been added to exercise multiple states, a cross-FSM transition, and trace-derived SVG output; readiness will be recalculated only after the updated workflow passes.
+**Current readiness: 30%.** The original real-package FSM_API probe and the deterministic fox/sheepdog scenario both pass CI. The second proof asserts multiple states and a cross-FSM transition, then compares TSV trace and SVG evidence from two fresh processes. This is still far short of a workflow runtime or release-ready product.
 
 ## Milestones
 
