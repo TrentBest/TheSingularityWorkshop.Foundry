@@ -1,4 +1,4 @@
-name: Foundry FSM_API Probe
+name: Foundry FSM_API and Fox/Sheepdog Proof
 
 on:
   push:
@@ -13,14 +13,14 @@ permissions:
   contents: read
 
 concurrency:
-  group: foundry-fsm-api-probe-${{ github.workflow }}-${{ github.ref }}
+  group: foundry-ci-proof-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  fsm-api-probe:
-    name: Build and exercise real FSM_API
+  fsm-api-proof:
+    name: Build, execute, and capture state evidence
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
 
     steps:
       - name: Check out repository
@@ -31,13 +31,17 @@ jobs:
         with:
           dotnet-version: 8.0.x
 
-      - name: Restore probe
-        run: dotnet restore src/Foundry.FsmApiProbe/Foundry.FsmApiProbe.csproj
+      - name: Restore projects
+        run: |
+          dotnet restore src/Foundry.FsmApiProbe/Foundry.FsmApiProbe.csproj
+          dotnet restore src/Foundry.FoxSheepdog/Foundry.FoxSheepdog.csproj
 
-      - name: Build probe
-        run: dotnet build src/Foundry.FsmApiProbe/Foundry.FsmApiProbe.csproj --configuration Release --no-restore
+      - name: Build projects
+        run: |
+          dotnet build src/Foundry.FsmApiProbe/Foundry.FsmApiProbe.csproj --configuration Release --no-restore
+          dotnet build src/Foundry.FoxSheepdog/Foundry.FoxSheepdog.csproj --configuration Release --no-restore
 
-      - name: Execute probe twice in separate processes
+      - name: Verify basic FSM_API probe in separate processes
         shell: bash
         run: |
           mkdir -p artifacts
@@ -46,11 +50,25 @@ jobs:
           diff -u artifacts/fsm-api-probe-run-1.txt artifacts/fsm-api-probe-run-2.txt
           cat artifacts/fsm-api-probe-run-1.txt
 
-      - name: Upload probe output
+      - name: Execute fox and sheepdog scenario twice
+        shell: bash
+        run: |
+          mkdir -p artifacts/fox-run-1 artifacts/fox-run-2
+          dotnet run --project src/Foundry.FoxSheepdog/Foundry.FoxSheepdog.csproj --configuration Release --no-build -- artifacts/fox-run-1 | tee artifacts/fox-run-1.txt
+          dotnet run --project src/Foundry.FoxSheepdog/Foundry.FoxSheepdog.csproj --configuration Release --no-build -- artifacts/fox-run-2 | tee artifacts/fox-run-2.txt
+          diff -u artifacts/fox-run-1/fox-sheepdog.trace artifacts/fox-run-2/fox-sheepdog.trace
+          diff -u artifacts/fox-run-1/fox-sheepdog.svg artifacts/fox-run-2/fox-sheepdog.svg
+          grep -q "PASS: dog-to-fox cross-FSM transition reached Mangled." artifacts/fox-run-1.txt
+
+      - name: Publish run evidence as a workflow artifact
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: foundry-fsm-api-probe
-          path: artifacts/fsm-api-probe-run-*.txt
+          name: foundry-ci-state-evidence
+          path: |
+            artifacts/fsm-api-probe-run-*.txt
+            artifacts/fox-run-1.txt
+            artifacts/fox-run-1/fox-sheepdog.trace
+            artifacts/fox-run-1/fox-sheepdog.svg
           if-no-files-found: warn
           retention-days: 14
