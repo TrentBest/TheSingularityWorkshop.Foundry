@@ -8,6 +8,7 @@
 - [README](README.md) — product intent and five-section overview.
 - [Gallery](Gallery.md) — demonstrations and recipes.
 - [Architecture](docs/ARCHITECTURE.md) — system boundaries and evidence labels.
+- [Contract inspection ledger](docs/CONTRACT_INSPECTION.md) — source-backed findings from the Workshop stack and unresolved decisions.
 - [Roadmap and readiness](docs/ROADMAP.md) — milestones and verification gates.
 - [UML policy and inventory](docs/UML/README.md) — diagrams, source provenance, and coverage.
 
@@ -16,10 +17,11 @@
 | Area | Current status | Evidence / next action |
 |---|---|---|
 | Product vision and boundaries | Documented | README and architecture note |
-| Runnable workflow definition | Not implemented | Define only after inspecting actual dependency APIs |
-| FSM_API integration | Source API inspected; adapter not implemented | Build a small compile/test proof before choosing final runner shape |
+| Source contract exploration | First pass recorded | [Contract inspection ledger](docs/CONTRACT_INSPECTION.md); deeper tests and WebApp source remain |
+| Runnable workflow definition | Not implemented | Compare typed contract and persisted-manifest paths before schema commitment |
+| FSM_API integration | Source API inspected; adapter not implemented | Build a real compile/test proof, including static-registry cleanup and repeat runs |
 | FSM_COS integration | Boundary inspected; Foundry integration not implemented | Only use for composition if a concrete workflow requires it |
-| FSM_Serialization integration | Responsibility inspected; format not selected | Keep domain semantics in the owning contract |
+| FSM_Serialization integration | Responsibility inspected; format not selected | Keep domain semantics in the owning contract; do not assume arbitrary-object serialization |
 | CI execution | Not implemented | Add safe build/test workflow after runnable project exists |
 | Source-derived UML | Not implemented | Add diagrams after source types exist |
 | Living Gallery | Planned | Demonstrate actual runtime output, not mockups |
