@@ -1,6 +1,6 @@
 # Foundry Architecture
 
-**Status:** one real FSM_API integration probe passes in GitHub Actions; Foundry's workflow definition/runtime remains a target design.
+**Status:** the basic FSM_API integration probe passes. A deterministic fox/sheepdog scenario now exercises multiple FSM states, a cross-FSM transition, and trace-derived SVG output; expanded CI verification is pending. Foundry's workflow definition/runtime remains a target design.
 
 ## Purpose
 
@@ -20,6 +20,13 @@ Explore a reusable, inspectable way to define and execute stateful workflows so 
 | GitHub Actions | Trigger, runner, permissions, timeout, cancellation, job status | `.github/workflows/foundry-fsm-api-probe.yml` passes on `development`; output artifact uploaded |
 
 ## Verified first slice and next vertical slice
+
+### Fox/sheepdog execution-to-evidence experiment
+
+A second .NET 8 project, `Foundry.FoxSheepdog`, exercises real FSM_API definitions for the fox and dog state sequences. The dog's `Mangling` enter callback requests the fox's `Mangled` state through the fox's FSM handle. The scenario uses scripted six-tick inputs to avoid wall-clock sleeps and keyboard interaction, asserts expected states, and emits a TSV event trace plus an SVG generated from the recorded events. The CI workflow runs it twice and compares both artifacts byte-for-byte.
+
+This is deliberately a first evidence slice, not a general simulation engine or live GUI. It borrows the recognizable state contract from [SimpleDemos](https://github.com/TrentBest/SimpleDemos), but it does not claim to execute that repository's interactive console loop or browser animation. The first expanded CI run must verify the implementation before this experiment is counted as passing.
+
 
 **Verified now:** the CI workflow restores and builds a .NET 8 console probe against the published FSM_API 1.0.13 package, creates a named FSM with `Ready` and `Complete` states, checks the initial state, executes the public update path, asserts the transition, performs scoped cleanup, and uploads a log artifact. See the [successful run](https://github.com/TrentBest/TheSingularityWorkshop.Foundry/actions/runs/40021885286).
 
