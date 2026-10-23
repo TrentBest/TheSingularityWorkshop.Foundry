@@ -4,7 +4,7 @@
 
 Foundry explores whether complex, stateful workflows can be described as data and executed through the Workshop's own technologies—rather than embedding all orchestration logic in CI scripts or a host application.
 
-> **Status: first CI probe passes; fox/sheepdog proof added and awaiting CI verification.** Foundry now has a second .NET 8 executable that exercises the fox and sheepdog state contracts through FSM_API, asserts the cross-FSM transition, and emits a TSV trace plus SVG visualization. The workflow runs both executables and compares the fox/sheepdog evidence across fresh processes. The Foundry workflow-manifest/runtime contract remains unimplemented.
+> **Status: verified CI probe plus fox/sheepdog state trace.** Foundry now has a second .NET 8 executable that exercises the fox and sheepdog state contracts through FSM_API, asserts the cross-FSM transition, and emits a TSV trace plus SVG visualization. The workflow runs both executables and compares the fox/sheepdog evidence across fresh processes. The Foundry workflow-manifest/runtime contract remains unimplemented.
 
 ## 01 — Vision
 
@@ -41,7 +41,7 @@ The implementation choice must follow repository evidence. Prefer reusing FSM_AP
 
 ## 04 — See it in a minute
 
-**Start with the [FSM_API probe](src/Foundry.FsmApiProbe/Program.cs) and [fox/sheepdog scenario](src/Foundry.FoxSheepdog/Program.cs).** The updated [CI workflow](.github/workflows/foundry-fsm-api-probe.yml) builds both projects, executes the fox/dog scenario twice, checks state assertions and deterministic output, then uploads a `fox-sheepdog.trace` and a `fox-sheepdog.svg` generated from the observed events. The fox/dog addition is awaiting its first successful CI verification. This remains a state-execution proof, not yet a manifest-driven Foundry workflow engine.
+**Start with the [FSM_API probe](src/Foundry.FsmApiProbe/Program.cs) and [fox/sheepdog scenario](src/Foundry.FoxSheepdog/Program.cs).** The [successful CI run](https://github.com/TrentBest/TheSingularityWorkshop.Foundry/actions/runs/40025709384) built both projects, executed the fox/dog scenario twice, checked state assertions and deterministic output, then uploaded a `fox-sheepdog.trace` and a `fox-sheepdog.svg` generated from the observed events. This remains a state-execution proof, not yet a manifest-driven Foundry workflow engine.
 
 ## 05 — Documentation and readiness
 
@@ -52,4 +52,4 @@ The implementation choice must follow repository evidence. Prefer reusing FSM_AP
 - [Roadmap and readiness](docs/ROADMAP.md) — staged implementation and verification gates.
 - [UML documentation](docs/UML/README.md) — diagram policy and current evidence status.
 
-Readiness remains **20% until the expanded workflow is verified**. The basic probe has passed; the fox/sheepdog state trace, SVG generation, cross-FSM transition, and repeatability check must pass CI before readiness is recalculated. No Foundry workflow manifest, failure/recovery behavior, invalid-definition rejection, or cross-repository orchestration is claimed.
+Readiness is now **30% (two verified FSM_API CI proofs, including deterministic fox/sheepdog trace and SVG artifacts)**. This still does not prove a Foundry workflow manifest, failure/recovery behavior, invalid-definition rejection, or cross-repository orchestration.
