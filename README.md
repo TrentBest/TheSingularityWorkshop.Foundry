@@ -16,12 +16,14 @@ Foundry is not intended to replace the Workshop's technologies or become a compe
 
 - **FSM_API** — state-machine mechanics where a component actually consumes FSM_API.
 - **FSM_COS** — runtime composition and capability coordination, subject to what its current implementation supports.
+- **FSM_Serialization** — binary representation infrastructure; it is not assumed to provide a universal workflow schema.
 - **ProtocolAi / GrammarAi** — possible future language-neutral contracts and language-specific grammar capabilities; not assumed to be integrated.
 - **AnyApp / WebApp** — potential hosts for manifest-driven workflows; hosting is a later proof, not a prerequisite for the first CI experiment.
 - **GitHub Actions** — trigger, runner, permissions, timeout, cancellation, and job-result boundary.
 - **Foundry** — the candidate workflow definition, validation, execution coordination, and result-reporting layer to be designed and tested here.
+- **Optional article publishing** — a future capability to build source-grounded technical articles and readable code-excerpt images; disabled by default and separate from the core runner.
 
-A package name must reflect actual dependencies. Foundry deliberately has no FSM_ prefix unless its own package identity and direct dependency relationship later justify it.
+A package name must reflect actual dependencies. Foundry deliberately has no FSM_ prefix unless its own package identity and direct dependency relationship later justify that choice.
 
 ## 03 — First proof
 
@@ -34,7 +36,7 @@ The initial experiment should demonstrate one real workflow—not a decorative s
 5. Verify repeatability and artifact/output correctness.
 6. Keep publication and deployment outside the experiment and behind explicit approval.
 
-The implementation choice must follow repository evidence. Prefer reusing FSM_API/FSM_COS where their real contracts fit; do not build a parallel runtime or claim integration before it works.
+The implementation choice must follow repository evidence. Prefer reusing FSM_API/FSM_COS where their real contracts fit; do not build a parallel runtime or claim integration before it works. See the [source contract inspection ledger](docs/CONTRACT_INSPECTION.md) for the first pass through actual repositories and the remaining unknowns.
 
 ## 04 — See it in a minute
 
@@ -42,10 +44,11 @@ The implementation choice must follow repository evidence. Prefer reusing FSM_AP
 
 ## 05 — Documentation and readiness
 
-- [Gallery](Gallery.md) — planned living demonstrations and recipes.
+- [Gallery](Gallery.md) — planned living demonstrations and recipes, including optional article production.
 - [Documentation index](DOCUMENTATION_INDEX.md) — documentation entry points and coverage.
 - [Architecture](docs/ARCHITECTURE.md) — boundaries, evidence, and non-goals.
+- [Contract inspection ledger](docs/CONTRACT_INSPECTION.md) — source-backed findings and unresolved decisions.
 - [Roadmap and readiness](docs/ROADMAP.md) — staged implementation and verification gates.
 - [UML documentation](docs/UML/README.md) — diagram policy and current evidence status.
 
-Readiness is **10% (bootstrap only)**: repository identity and initial design boundaries are documented; no executable behavior has been verified. The percentage will increase only when implementation and tests provide evidence.
+Readiness is **10% (bootstrap plus first source-inspection pass)**: repository identity, design boundaries, and a source-evidence ledger are documented; no executable Foundry behavior has been verified. The percentage will increase only when implementation and tests provide evidence.
