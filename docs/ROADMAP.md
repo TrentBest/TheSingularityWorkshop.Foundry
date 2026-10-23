@@ -29,7 +29,7 @@
 ### M3 — CI proof
 - [x] Run the FSM_API probe in GitHub Actions; the manifest-driven workflow itself remains pending.
 - [x] Verify CI exit-code mapping and upload a probe-output artifact; workflow result/artifact contract remains pending.
-- [ ] Exercise timeout/cancellation and repeat-run behavior.
+- [x] Compare deterministic output from two fresh probe processes; workflow-level timeout/cancellation remains pending.
 - [ ] Harden permissions for untrusted pull requests.
 - [ ] Publish workflow logs and a concise evidence summary.
 
@@ -56,7 +56,7 @@
 | Contracts and implementation | 20% | Thin FSM_API probe implemented; workflow contract/runtime absent |
 | Automated tests | 20% | No Foundry tests |
 | CI execution and security | 20% | Pinned-action workflow passes with read-only contents permission and 10-minute timeout; broader threat cases pending |
-| Demonstration and reproducibility | 15% | Successful run and output artifact verified for the probe; repeat-run comparison pending |
+| Demonstration and reproducibility | 15% | Successful run, output artifact, and byte-for-byte comparison across two fresh probe processes |
 | Documentation/UML completeness | 10% | Bootstrap docs and source-inspection notes; source-derived Foundry UML awaits code |
 
 **No release recommendation yet.** Readiness rises when gates are supported by verifiable implementation and test evidence, not merely by adding documents. Documentation-only progress does not by itself increase readiness. The 20% estimate reflects the verified probe, not a release-ready workflow system.
