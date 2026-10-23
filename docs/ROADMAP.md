@@ -1,6 +1,6 @@
 # Foundry Roadmap and Readiness
 
-**Current readiness: 20%.** This is a progress estimate, not a release claim. A narrow real-package FSM_API probe now builds and passes in GitHub Actions; the Foundry workflow-manifest/runtime is still unimplemented.
+**Current readiness: 20% pending expanded CI verification.** The original real-package FSM_API probe passes. A second fox/sheepdog scenario has been added to exercise multiple states, a cross-FSM transition, and trace-derived SVG output; readiness will be recalculated only after the updated workflow passes.
 
 ## Milestones
 
@@ -24,12 +24,15 @@
 - [ ] Define and validate one versioned workflow definition using a representation chosen from evidence.
 - [x] Execute and assert a deterministic state transition through the actual published FSM_API API in a probe.
 - [x] Demonstrate a deterministic terminal state in the API probe; workflow-level terminal-result model remains pending.
-- [ ] Add happy-path, invalid-definition, and handled-failure tests.
+- [x] Add a deterministic multi-state fox/sheepdog scenario with explicit state assertions (expanded CI run pending).
+- [ ] Add invalid-definition and handled-failure tests.
 
 ### M3 — CI proof
 - [x] Run the FSM_API probe in GitHub Actions; the manifest-driven workflow itself remains pending.
 - [x] Verify CI exit-code mapping and upload a probe-output artifact; workflow result/artifact contract remains pending.
-- [x] Compare deterministic output from two fresh probe processes; workflow-level timeout/cancellation remains pending.
+- [x] Compare deterministic output from two fresh basic-probe processes.
+- [x] Add a second fresh-process comparison for fox/sheepdog TSV and SVG evidence (verification pending).
+- [ ] Prove workflow-level timeout/cancellation behavior.
 - [ ] Harden permissions for untrusted pull requests.
 - [ ] Publish workflow logs and a concise evidence summary.
 
