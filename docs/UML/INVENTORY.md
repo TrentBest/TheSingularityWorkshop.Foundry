@@ -2,18 +2,18 @@
 
 **Inventory date:** 2026-10-23  
 **Branch:** development  
-**Scope:** initial repository bootstrap.
+**Scope:** first executable CI probe added.
 
 ## Source inventory
 
-No implementation source files have been verified in this repository. The following entries are deliberately marked as not yet applicable rather than inventing classes or relationships.
+The first executable source file is a thin CI probe, not the Foundry workflow engine. The inventory distinguishes this verified code from still-undecided workflow contracts.
 
 | Source area | Source files | Companion Markdown | Neighborhood UML | Status |
 |---|---:|---:|---:|---|
-| Foundry runtime | 0 verified | N/A | N/A | Not implemented |
+| FSM_API CI probe | 1 (`Program.cs`) | `Program.md` | `FoundryFsmApiProbeUML.md` | Implemented; CI run passes |
 | Workflow definition/manifest | 0 verified | N/A | N/A | Contract undecided |
-| Execution adapter | 0 verified | N/A | N/A | Integration not verified |
-| CI runner integration | 0 verified | N/A | N/A | Not implemented |
+| Reusable execution adapter | 0 verified | N/A | N/A | Not implemented; probe is deliberately narrow |
+| CI runner integration | 1 workflow | Workflow YAML | N/A | Probe workflow passes |
 
 ## Planned view coverage
 
@@ -31,4 +31,4 @@ No implementation source files have been verified in this repository. The follow
 
 ## Exit criteria
 
-Replace this initial inventory with a source-derived inventory when implementation begins. Every generated view should identify its source revision and evidence. A conceptual diagram must never be counted as source-derived coverage.
+Update this inventory whenever source changes. Every generated view should identify its source revision and evidence. The probe neighborhood is manual and source-grounded; it must not be described as generated. A conceptual diagram must never be counted as source-derived coverage.
