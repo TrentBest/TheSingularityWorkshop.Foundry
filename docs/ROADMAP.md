@@ -24,14 +24,14 @@
 - [ ] Define and validate one versioned workflow definition using a representation chosen from evidence.
 - [x] Execute and assert a deterministic state transition through the actual published FSM_API API in a probe.
 - [x] Demonstrate a deterministic terminal state in the API probe; workflow-level terminal-result model remains pending.
-- [x] Add a deterministic multi-state fox/sheepdog scenario with explicit state assertions (expanded CI run pending).
+- [x] Add and verify a deterministic multi-state fox/sheepdog scenario with explicit state assertions.
 - [ ] Add invalid-definition and handled-failure tests.
 
 ### M3 — CI proof
 - [x] Run the FSM_API probe in GitHub Actions; the manifest-driven workflow itself remains pending.
 - [x] Verify CI exit-code mapping and upload a probe-output artifact; workflow result/artifact contract remains pending.
 - [x] Compare deterministic output from two fresh basic-probe processes.
-- [x] Add a second fresh-process comparison for fox/sheepdog TSV and SVG evidence (verification pending).
+- [x] Run the fox/sheepdog scenario in two fresh processes and compare TSV and SVG evidence byte-for-byte.
 - [ ] Prove workflow-level timeout/cancellation behavior.
 - [ ] Harden permissions for untrusted pull requests.
 - [ ] Publish workflow logs and a concise evidence summary.
@@ -56,10 +56,10 @@
 | Gate | Weight | Current evidence |
 |---|---:|---|
 | Purpose and dependency boundaries | 15% | Initial docs plus source-level contract inspection |
-| Contracts and implementation | 20% | Thin FSM_API probe implemented; workflow contract/runtime absent |
+| Contracts and implementation | 20% | Two real-package FSM_API proofs implemented; workflow contract/runtime absent |
 | Automated tests | 20% | No Foundry tests |
 | CI execution and security | 20% | Pinned-action workflow passes with read-only contents permission and 10-minute timeout; broader threat cases pending |
-| Demonstration and reproducibility | 15% | Successful run, output artifact, and byte-for-byte comparison across two fresh probe processes |
+| Demonstration and reproducibility | 15% | Successful basic probe plus fox/dog state assertions, cross-FSM transition, repeatable trace/SVG, and uploaded artifact |
 | Documentation/UML completeness | 10% | Bootstrap docs and source-inspection notes; source-derived Foundry UML awaits code |
 
-**No release recommendation yet.** Readiness rises when gates are supported by verifiable implementation and test evidence, not merely by adding documents. Documentation-only progress does not by itself increase readiness. The 20% estimate reflects the verified probe, not a release-ready workflow system.
+**No release recommendation yet.** Readiness rises when gates are supported by verifiable implementation and test evidence, not merely by adding documents. Documentation-only progress does not by itself increase readiness. The 30% estimate reflects two verified CI proofs, not a release-ready workflow system.
