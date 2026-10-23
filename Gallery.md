@@ -16,7 +16,7 @@ The workflow restores and builds a .NET 8 console project against the published 
 
 **Scope limit:** this is a thin API integration probe, not a manifest-driven Foundry workflow runtime. No FSM_API global reset is used.
 
-**Evidence:** successful build and run, four PASS lines in the job log, and the `foundry-fsm-api-probe` artifact.
+**Evidence:** [latest workflow runs](https://github.com/TrentBest/TheSingularityWorkshop.Foundry/actions/workflows/foundry-fsm-api-probe.yml), successful build and execution, identical output from two fresh processes, four PASS lines per run, and the `foundry-fsm-api-probe` artifact.
 
 ### 02 — Explicit failure and recovery
 
