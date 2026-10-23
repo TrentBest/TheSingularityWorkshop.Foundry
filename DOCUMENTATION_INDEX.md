@@ -17,11 +17,13 @@
 |---|---|---|
 | Product vision and boundaries | Documented | README and architecture note |
 | Runnable workflow definition | Not implemented | Define only after inspecting actual dependency APIs |
-| FSM_API integration | Not verified | Add a real adapter only if source/API evidence supports it |
-| FSM_COS integration | Not verified | Establish composition boundary with a runnable proof |
+| FSM_API integration | Source API inspected; adapter not implemented | Build a small compile/test proof before choosing final runner shape |
+| FSM_COS integration | Boundary inspected; Foundry integration not implemented | Only use for composition if a concrete workflow requires it |
+| FSM_Serialization integration | Responsibility inspected; format not selected | Keep domain semantics in the owning contract |
 | CI execution | Not implemented | Add safe build/test workflow after runnable project exists |
 | Source-derived UML | Not implemented | Add diagrams after source types exist |
 | Living Gallery | Planned | Demonstrate actual runtime output, not mockups |
+| Optional article publishing | Design documented; not implemented | Build source-grounded article preview and excerpt images; keep external publishing opt-in |
 | Tests and abuse cases | Not implemented | Happy path, invalid input, failure path, repeatability, cancellation and timeout behavior |
 | Release/publication | Not in scope | Requires explicit approval |
 
