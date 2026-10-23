@@ -1,6 +1,6 @@
 # Foundry Architecture
 
-**Status:** target architecture and experiment plan; implementation not yet established.
+**Status:** one real FSM_API integration probe passes in GitHub Actions; Foundry's workflow definition/runtime remains a target design.
 
 ## Purpose
 
@@ -10,23 +10,22 @@ Explore a reusable, inspectable way to define and execute stateful workflows so 
 
 | System | Intended responsibility | Current evidence |
 |---|---|---|
-| Foundry | Workflow definition/validation, execution coordination, result reporting | Repository is bootstrap-only |
-| FSM_API | FSM mechanics when directly consumed | Public builder and context contracts inspected; Foundry adapter not implemented |
+| Foundry | Workflow definition/validation, execution coordination, result reporting | Thin .NET 8 probe exists; no workflow-manifest runtime yet |
+| FSM_API | FSM mechanics when directly consumed | Published 1.0.13 package restored, built, and exercised by the passing probe; no reusable adapter yet |
 | FSM_COS | Runtime composition when supported by its implementation | Source confirms composition boundary; Foundry integration not implemented |
 | FSM_Serialization | Binary representation boundary for domain-owned values | Existing package contract inspected; no Foundry format selected |
 | ProtocolAi | Potential protocol/contract interoperability | Deterministic identity vocabulary; Foundry integration is future work |
 | GrammarAi | Potential language grammar/representation capabilities | Deterministic grammar structure; Foundry integration is future work |
 | AnyApp / WebApp | Potential workflow hosts | AnyApp host path inspected; Foundry integration not verified |
-| GitHub Actions | Trigger, runner, permissions, timeout, cancellation, job status | Intended first execution environment |
+| GitHub Actions | Trigger, runner, permissions, timeout, cancellation, job status | `.github/workflows/foundry-fsm-api-probe.yml` passes on `development`; output artifact uploaded |
 
-## First vertical slice
+## Verified first slice and next vertical slice
 
-1. Define a small, versioned workflow format.
-2. Validate it before execution; reject unknown or malformed constructs.
-3. Execute a deterministic state graph with explicit terminal outcomes.
-4. Capture step-level outcomes and a machine-readable final status.
-5. Make CI fail when the workflow fails, is invalid, or its expected artifacts are absent.
-6. Test cancellation, timeouts, repeatability, and untrusted pull-request boundaries before expanding scope.
+**Verified now:** the CI workflow restores and builds a .NET 8 console probe against the published FSM_API 1.0.13 package, creates a named FSM with `Ready` and `Complete` states, checks the initial state, executes the public update path, asserts the transition, performs scoped cleanup, and uploads a log artifact. See the [successful run](https://github.com/TrentBest/TheSingularityWorkshop.Foundry/actions/runs/40021885286).
+
+**Not proven yet:** a versioned Foundry workflow definition, manifest validation, step-result model, failure/recovery semantics, invalid-definition rejection, cancellation/timeout behavior, or cross-repository orchestration.
+
+Next, design the workflow contract from the inspected Workshop interfaces, then add success, invalid-input, failure/recovery, repeat-run, and artifact assertions. Keep FSM_COS as a composition layer, not the executor. Never use FSM_API's known-defective global reset as probe cleanup; the probe destroys only its own named definition.
 
 The manifest format and runtime API remain open design decisions until the existing FSM_API, FSM_COS, and representation contracts have been inspected in sufficient depth. FSM_API's builder API is a concrete candidate for state mechanics; FSM_COS must remain a composition layer rather than being treated as the executor.
 
