@@ -182,10 +182,10 @@ internal static class Program
 
         var height = Math.Max(420, y + 48);
         return $"""
-<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="{{{height}}}" viewBox="0 0 1100 {{height}}" role="img" aria-labelledby="title desc">
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="{{height}}" viewBox="0 0 1100 {{height}}" role="img" aria-labelledby="title desc">
 <title id="title">Fox and sheepdog — CI execution trace</title>
 <desc id="desc">Generated from state-entry events emitted by the real FSM_API execution. This is a trace visualization, not a live animation.</desc>
-<rect width="1100" height="{{{height}}}" rx="20" fill="#0b1421"/>
+<rect width="1100" height="{{height}}" rx="20" fill="#0b1421"/>
 <text x="48" y="48" fill="#f1f6fc" font-size="25" font-weight="750">FOX + SHEEPDOG · VERIFIED CI TRACE</text>
 <text x="48" y="78" fill="#a9bfd3" font-size="14">State entries emitted by FSM_API · deterministic six-tick scenario</text>
 <path d="M40 104 H1060" stroke="#2d4155" stroke-width="2"/>
