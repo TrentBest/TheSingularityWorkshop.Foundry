@@ -181,7 +181,8 @@ internal static class Program
         }
 
         var height = Math.Max(420, y + 48);
-        return $"""<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="{height}" viewBox="0 0 1100 {height}" role="img" aria-labelledby="title desc">
+        return $"""
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="{height}" viewBox="0 0 1100 {height}" role="img" aria-labelledby="title desc">
 <title id="title">Fox and sheepdog — CI execution trace</title>
 <desc id="desc">Generated from state-entry events emitted by the real FSM_API execution. This is a trace visualization, not a live animation.</desc>
 <rect width="1100" height="{height}" rx="20" fill="#0b1421"/>
