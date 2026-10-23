@@ -37,18 +37,20 @@ jobs:
       - name: Build probe
         run: dotnet build src/Foundry.FsmApiProbe/Foundry.FsmApiProbe.csproj --configuration Release --no-restore
 
-      - name: Execute probe in a fresh process
+      - name: Execute probe twice in separate processes
         shell: bash
         run: |
           mkdir -p artifacts
-          set -o pipefail
-          dotnet run --project src/Foundry.FsmApiProbe/Foundry.FsmApiProbe.csproj --configuration Release --no-build 2>&1 | tee artifacts/fsm-api-probe.txt
+          dotnet run --project src/Foundry.FsmApiProbe/Foundry.FsmApiProbe.csproj --configuration Release --no-build > artifacts/fsm-api-probe-run-1.txt 2>&1
+          dotnet run --project src/Foundry.FsmApiProbe/Foundry.FsmApiProbe.csproj --configuration Release --no-build > artifacts/fsm-api-probe-run-2.txt 2>&1
+          diff -u artifacts/fsm-api-probe-run-1.txt artifacts/fsm-api-probe-run-2.txt
+          cat artifacts/fsm-api-probe-run-1.txt
 
       - name: Upload probe output
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: foundry-fsm-api-probe
-          path: artifacts/fsm-api-probe.txt
+          path: artifacts/fsm-api-probe-run-*.txt
           if-no-files-found: warn
           retention-days: 14
