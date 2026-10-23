@@ -2,7 +2,7 @@
 
 Foundry is intended to demonstrate manifest-defined, state-driven computation using The Singularity Workshop's own technologies.
 
-**Current state:** the basic FSM_API CI probe is verified. A fox/sheepdog scenario now exercises multiple states and a cross-FSM transition and produces trace/SVG artifacts; the expanded workflow is awaiting its first CI verification. The broader workflow demonstrations below remain planned and must not be treated as implemented behavior.
+**Current state:** both the basic FSM_API CI probe and the fox/sheepdog state-trace scenario are verified. The latter produces repeatable trace/SVG artifacts from real FSM_API execution. The broader workflow demonstrations below remain planned and must not be treated as implemented behavior.
 
 ## Planned demonstrations
 
