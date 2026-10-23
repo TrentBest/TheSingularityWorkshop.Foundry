@@ -33,9 +33,9 @@ The first verified CI slice is deliberately narrower than the eventual workflow 
 2. Create a uniquely named FSM definition and instance.
 3. Verify `Ready` → `Complete` through the public FSM_API update path.
 4. Clean up the probe-owned definition; never call the known-defective global reset.
-5. Upload the execution output as a short-lived CI artifact.
+5. Run the probe twice in separate processes, compare exact output, and upload both outputs as a short-lived CI artifact.
 
-The larger workflow proof still needs a versioned definition contract, validation, explicit failure/recovery, and repeatability tests. Publication and deployment remain outside the experiment and behind explicit approval.
+The probe's repeatability check now runs twice in fresh processes and compares output byte-for-byte. The larger workflow proof still needs a versioned definition contract, validation, and explicit failure/recovery. Publication and deployment remain outside the experiment and behind explicit approval.
 
 The implementation choice must follow repository evidence. Prefer reusing FSM_API/FSM_COS where their real contracts fit; do not build a parallel runtime or claim integration before it works. See the [source contract inspection ledger](docs/CONTRACT_INSPECTION.md) for the first pass through actual repositories and the remaining unknowns.
 
