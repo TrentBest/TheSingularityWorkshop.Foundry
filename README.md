@@ -8,7 +8,7 @@
 
 **Foundry is the host-neutral execution pipeline for The Singularity Workshop Hub.** It accepts explicit work, validates it before side effects, coordinates execution, and reports authoritative lifecycle state and structured outcomes. GUI may present that state when the Hub chooses to appear; GUI is not the executor.
 
-> **Implementation status:** the sequential workflow runner, preflight validation, structured outcomes, and an in-process retained lifecycle coordinator are implemented on \`development\`. The new coordinator tests must pass in a current CI run before this slice is called verified. No package publication or deployment is part of this work.
+> **Implementation status:** the sequential workflow runner, preflight validation, structured outcomes, and an in-process retained lifecycle coordinator are implemented on \`development\`. The retained lifecycle slice is verified by [development CI run #84](https://github.com/TrentBest/TheSingularityWorkshop.Foundry/actions/runs/40546957980). No package publication or deployment is part of this work.
 
 ## 01 — Why Foundry exists
 
