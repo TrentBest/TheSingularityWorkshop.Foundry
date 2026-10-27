@@ -32,7 +32,7 @@
 - [x] Add invalid-definition, handled-failure, ordering, cancellation, and handler-registration tests.
 - [x] Produce structured step and workflow outcomes distinct from console output and host exit codes.
 - [x] Add retained in-process run lifecycle: submit, start once, observe snapshots, cancel, and async disposal.
-- [ ] Verify coordinator lifecycle tests in a current CI run.
+- [x] Verify coordinator lifecycle tests in development CI run #84.
 
 ### M3 — CI proof
 - [x] Run the FSM_API probe in GitHub Actions; the manifest-driven workflow itself remains pending.
@@ -64,13 +64,13 @@
 | Gate | Weight | Current evidence |
 |---|---:|---|
 | Purpose and dependency boundaries | 15% | Source-level contract inspection plus an initial domain proposal |
-| Contracts and implementation | 20% | Version-1 in-memory workflow runner plus retained lifecycle coordinator; CI verification pending |
-| Automated tests | 20% | Focused runner and lifecycle xUnit tests; current CI verification pending |
+| Contracts and implementation | 20% | Version-1 in-memory workflow runner plus retained lifecycle coordinator; CI run #84 passed |
+| Automated tests | 20% | Focused runner and lifecycle xUnit tests passed in CI run #84 |
 | CI execution and security | 20% | Pinned-action workflow has read-only contents permission and a 15-minute timeout; broader threat cases pending |
 | Demonstration and reproducibility | 15% | Successful basic probe plus fox/dog state assertions, cross-FSM transition, repeatable trace/SVG, and uploaded artifact |
 | Documentation/UML completeness | 10% | Bootstrap docs and source-inspection notes; lifecycle UML and complete reader journey remain |
 
-**No release recommendation yet.** Readiness rises when gates are supported by verifiable implementation and test evidence, not merely by adding documents. The 30% estimate remains unchanged until the new coordinator tests pass in CI; implementation alone is not a verification result.
+**No release recommendation yet.** Readiness rises when gates are supported by verifiable implementation and test evidence, not merely by adding documents. The 35% estimate reflects the additional lifecycle implementation and its successful CI verification; it is not a release-readiness claim.
 
 ---
 
