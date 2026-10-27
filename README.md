@@ -57,6 +57,7 @@ The first runtime slice intentionally supports **sequential, in-process, version
 - [Gallery](Gallery.md) — planned living demonstrations and recipes, including optional article production.
 - [Documentation index](DOCUMENTATION_INDEX.md) — documentation entry points and coverage.
 - [Domain and ownership](docs/DOMAIN.md) — domain boundary and invariants.
+- [Workflow semantics](docs/WORKFLOW_SEMANTICS.md) — implementation-backed execution and outcome rules.
 - [Architecture](docs/ARCHITECTURE.md) — boundaries, evidence, and non-goals.
 - [Contract inspection ledger](docs/CONTRACT_INSPECTION.md) — source-backed findings and unresolved decisions.
 - [Roadmap and readiness](docs/ROADMAP.md) — staged implementation and verification gates.
