@@ -24,6 +24,7 @@
 ### M2 — First executable workflow
 - [x] Add a minimal buildable .NET 8 probe project (focused test suite still pending).
 - [x] Define a versioned in-memory workflow definition contract (persisted format remains open).
+- [x] Document version-1 execution semantics and implementation-backed limits in [WORKFLOW_SEMANTICS.md](WORKFLOW_SEMANTICS.md).
 - [x] Execute and assert a deterministic state transition through the actual published FSM_API API in a probe.
 - [x] Demonstrate a deterministic terminal state in the API probe; workflow-level terminal-result model remains pending.
 - [x] Add and verify a deterministic multi-state fox/sheepdog scenario with explicit state assertions.
