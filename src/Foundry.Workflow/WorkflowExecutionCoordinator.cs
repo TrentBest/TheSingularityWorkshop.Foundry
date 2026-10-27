@@ -55,7 +55,7 @@ public sealed class WorkflowExecutionCoordinator : IAsyncDisposable
     /// </summary>
     public bool Cancel(Guid runId)
     {
-        CancellationTokenSource? cancellation = null;
+        CancellationTokenSource cancellation;
         lock (_gate)
         {
             var state = GetRun(runId);
