@@ -14,7 +14,7 @@ public sealed class WorkflowRunnerTests
         registry.Register("second", _ => { order.Add("second"); return ValueTask.CompletedTask; });
 
         var result = await new WorkflowRunner(registry).RunAsync(Definition(
-            new("step-1", "first"), new("step-2", "second")));
+            new WorkflowStep("step-1", "first"), new WorkflowStep("step-2", "second")));
 
         Assert.Equal(WorkflowStatus.Succeeded, result.Status);
         Assert.Equal(new[] { "first", "second" }, order);
@@ -47,7 +47,7 @@ public sealed class WorkflowRunnerTests
         registry.Register("later", _ => { calls++; return ValueTask.CompletedTask; });
 
         var result = await new WorkflowRunner(registry).RunAsync(Definition(
-            new("step-1", "fail"), new("step-2", "later")));
+            new WorkflowStep("step-1", "fail"), new WorkflowStep("step-2", "later")));
 
         Assert.Equal(WorkflowStatus.Failed, result.Status);
         Assert.Equal(StepStatus.Failed, result.Steps[0].Status);
@@ -69,7 +69,7 @@ public sealed class WorkflowRunnerTests
         registry.Register("later", _ => ValueTask.CompletedTask);
 
         var result = await new WorkflowRunner(registry).RunAsync(Definition(
-            new("step-1", "cancel"), new("step-2", "later")), source.Token);
+            new WorkflowStep("step-1", "cancel"), new WorkflowStep("step-2", "later")), source.Token);
 
         Assert.Equal(WorkflowStatus.Cancelled, result.Status);
         Assert.Equal(StepStatus.Cancelled, result.Steps[0].Status);
@@ -86,7 +86,7 @@ public sealed class WorkflowRunnerTests
         registry.Register("known", _ => { calls++; return ValueTask.CompletedTask; });
 
         var result = await new WorkflowRunner(registry).RunAsync(Definition(
-            new("step-1", "known")), source.Token);
+            new WorkflowStep("step-1", "known")), source.Token);
 
         Assert.Equal(WorkflowStatus.Cancelled, result.Status);
         Assert.Equal(0, calls);
