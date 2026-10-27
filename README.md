@@ -1,66 +1,66 @@
+<!-- The Singularity Workshop moniker -->
+<p align="center"><a href="https://github.com/TrentBest"><img src="https://raw.githubusercontent.com/TrentBest/TheSingularityWorkshop.Visualize/development/docs/assets/moniker.svg" alt="The Singularity Workshop animated moniker" width="720" /></a></p>
+
 # TheSingularityWorkshop.Foundry
 
-**A manifest-driven workflow and computation experiment for The Singularity Workshop.**
+[![CI](https://github.com/TrentBest/TheSingularityWorkshop.Foundry/actions/workflows/foundry-fsm-api-probe.yml/badge.svg?branch=development)](https://github.com/TrentBest/TheSingularityWorkshop.Foundry/actions/workflows/foundry-fsm-api-probe.yml)
+[![License: MIT](https://img.shields.io/github/license/TrentBest/TheSingularityWorkshop.Foundry)](LICENSE)
 
-Foundry explores whether complex, stateful workflows can be described as data and executed through the Workshop's own technologies—rather than embedding all orchestration logic in CI scripts or a host application.
+**Foundry is the host-neutral execution pipeline for The Singularity Workshop Hub.** It accepts explicit work, validates it before side effects, coordinates execution, and reports authoritative lifecycle state and structured outcomes. GUI may present that state when the Hub chooses to appear; GUI is not the executor.
 
-> **Status: first host-neutral workflow runtime added; CI verification pending.** Foundry now includes a versioned in-memory workflow definition, pre-execution validation, a host-owned handler allowlist, sequential execution, structured step/workflow outcomes, and focused tests. The existing FSM_API probe and fox/sheepdog trace remain separate demonstrations; they are not automatically treated as workflow steps.
+> **Implementation status:** the sequential workflow runner, preflight validation, structured outcomes, and an in-process retained lifecycle coordinator are implemented on \`development\`. The new coordinator tests must pass in a current CI run before this slice is called verified. No package publication or deployment is part of this work.
 
-## 01 — Vision
+## 01 — Why Foundry exists
 
-Define a workflow once, make its steps and transitions inspectable, and run it in different hosts. The first proof should be deliberately small: a deterministic FSM-driven workflow executed by GitHub Actions, with observable success and failure outcomes.
+Workflow meaning should not be buried in a desktop window, browser component, or CI YAML. Foundry provides a small, inspectable execution boundary that hosts can use without depending on GUI or a particular platform. Workflow definitions are data; hosts explicitly register the capabilities that definitions may invoke.
 
-Foundry is not intended to replace the Workshop's technologies or become a competing application framework.
+## 02 — Ownership boundaries
 
-## 02 — Architectural boundaries
+- **Foundry executes:** validates workflows; accepts and starts runs; coordinates lifecycle and cancellation; exposes status snapshots and structured outcomes.
+- **The / Architect owns the Hub experience:** decides what work to request and when the Hub should present itself.
+- **GUI presents:** renders the Hub workbench and maps explicit user intents to supported commands. It does not own execution state or the authoritative loop.
+- **FSM_COS composes:** resolves MicroBundles and returns a \`RuntimeAssembly\`. Composition is not workflow execution.
+- **Hosts provide capabilities:** headless applications, CI, WebPage, and desktop hosts adapt their environment and register permitted handlers.
+- **FSM_API supplies FSM mechanics** where a concrete integration consumes it. Foundry does not reimplement FSM_API.
 
-- **FSM_API** — state-machine mechanics where a component actually consumes FSM_API.
-- **FSM_COS** — runtime composition and capability coordination, subject to what its current implementation supports.
-- **FSM_Serialization** — binary representation infrastructure; it is not assumed to provide a universal workflow schema.
-- **ProtocolAi / GrammarAi** — possible future language-neutral contracts and language-specific grammar capabilities; not assumed to be integrated.
-- **AnyApp / WebApp** — potential hosts for manifest-driven workflows; hosting is a later proof, not a prerequisite for the first CI experiment.
-- **GitHub Actions** — trigger, runner, permissions, timeout, cancellation, and job-result boundary.
-- **Foundry** — the candidate workflow definition, validation, execution coordination, and result-reporting layer to be designed and tested here.
-- **Optional article publishing** — a future capability to build source-grounded technical articles and readable code-excerpt images; disabled by default and separate from the core runner.
+Foundry deliberately does not force workflow steps, WebPage process-group ticks, and FSM_COS \`RuntimeAssembly\` into one abstraction. They remain distinct until a source-backed, tested integration demonstrates the correct seam.
 
-A package name must reflect actual dependencies. Foundry deliberately has no FSM_ prefix unless its own package identity and direct dependency relationship later justify that choice.
+## 03 — See it in a minute
 
-## 03 — First proof
+Start with the [version-1 workflow definition](src/Foundry.Workflow/WorkflowDefinition.cs), [sequential runner](src/Foundry.Workflow/WorkflowRunner.cs), and [retained execution coordinator](src/Foundry.Workflow/WorkflowExecutionCoordinator.cs).
 
-The verified CI slice is deliberately narrower than the eventual workflow engine. It proves that Foundry's CI can compile and exercise the real FSM_API package without a mock. A second scenario extends the proof to the SimpleDemos fox/sheepdog state pattern and emits evidence intended for a future GUI:
+A host can:
+1. Register allowed operations in \`WorkflowHandlerRegistry\`.
+2. Submit a typed workflow definition and receive an \`Accepted\` run snapshot.
+3. Start that run once and observe its lifecycle through \`GetSnapshot\`.
+4. Request cancellation through \`Cancel\`.
+5. Read the terminal \`WorkflowResult\` and per-step outcomes.
 
-1. Restore and build the probe against `TheSingularityWorkshop.FSM_API` 1.0.13.
-2. Create a uniquely named FSM definition and instance.
-3. Verify `Ready` → `Complete` through the public FSM_API update path.
-4. Clean up the probe-owned definition; never call the known-defective global reset.
-5. Run the probe twice in separate processes, compare exact output, and upload both outputs as a short-lived CI artifact.
+The first version executes named handlers sequentially. It validates the complete definition before invoking any handler, stops after failure, distinguishes cancellation from failure, and records remaining steps as skipped. The coordinator retains snapshots only in memory.
 
-The basic probe's repeatability check runs twice in fresh processes and compares output byte-for-byte. The fox/sheepdog scenario is also run twice; CI compares its trace and SVG artifacts byte-for-byte. Its scripted tick inputs are deliberate: this verifies real FSM_API state execution and evidence generation without pretending to run the original interactive browser animation. The Foundry-owned version-1 workflow runtime and focused tests now exist; the remaining immediate proof is a current CI run that verifies those tests alongside the existing FSM_API and fox/sheepdog scenarios. Timeout enforcement, retry/recovery, and broader host integration remain out of scope for this slice. Publication and deployment remain outside the experiment and behind explicit approval.
+The separate [FSM_API probe](src/Foundry.FsmApiProbe/Program.cs) and [fox/sheepdog scenario](src/Foundry.FoxSheepdog/Program.cs) remain deterministic state-execution demonstrations. They exercise real FSM_API behavior and generate reproducible evidence; they are not automatically treated as Hub workflows.
 
-The implementation choice must follow repository evidence. Prefer reusing FSM_API/FSM_COS where their real contracts fit; do not build a parallel runtime or claim integration before it works. See the [source contract inspection ledger](docs/CONTRACT_INSPECTION.md) for the first pass through actual repositories and the remaining unknowns.
+## 04 — Contracts, tests, and boundaries
 
-## 04 — See it in a minute
+- [Workflow semantics](docs/WORKFLOW_SEMANTICS.md) — validation, execution, lifecycle, cancellation, and outcome rules.
+- [Domain and ownership](docs/DOMAIN.md) — what Foundry owns and what it does not.
+- [Architecture](docs/ARCHITECTURE.md) — subsystem boundaries and integration decisions.
+- [Contract inspection ledger](docs/CONTRACT_INSPECTION.md) — source-backed findings and unresolved questions.
+- [Roadmap and readiness](docs/ROADMAP.md) — milestones and verification gates.
+- [Documentation index](DOCUMENTATION_INDEX.md) — documentation entry points.
+- [UML documentation](docs/UML/README.md) — source-grounded diagram policy and inventory.
 
-**Start with the [FSM_API probe](src/Foundry.FsmApiProbe/Program.cs) and [fox/sheepdog scenario](src/Foundry.FoxSheepdog/Program.cs).** The [successful CI run](https://github.com/TrentBest/TheSingularityWorkshop.Foundry/actions/runs/40025709384) built both projects, executed the fox/dog scenario twice, checked state assertions and deterministic output, then uploaded a `fox-sheepdog.trace` and a `fox-sheepdog.svg` generated from the observed events. This remains a state-execution proof, not yet a manifest-driven Foundry workflow engine.
+The focused xUnit suite covers ordering, invalid definitions, failure, cancellation, and retained run lifecycle. The [Foundry CI workflow](.github/workflows/foundry-fsm-api-probe.yml) runs those tests alongside the FSM_API and fox/sheepdog evidence checks.
 
-## 05 — First workflow runtime
+## 05 — Limits and next steps
 
-The first runtime slice intentionally supports **sequential, in-process, version-1 workflow definitions** only. A definition names steps and handler keys; the host registers the actual operations. Foundry validates every step before invoking any handler. A failed step stops later work, cancellation is distinct from failure, and remaining steps are reported as skipped. No arbitrary scripts, persisted manifest format, retry policy, parallel execution, or publication action is included.
+The current contract is in-memory and sequential. It does not provide durable run history, persisted JSON/YAML manifests, retries, compensation, parallel/distributed execution, enforced handler timeouts, or recovery after process loss. Cancellation is cooperative: handlers must honor their token.
 
-- [Workflow runtime source](src/Foundry.Workflow/WorkflowRunner.cs)
-- [Workflow definition contract](src/Foundry.Workflow/WorkflowDefinition.cs)
-- [Workflow validation](src/Foundry.Workflow/WorkflowValidator.cs)
-- [Focused runtime tests](tests/Foundry.Workflow.Tests/WorkflowRunnerTests.cs)
+The next gate is a current green CI run for the coordinator and runner tests. After that, trace WebPage's real Hub callers and tests to identify which behaviors are workflows, host-scheduled work, or legacy process-group ticks. Preserve those distinctions, add only a proven adapter, and then stabilize the minimal presentation-facing contract for GUI. Broader host migration, generated UML, and optional article workflows follow evidence rather than precede it.
 
-## 06 — Documentation and readiness
+Publication, release, and deployment remain separate actions and require Trent's explicit approval.
 
-- [Gallery](Gallery.md) — planned living demonstrations and recipes, including optional article production.
-- [Documentation index](DOCUMENTATION_INDEX.md) — documentation entry points and coverage.
-- [Domain and ownership](docs/DOMAIN.md) — domain boundary and invariants.
-- [Workflow semantics](docs/WORKFLOW_SEMANTICS.md) — implementation-backed execution and outcome rules.
-- [Architecture](docs/ARCHITECTURE.md) — boundaries, evidence, and non-goals.
-- [Contract inspection ledger](docs/CONTRACT_INSPECTION.md) — source-backed findings and unresolved decisions.
-- [Roadmap and readiness](docs/ROADMAP.md) — staged implementation and verification gates.
-- [UML documentation](docs/UML/README.md) — diagram policy and current evidence status.
+---
 
-Readiness has not yet been reassessed against the new workflow runtime; the current CI run must verify the new tests before claiming the executable slice is green. The runtime currently covers typed in-memory definitions, validation, sequential execution, handled failure, and cancellation, but not persisted manifests, retry/recovery, timeout enforcement, or cross-repository orchestration.
+<!-- THE SINGULARITY WORKSHOP FOOTER -->
+<p align="center"><img src="https://raw.githubusercontent.com/TrentBest/FSM_API/master/Documentation/Branding/TheSingularityWorkshop.png" alt="The Singularity Workshop avatar" width="200" /></p>
