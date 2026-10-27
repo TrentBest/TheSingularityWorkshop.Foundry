@@ -8,6 +8,7 @@
 - [README](README.md) — product intent and five-section overview.
 - [Gallery](Gallery.md) — demonstrations and recipes.
 - [Domain and ownership](docs/DOMAIN.md) — proposed Foundry domain, ownership boundaries, safety invariants, and first release slice.
+- [Workflow semantics](docs/WORKFLOW_SEMANTICS.md) — version-1 execution model, validation, outcomes, and explicit limitations.
 - [Architecture](docs/ARCHITECTURE.md) — system boundaries and evidence labels.
 - [Contract inspection ledger](docs/CONTRACT_INSPECTION.md) — source-backed findings from the Workshop stack and unresolved decisions.
 - [Roadmap and readiness](docs/ROADMAP.md) — milestones and verification gates.
