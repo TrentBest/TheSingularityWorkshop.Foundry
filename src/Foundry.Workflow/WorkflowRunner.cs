@@ -48,7 +48,7 @@ public sealed class WorkflowRunner(WorkflowHandlerRegistry handlers)
             {
                 failed = true;
                 results.Add(new(step.Id, step.HandlerKey, StepStatus.Failed,
-                    $"{exception.GetType().Name}: {exception.Message}"));
+                    $"Handler failed with {exception.GetType().Name}."));
             }
         }
 
