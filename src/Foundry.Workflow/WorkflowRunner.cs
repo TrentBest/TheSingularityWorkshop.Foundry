@@ -54,7 +54,7 @@ public sealed class WorkflowRunner(WorkflowHandlerRegistry handlers)
 
         var status = cancelled ? WorkflowStatus.Cancelled :
             failed ? WorkflowStatus.Failed : WorkflowStatus.Succeeded;
-        return new WorkflowResult(definition.Id, status, results.AsReadOnly(),
+        return new WorkflowResult(definition!.Id, status, results.AsReadOnly(),
             Array.Empty<WorkflowDiagnostic>());
     }
 }
