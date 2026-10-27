@@ -13,7 +13,7 @@ public sealed class WorkflowExecutionCoordinatorTests
         registry.Register("work", _ => { calls++; return ValueTask.CompletedTask; });
         await using var coordinator = new WorkflowExecutionCoordinator(registry);
 
-        var accepted = coordinator.Submit(Definition(new("step-1", "work")));
+        var accepted = coordinator.Submit(Definition(new WorkflowStep("step-1", "work")));
 
         Assert.Equal(WorkflowRunStatus.Accepted, accepted.Status);
         Assert.Null(accepted.StartedAt);
@@ -42,7 +42,7 @@ public sealed class WorkflowExecutionCoordinatorTests
             await Task.Delay(Timeout.InfiniteTimeSpan, token);
         });
         await using var coordinator = new WorkflowExecutionCoordinator(registry);
-        var accepted = coordinator.Submit(Definition(new("step-1", "wait")));
+        var accepted = coordinator.Submit(Definition(new WorkflowStep("step-1", "wait")));
 
         var completion = coordinator.StartAsync(accepted.RunId);
         await entered.Task.WaitAsync(TimeSpan.FromSeconds(5));
@@ -66,7 +66,7 @@ public sealed class WorkflowExecutionCoordinatorTests
         var registry = new WorkflowHandlerRegistry();
         registry.Register("work", _ => { calls++; return ValueTask.CompletedTask; });
         await using var coordinator = new WorkflowExecutionCoordinator(registry);
-        var accepted = coordinator.Submit(Definition(new("step-1", "work")));
+        var accepted = coordinator.Submit(Definition(new WorkflowStep("step-1", "work")));
 
         Assert.True(coordinator.Cancel(accepted.RunId));
 
@@ -86,7 +86,7 @@ public sealed class WorkflowExecutionCoordinatorTests
     {
         var registry = new WorkflowHandlerRegistry();
         await using var coordinator = new WorkflowExecutionCoordinator(registry);
-        var accepted = coordinator.Submit(Definition(new("step-1", "not-registered")));
+        var accepted = coordinator.Submit(Definition(new WorkflowStep("step-1", "not-registered")));
 
         var result = await coordinator.StartAsync(accepted.RunId);
 
@@ -103,7 +103,7 @@ public sealed class WorkflowExecutionCoordinatorTests
         var registry = new WorkflowHandlerRegistry();
         registry.Register("wait", async token => await release.Task.WaitAsync(token));
         await using var coordinator = new WorkflowExecutionCoordinator(registry);
-        var accepted = coordinator.Submit(Definition(new("step-1", "wait")));
+        var accepted = coordinator.Submit(Definition(new WorkflowStep("step-1", "wait")));
 
         var first = coordinator.StartAsync(accepted.RunId);
         await Assert.ThrowsAsync<InvalidOperationException>(
