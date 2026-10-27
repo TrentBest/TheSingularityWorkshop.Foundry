@@ -14,11 +14,12 @@ public sealed class WorkflowRunner(WorkflowHandlerRegistry handlers)
             return new WorkflowResult(definition?.Id ?? string.Empty, WorkflowStatus.Invalid,
                 Array.Empty<StepResult>(), diagnostics);
 
-        var results = new List<StepResult>(definition!.Steps.Count);
+        var validDefinition = definition!;
+        var results = new List<StepResult>(validDefinition.Steps.Count);
         var cancelled = false;
         var failed = false;
 
-        foreach (var step in definition.Steps)
+        foreach (var step in validDefinition.Steps)
         {
             if (cancelled || failed)
             {
@@ -54,7 +55,7 @@ public sealed class WorkflowRunner(WorkflowHandlerRegistry handlers)
 
         var status = cancelled ? WorkflowStatus.Cancelled :
             failed ? WorkflowStatus.Failed : WorkflowStatus.Succeeded;
-        return new WorkflowResult(definition!.Id, status, results.AsReadOnly(),
+        return new WorkflowResult(validDefinition.Id, status, results.AsReadOnly(),
             Array.Empty<WorkflowDiagnostic>());
     }
 }
