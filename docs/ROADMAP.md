@@ -1,6 +1,6 @@
 # Foundry Roadmap and Readiness
 
-**Current readiness: 30%.** The original real-package FSM_API probe and the deterministic fox/sheepdog scenario both pass CI. The second proof asserts multiple states and a cross-FSM transition, then compares TSV trace and SVG evidence from two fresh processes. This is still far short of a workflow runtime or release-ready product.
+**Current readiness: 30%.** The original real-package FSM_API probe and the deterministic fox/sheepdog scenario both pass CI. The second proof asserts multiple states and a cross-FSM transition, then compares TSV trace and SVG evidence from two fresh processes. The Foundry-owned workflow contract and runtime are still absent; the initial domain proposal does not itself raise implementation readiness.
 
 ## Milestones
 
@@ -10,14 +10,16 @@
 - [x] Add documentation navigation, Gallery, and roadmap.
 - [ ] Verify repository branch policy and protect intended development flow.
 
-### M1 — Inspect the actual Workshop contracts
+### M1 — Define the domain from real Workshop contracts
 - [x] Inspect FSM_API public builder/context APIs and its CI workflow.
 - [x] Inspect FSM_COS composition contract and runtime boundary.
 - [x] Inspect the FSM_Serialization representation boundary.
 - [x] Inspect ProtocolAi/GrammarAi responsibility boundaries and AnyApp's host path at README/project/source level.
+- [x] Record an initial Foundry domain and ownership proposal in [DOMAIN.md](DOMAIN.md).
 - [ ] Inspect deeper tests and WebApp implementation before selecting an integration seam.
-- [ ] Decide whether Foundry needs its own runtime or only a workflow definition and thin adapter.
-- [ ] Record final decisions and source-derived UML.
+- [ ] Decide whether the first useful runtime is a small workflow coordinator plus adapters, and prove the choice with tests.
+- [ ] Choose typed versus persisted workflow-definition representation based on concrete use cases and compatibility needs.
+- [ ] Record final contract decisions and source-derived UML.
 
 ### M2 — First executable workflow
 - [x] Add a minimal buildable .NET 8 probe project (focused test suite still pending).
@@ -26,6 +28,7 @@
 - [x] Demonstrate a deterministic terminal state in the API probe; workflow-level terminal-result model remains pending.
 - [x] Add and verify a deterministic multi-state fox/sheepdog scenario with explicit state assertions.
 - [ ] Add invalid-definition and handled-failure tests.
+- [ ] Produce structured step and workflow outcomes distinct from console output and host exit codes.
 
 ### M3 — CI proof
 - [x] Run the FSM_API probe in GitHub Actions; the manifest-driven workflow itself remains pending.
@@ -37,6 +40,7 @@
 - [ ] Publish workflow logs and a concise evidence summary.
 
 ### M4 — Living documentation and optional article production
+- [ ] Align README and existing docs with the FSM_COS reader journey, moniker, badge, visual, and footer standards.
 - [ ] Generate diagrams from real source/runtime evidence.
 - [ ] Include stable type identity, source spans, and provenance.
 - [ ] Add stale-output verification and a focused change test.
@@ -55,11 +59,11 @@
 
 | Gate | Weight | Current evidence |
 |---|---:|---|
-| Purpose and dependency boundaries | 15% | Initial docs plus source-level contract inspection |
+| Purpose and dependency boundaries | 15% | Source-level contract inspection plus an initial domain proposal |
 | Contracts and implementation | 20% | Two real-package FSM_API proofs implemented; workflow contract/runtime absent |
-| Automated tests | 20% | No Foundry tests |
-| CI execution and security | 20% | Pinned-action workflow passes with read-only contents permission and 10-minute timeout; broader threat cases pending |
+| Automated tests | 20% | No Foundry test project yet |
+| CI execution and security | 20% | Pinned-action workflow has read-only contents permission and a 15-minute timeout; broader threat cases pending |
 | Demonstration and reproducibility | 15% | Successful basic probe plus fox/dog state assertions, cross-FSM transition, repeatable trace/SVG, and uploaded artifact |
-| Documentation/UML completeness | 10% | Bootstrap docs and source-inspection notes; source-derived Foundry UML awaits code |
+| Documentation/UML completeness | 10% | Bootstrap docs and source-inspection notes; source-derived Foundry UML awaits domain types |
 
 **No release recommendation yet.** Readiness rises when gates are supported by verifiable implementation and test evidence, not merely by adding documents. Documentation-only progress does not by itself increase readiness. The 30% estimate reflects two verified CI proofs, not a release-ready workflow system.
