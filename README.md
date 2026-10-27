@@ -4,7 +4,7 @@
 
 Foundry explores whether complex, stateful workflows can be described as data and executed through the Workshop's own technologies—rather than embedding all orchestration logic in CI scripts or a host application.
 
-> **Status: verified CI probe plus fox/sheepdog state trace.** Foundry now has a second .NET 8 executable that exercises the fox and sheepdog state contracts through FSM_API, asserts the cross-FSM transition, and emits a TSV trace plus SVG visualization. The workflow runs both executables and compares the fox/sheepdog evidence across fresh processes. The Foundry workflow-manifest/runtime contract remains unimplemented.
+> **Status: first host-neutral workflow runtime added; CI verification pending.** Foundry now includes a versioned in-memory workflow definition, pre-execution validation, a host-owned handler allowlist, sequential execution, structured step/workflow outcomes, and focused tests. The existing FSM_API probe and fox/sheepdog trace remain separate demonstrations; they are not automatically treated as workflow steps.
 
 ## 01 — Vision
 
@@ -43,13 +43,23 @@ The implementation choice must follow repository evidence. Prefer reusing FSM_AP
 
 **Start with the [FSM_API probe](src/Foundry.FsmApiProbe/Program.cs) and [fox/sheepdog scenario](src/Foundry.FoxSheepdog/Program.cs).** The [successful CI run](https://github.com/TrentBest/TheSingularityWorkshop.Foundry/actions/runs/40025709384) built both projects, executed the fox/dog scenario twice, checked state assertions and deterministic output, then uploaded a `fox-sheepdog.trace` and a `fox-sheepdog.svg` generated from the observed events. This remains a state-execution proof, not yet a manifest-driven Foundry workflow engine.
 
-## 05 — Documentation and readiness
+## 05 — First workflow runtime
+
+The first runtime slice intentionally supports **sequential, in-process, version-1 workflow definitions** only. A definition names steps and handler keys; the host registers the actual operations. Foundry validates every step before invoking any handler. A failed step stops later work, cancellation is distinct from failure, and remaining steps are reported as skipped. No arbitrary scripts, persisted manifest format, retry policy, parallel execution, or publication action is included.
+
+- [Workflow runtime source](src/Foundry.Workflow/WorkflowRunner.cs)
+- [Workflow definition contract](src/Foundry.Workflow/WorkflowDefinition.cs)
+- [Workflow validation](src/Foundry.Workflow/WorkflowValidator.cs)
+- [Focused runtime tests](tests/Foundry.Workflow.Tests/WorkflowRunnerTests.cs)
+
+## 06 — Documentation and readiness
 
 - [Gallery](Gallery.md) — planned living demonstrations and recipes, including optional article production.
 - [Documentation index](DOCUMENTATION_INDEX.md) — documentation entry points and coverage.
+- [Domain and ownership](docs/DOMAIN.md) — domain boundary and invariants.
 - [Architecture](docs/ARCHITECTURE.md) — boundaries, evidence, and non-goals.
 - [Contract inspection ledger](docs/CONTRACT_INSPECTION.md) — source-backed findings and unresolved decisions.
 - [Roadmap and readiness](docs/ROADMAP.md) — staged implementation and verification gates.
 - [UML documentation](docs/UML/README.md) — diagram policy and current evidence status.
 
-Readiness is now **30% (two verified FSM_API CI proofs, including deterministic fox/sheepdog trace and SVG artifacts)**. This still does not prove a Foundry workflow manifest, failure/recovery behavior, invalid-definition rejection, or cross-repository orchestration.
+Readiness has not yet been reassessed against the new workflow runtime; the current CI run must verify the new tests before claiming the executable slice is green. The runtime currently covers typed in-memory definitions, validation, sequential execution, handled failure, and cancellation, but not persisted manifests, retry/recovery, timeout enforcement, or cross-repository orchestration.
