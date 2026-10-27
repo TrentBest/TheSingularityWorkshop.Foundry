@@ -23,7 +23,7 @@ The coordinator is in-process and in-memory. It does not provide durable run his
 
 ## Verification
 
-See [WorkflowExecutionCoordinatorTests](../../tests/Foundry.Workflow.Tests/WorkflowExecutionCoordinatorTests.cs) for lifecycle, cancellation, invalid-workflow, and single-start behavior. The CI run must pass before the implementation is considered verified.
+See [WorkflowExecutionCoordinatorTests](../../tests/Foundry.Workflow.Tests/WorkflowExecutionCoordinatorTests.cs) for lifecycle, cancellation, invalid-workflow, and single-start behavior. The tests passed in [development CI run #84](https://github.com/TrentBest/TheSingularityWorkshop.Foundry/actions/runs/40546957980).
 
 ## UML
 
