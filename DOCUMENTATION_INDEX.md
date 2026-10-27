@@ -18,17 +18,17 @@
 
 | Area | Current status | Evidence / next action |
 |---|---|---|
-| Product vision and boundaries | Initial domain proposal documented | [Domain and ownership](docs/DOMAIN.md); validate proposed concepts against a working contract and tests |
+| Product vision and boundaries | Domain and ownership documented against the implemented version-1 runtime | [Domain and ownership](docs/DOMAIN.md); validate proposed concepts against a working contract and tests |
 | Source contract exploration | First pass recorded | [Contract inspection ledger](docs/CONTRACT_INSPECTION.md); deeper tests and WebApp source remain |
-| Runnable workflow definition | Version-1 in-memory sequential contract implemented; CI verification pending | [Definition](src/Foundry.Workflow/WorkflowDefinition.cs), [validator](src/Foundry.Workflow/WorkflowValidator.cs), [runner](src/Foundry.Workflow/WorkflowRunner.cs); persisted format remains open |
+| Runnable workflow definition | Version-1 in-memory sequential contract implemented; latest CI verification pending | [Definition](src/Foundry.Workflow/WorkflowDefinition.cs), [validator](src/Foundry.Workflow/WorkflowValidator.cs), [runner](src/Foundry.Workflow/WorkflowRunner.cs); persisted format remains open |
 | FSM_API integration | Basic real-package probe passes; expanded state scenario added | [Probe source](src/Foundry.FsmApiProbe/Program.cs), [fox/sheepdog scenario](src/Foundry.FoxSheepdog/Program.cs), [CI workflow](.github/workflows/foundry-fsm-api-probe.yml), and [successful expanded CI run](https://github.com/TrentBest/TheSingularityWorkshop.Foundry/actions/runs/40025709384) |
 | FSM_COS integration | Boundary inspected; Foundry integration not implemented | Only use for composition if a concrete workflow requires it |
 | FSM_Serialization integration | Responsibility inspected; format not selected | Keep domain semantics in the owning contract; do not assume arbitrary-object serialization |
-| CI execution | Probe workflow passes | [Workflow](.github/workflows/foundry-fsm-api-probe.yml); add manifest-level tests, failure cases, cancellation and timeout |
+| CI execution | Earlier FSM_API/fox-sheepdog proof passes; workflow-runtime test result still needs confirmation | [Workflow](.github/workflows/foundry-fsm-api-probe.yml); verify the current run before raising readiness |
 | Source-derived UML | Not implemented | Add diagrams after domain types exist |
 | Living Gallery | Basic probe and trace-derived SVG scenario verified | [Gallery](Gallery.md) and [successful expanded CI run](https://github.com/TrentBest/TheSingularityWorkshop.Foundry/actions/runs/40025709384) |
 | Optional article publishing | Design documented; not implemented | Build source-grounded article preview and excerpt images; keep external publishing opt-in |
-| Tests and abuse cases | Runtime tests added for order, invalid definitions, failure, cancellation, and duplicate handler keys; CI verification pending | Add timeout semantics, broader adversarial inputs, and recovery/retry only after contracts are defined |
+| Tests and abuse cases | Runtime tests cover order, invalid definitions, failure, cancellation, pre-cancelled runs, and duplicate handler keys; latest CI verification pending | Add timeout semantics, broader adversarial inputs, and recovery/retry only after contracts are defined |
 | Release/publication | Not in scope | Requires explicit approval |
 
 ## Update rule
