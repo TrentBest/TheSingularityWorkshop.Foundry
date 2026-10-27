@@ -51,13 +51,15 @@ public sealed class WorkflowExecutionCoordinator : IAsyncDisposable
 
     /// <summary>
     /// Requests cancellation of a running run, or cancels an accepted run before it starts.
-    /// Returns false when the run is already terminal.
+    /// Returns false when the run is already terminal or the coordinator is disposing/disposed.
     /// </summary>
     public bool Cancel(Guid runId)
     {
-        CancellationTokenSource cancellation;
         lock (_gate)
         {
+            if (_disposed)
+                return false;
+
             var state = GetRun(runId);
             if (state.Status == WorkflowRunStatus.Accepted)
             {
@@ -72,12 +74,10 @@ public sealed class WorkflowExecutionCoordinator : IAsyncDisposable
             if (state.Status != WorkflowRunStatus.Running)
                 return false;
 
-            cancellation = state.Cancellation;
+            // CancelAsync requests cancellation without running arbitrary callbacks under _gate.
+            _ = state.Cancellation.CancelAsync();
+            return true;
         }
-
-        // Cancellation callbacks may run synchronously, so never cancel while holding _gate.
-        cancellation.Cancel();
-        return true;
     }
 
     /// <summary>Returns an immutable snapshot of the current lifecycle and latest result.</summary>
@@ -117,16 +117,20 @@ public sealed class WorkflowExecutionCoordinator : IAsyncDisposable
             completions = _runs.Values.Select(state => state.Completion.Task).ToArray();
         }
 
-        foreach (var cancellation in cancellations)
-            cancellation.Cancel();
-
-        // Handlers are cooperatively cancellable; disposal waits for running handlers to finish.
-        await Task.WhenAll(completions).ConfigureAwait(false);
-
-        lock (_gate)
+        var cancellationTasks = cancellations.Select(cancellation => cancellation.CancelAsync()).ToArray();
+        try
         {
-            foreach (var state in _runs.Values)
-                state.Cancellation.Dispose();
+            // Wait for both cancellation callbacks and cooperative handlers before releasing resources.
+            await Task.WhenAll(Task.WhenAll(cancellationTasks), Task.WhenAll(completions))
+                .ConfigureAwait(false);
+        }
+        finally
+        {
+            lock (_gate)
+            {
+                foreach (var state in _runs.Values)
+                    state.Cancellation.Dispose();
+            }
         }
     }
 
