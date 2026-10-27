@@ -3,7 +3,7 @@
 
 # Foundry Roadmap and Readiness
 
-**Current readiness: 35% pending CI verification.** The real-package FSM_API probe and deterministic fox/sheepdog scenario passed prior CI. The version-1 sequential workflow runner, focused tests, and a retained in-process lifecycle coordinator are now present on \`development\`; the current CI run must verify the new lifecycle tests before readiness is recalculated.
+**Current readiness: 30% pending CI verification.** The real-package FSM_API probe and deterministic fox/sheepdog scenario passed prior CI. The version-1 sequential workflow runner, focused tests, and a retained in-process lifecycle coordinator are now present on \`development\`; the current CI run must verify the new lifecycle tests before readiness is recalculated.
 
 ## Milestones
 
@@ -70,7 +70,7 @@
 | Demonstration and reproducibility | 15% | Successful basic probe plus fox/dog state assertions, cross-FSM transition, repeatable trace/SVG, and uploaded artifact |
 | Documentation/UML completeness | 10% | Bootstrap docs and source-inspection notes; lifecycle UML and complete reader journey remain |
 
-**No release recommendation yet.** Readiness rises when gates are supported by verifiable implementation and test evidence, not merely by adding documents. The 35% estimate is provisional until the new coordinator tests pass in CI; it is not a release-readiness claim.
+**No release recommendation yet.** Readiness rises when gates are supported by verifiable implementation and test evidence, not merely by adding documents. The 30% estimate remains unchanged until the new coordinator tests pass in CI; implementation alone is not a verification result.
 
 ---
 
