@@ -1,6 +1,9 @@
+<!-- The Singularity Workshop moniker -->
+<p align="center"><a href="https://github.com/TrentBest"><img src="https://raw.githubusercontent.com/TrentBest/TheSingularityWorkshop.Visualize/development/docs/assets/moniker.svg" alt="The Singularity Workshop animated moniker" width="720" /></a></p>
+
 # Foundry Roadmap and Readiness
 
-**Current readiness: 30% pending reassessment.** The real-package FSM_API probe and deterministic fox/sheepdog scenario passed prior CI. A first Foundry-owned workflow runtime and focused tests have now been added on `development`; the current CI run must verify them before readiness is recalculated.
+**Current readiness: 35% pending CI verification.** The real-package FSM_API probe and deterministic fox/sheepdog scenario passed prior CI. The version-1 sequential workflow runner, focused tests, and a retained in-process lifecycle coordinator are now present on \`development\`; the current CI run must verify the new lifecycle tests before readiness is recalculated.
 
 ## Milestones
 
@@ -16,27 +19,27 @@
 - [x] Inspect the FSM_Serialization representation boundary.
 - [x] Inspect ProtocolAi/GrammarAi responsibility boundaries and AnyApp's host path at README/project/source level.
 - [x] Record an initial Foundry domain and ownership proposal in [DOMAIN.md](DOMAIN.md).
-- [ ] Inspect deeper tests and WebApp implementation before selecting an integration seam.
-- [ ] Decide whether the first useful runtime is a small workflow coordinator plus adapters, and prove the choice with tests.
-- [ ] Choose typed versus persisted workflow-definition representation based on concrete use cases and compatibility needs.
-- [ ] Record final contract decisions and source-derived UML.
+- [ ] Trace representative WebPage Hub callers/tests end-to-end before proposing a migration.
+- [ ] Record final source-backed contract decisions and source-derived UML.
 
 ### M2 — First executable workflow
-- [x] Add a minimal buildable .NET 8 probe project (focused test suite still pending).
+- [x] Add a minimal buildable .NET 8 probe project.
 - [x] Define a versioned in-memory workflow definition contract (persisted format remains open).
-- [x] Document version-1 execution semantics and implementation-backed limits in [WORKFLOW_SEMANTICS.md](WORKFLOW_SEMANTICS.md).
+- [x] Document version-1 execution semantics in [WORKFLOW_SEMANTICS.md](WORKFLOW_SEMANTICS.md).
 - [x] Execute and assert a deterministic state transition through the actual published FSM_API API in a probe.
-- [x] Demonstrate a deterministic terminal state in the API probe; workflow-level terminal-result model remains pending.
+- [x] Demonstrate a deterministic terminal state in the API probe.
 - [x] Add and verify a deterministic multi-state fox/sheepdog scenario with explicit state assertions.
 - [x] Add invalid-definition, handled-failure, ordering, cancellation, and handler-registration tests.
 - [x] Produce structured step and workflow outcomes distinct from console output and host exit codes.
+- [x] Add retained in-process run lifecycle: submit, start once, observe snapshots, cancel, and async disposal.
+- [ ] Verify coordinator lifecycle tests in a current CI run.
 
 ### M3 — CI proof
 - [x] Run the FSM_API probe in GitHub Actions; the manifest-driven workflow itself remains pending.
-- [x] Verify CI exit-code mapping and upload a probe-output artifact; workflow result/artifact contract remains pending.
+- [x] Verify CI exit-code mapping and upload a probe-output artifact.
 - [x] Compare deterministic output from two fresh basic-probe processes.
 - [x] Run the fox/sheepdog scenario in two fresh processes and compare TSV and SVG evidence byte-for-byte.
-- [ ] Prove workflow-level timeout/cancellation behavior.
+- [ ] Prove workflow-level timeout enforcement.
 - [ ] Harden permissions for untrusted pull requests.
 - [ ] Publish workflow logs and a concise evidence summary.
 
@@ -61,10 +64,15 @@
 | Gate | Weight | Current evidence |
 |---|---:|---|
 | Purpose and dependency boundaries | 15% | Source-level contract inspection plus an initial domain proposal |
-| Contracts and implementation | 20% | Version-1 in-memory workflow contract and sequential runtime added; CI verification pending |
-| Automated tests | 20% | Focused xUnit project added; current CI verification pending |
+| Contracts and implementation | 20% | Version-1 in-memory workflow runner plus retained lifecycle coordinator; CI verification pending |
+| Automated tests | 20% | Focused runner and lifecycle xUnit tests; current CI verification pending |
 | CI execution and security | 20% | Pinned-action workflow has read-only contents permission and a 15-minute timeout; broader threat cases pending |
 | Demonstration and reproducibility | 15% | Successful basic probe plus fox/dog state assertions, cross-FSM transition, repeatable trace/SVG, and uploaded artifact |
-| Documentation/UML completeness | 10% | Bootstrap docs and source-inspection notes; source-derived Foundry UML awaits domain types |
+| Documentation/UML completeness | 10% | Bootstrap docs and source-inspection notes; lifecycle UML and complete reader journey remain |
 
-**No release recommendation yet.** Readiness rises when gates are supported by verifiable implementation and test evidence, not merely by adding documents. Documentation-only progress does not by itself increase readiness. The 30% estimate reflects two verified CI proofs, not a release-ready workflow system.
+**No release recommendation yet.** Readiness rises when gates are supported by verifiable implementation and test evidence, not merely by adding documents. The 35% estimate is provisional until the new coordinator tests pass in CI; it is not a release-readiness claim.
+
+---
+
+<!-- THE SINGULARITY WORKSHOP FOOTER -->
+<p align="center"><img src="https://raw.githubusercontent.com/TrentBest/FSM_API/master/Documentation/Branding/TheSingularityWorkshop.png" alt="The Singularity Workshop avatar" width="200" /></p>
