@@ -51,7 +51,7 @@ public sealed class WorkflowRunnerTests
 
         Assert.Equal(WorkflowStatus.Failed, result.Status);
         Assert.Equal(StepStatus.Failed, result.Steps[0].Status);
-        Assert.Contains("expected", result.Steps[0].Error!);
+        Assert.Contains("InvalidOperationException", result.Steps[0].Error!);
         Assert.Equal(StepStatus.Skipped, result.Steps[1].Status);
         Assert.Equal(0, calls);
     }
