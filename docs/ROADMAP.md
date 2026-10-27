@@ -19,7 +19,7 @@
 - [x] Inspect the FSM_Serialization representation boundary.
 - [x] Inspect ProtocolAi/GrammarAi responsibility boundaries and AnyApp's host path at README/project/source level.
 - [x] Record an initial Foundry domain and ownership proposal in [DOMAIN.md](DOMAIN.md).
-- [ ] Trace representative WebPage Hub callers/tests end-to-end before proposing a migration.
+- [x] Trace representative WebPage Hub contracts, callers, and tests; record the non-equivalence and safe host-adapter seam in [HUB_INTEGRATION_BOUNDARY.md](HUB_INTEGRATION_BOUNDARY.md).
 - [ ] Record final source-backed contract decisions and source-derived UML.
 
 ### M2 — First executable workflow
@@ -39,7 +39,7 @@
 - [x] Verify CI exit-code mapping and upload a probe-output artifact.
 - [x] Compare deterministic output from two fresh basic-probe processes.
 - [x] Run the fox/sheepdog scenario in two fresh processes and compare TSV and SVG evidence byte-for-byte.
-- [ ] Prove workflow-level timeout enforcement.
+- [ ] Prove workflow-level timeout enforcement and distinguish timeout from caller-requested cancellation.
 - [ ] Harden permissions for untrusted pull requests.
 - [ ] Publish workflow logs and a concise evidence summary.
 
@@ -68,7 +68,7 @@
 | Automated tests | 20% | Focused runner and lifecycle xUnit tests passed in CI run #84 |
 | CI execution and security | 20% | Pinned-action workflow has read-only contents permission and a 15-minute timeout; broader threat cases pending |
 | Demonstration and reproducibility | 15% | Successful basic probe plus fox/dog state assertions, cross-FSM transition, repeatable trace/SVG, and uploaded artifact |
-| Documentation/UML completeness | 10% | Bootstrap docs and source-inspection notes; lifecycle UML and complete reader journey remain |
+| Documentation/UML completeness | 10% | Bootstrap docs, lifecycle UML, and Hub integration boundary; source-derived UML and complete reader journey remain |
 
 **No release recommendation yet.** Readiness rises when gates are supported by verifiable implementation and test evidence, not merely by adding documents. The 35% estimate reflects the additional lifecycle implementation and its successful CI verification; it is not a release-readiness claim.
 
