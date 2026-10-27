@@ -1,6 +1,6 @@
 # Foundry Roadmap and Readiness
 
-**Current readiness: 30%.** The original real-package FSM_API probe and the deterministic fox/sheepdog scenario both pass CI. The second proof asserts multiple states and a cross-FSM transition, then compares TSV trace and SVG evidence from two fresh processes. The Foundry-owned workflow contract and runtime are still absent; the initial domain proposal does not itself raise implementation readiness.
+**Current readiness: 30% pending reassessment.** The real-package FSM_API probe and deterministic fox/sheepdog scenario passed prior CI. A first Foundry-owned workflow runtime and focused tests have now been added on `development`; the current CI run must verify them before readiness is recalculated.
 
 ## Milestones
 
@@ -23,12 +23,12 @@
 
 ### M2 — First executable workflow
 - [x] Add a minimal buildable .NET 8 probe project (focused test suite still pending).
-- [ ] Define and validate one versioned workflow definition using a representation chosen from evidence.
+- [x] Define a versioned in-memory workflow definition contract (persisted format remains open).
 - [x] Execute and assert a deterministic state transition through the actual published FSM_API API in a probe.
 - [x] Demonstrate a deterministic terminal state in the API probe; workflow-level terminal-result model remains pending.
 - [x] Add and verify a deterministic multi-state fox/sheepdog scenario with explicit state assertions.
-- [ ] Add invalid-definition and handled-failure tests.
-- [ ] Produce structured step and workflow outcomes distinct from console output and host exit codes.
+- [x] Add invalid-definition, handled-failure, ordering, cancellation, and handler-registration tests.
+- [x] Produce structured step and workflow outcomes distinct from console output and host exit codes.
 
 ### M3 — CI proof
 - [x] Run the FSM_API probe in GitHub Actions; the manifest-driven workflow itself remains pending.
@@ -60,8 +60,8 @@
 | Gate | Weight | Current evidence |
 |---|---:|---|
 | Purpose and dependency boundaries | 15% | Source-level contract inspection plus an initial domain proposal |
-| Contracts and implementation | 20% | Two real-package FSM_API proofs implemented; workflow contract/runtime absent |
-| Automated tests | 20% | No Foundry test project yet |
+| Contracts and implementation | 20% | Version-1 in-memory workflow contract and sequential runtime added; CI verification pending |
+| Automated tests | 20% | Focused xUnit project added; current CI verification pending |
 | CI execution and security | 20% | Pinned-action workflow has read-only contents permission and a 15-minute timeout; broader threat cases pending |
 | Demonstration and reproducibility | 15% | Successful basic probe plus fox/dog state assertions, cross-FSM transition, repeatable trace/SVG, and uploaded artifact |
 | Documentation/UML completeness | 10% | Bootstrap docs and source-inspection notes; source-derived Foundry UML awaits domain types |
