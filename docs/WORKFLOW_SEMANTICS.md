@@ -3,7 +3,7 @@
 
 # Workflow Semantics — Version 1
 
-**Status:** implementation-backed theory for the first Foundry runtime slice. The contract below covers the sequential, in-memory workflow runner and the retained run lifecycle coordinator; it does not describe persisted manifests, distributed execution, or a general automation engine.
+**Status:** implementation-backed theory for the first Foundry runtime slice. The sequential runner and retained run lifecycle coordinator passed the current [development CI run #84](https://github.com/TrentBest/TheSingularityWorkshop.Foundry/actions/runs/40546957980). This does not describe persisted manifests, distributed execution, or a general automation engine.
 
 ## The execution model
 
@@ -90,7 +90,7 @@ This is an in-process coordinator, not a durable queue or cross-process service.
 - [Runner tests](../tests/Foundry.Workflow.Tests/WorkflowRunnerTests.cs)
 - [Lifecycle tests](../tests/Foundry.Workflow.Tests/WorkflowExecutionCoordinatorTests.cs)
 
-CI verification of this runtime slice is tracked by the [Foundry workflow](../.github/workflows/foundry-fsm-api-probe.yml). This document must be revised if the contract or tests change.
+The current [Foundry CI run #84](https://github.com/TrentBest/TheSingularityWorkshop.Foundry/actions/runs/40546957980) passed the runner and lifecycle tests, builds, and deterministic state-evidence checks. This document must be revised if the contract or tests change.
 
 ---
 
