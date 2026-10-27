@@ -8,7 +8,7 @@
 
 **Foundry is the host-neutral execution pipeline for The Singularity Workshop Hub.** It accepts explicit work, validates it before side effects, coordinates execution, and reports authoritative lifecycle state and structured outcomes. GUI may present that state when the Hub chooses to appear; GUI is not the executor.
 
-> **Implementation status:** the sequential workflow runner, preflight validation, structured outcomes, and an in-process retained lifecycle coordinator are implemented on \`development\`. The retained lifecycle slice is verified by [development CI run #84](https://github.com/TrentBest/TheSingularityWorkshop.Foundry/actions/runs/40546957980). No package publication or deployment is part of this work.
+> **Implementation status:** the sequential workflow runner, preflight validation, structured outcomes, and an in-process retained lifecycle coordinator are implemented on `development`. The retained lifecycle slice is verified by [development CI run #84](https://github.com/TrentBest/TheSingularityWorkshop.Foundry/actions/runs/40546957980). No package publication or deployment is part of this work.
 
 ## 01 — Why Foundry exists
 
@@ -19,22 +19,22 @@ Workflow meaning should not be buried in a desktop window, browser component, or
 - **Foundry executes:** validates workflows; accepts and starts runs; coordinates lifecycle and cancellation; exposes status snapshots and structured outcomes.
 - **The / Architect owns the Hub experience:** decides what work to request and when the Hub should present itself.
 - **GUI presents:** renders the Hub workbench and maps explicit user intents to supported commands. It does not own execution state or the authoritative loop.
-- **FSM_COS composes:** resolves MicroBundles and returns a \`RuntimeAssembly\`. Composition is not workflow execution.
+- **FSM_COS composes:** resolves MicroBundles and returns a `RuntimeAssembly`. Composition is not workflow execution.
 - **Hosts provide capabilities:** headless applications, CI, WebPage, and desktop hosts adapt their environment and register permitted handlers.
 - **FSM_API supplies FSM mechanics** where a concrete integration consumes it. Foundry does not reimplement FSM_API.
 
-Foundry deliberately does not force workflow steps, WebPage process-group ticks, and FSM_COS \`RuntimeAssembly\` into one abstraction. They remain distinct until a source-backed, tested integration demonstrates the correct seam.
+Foundry deliberately does not force workflow steps, WebPage process-group ticks, and FSM_COS `RuntimeAssembly` into one abstraction. They remain distinct until a source-backed, tested integration demonstrates the correct seam.
 
 ## 03 — See it in a minute
 
 Start with the [version-1 workflow definition](src/Foundry.Workflow/WorkflowDefinition.cs), [sequential runner](src/Foundry.Workflow/WorkflowRunner.cs), and [retained execution coordinator](src/Foundry.Workflow/WorkflowExecutionCoordinator.cs).
 
 A host can:
-1. Register allowed operations in \`WorkflowHandlerRegistry\`.
-2. Submit a typed workflow definition and receive an \`Accepted\` run snapshot.
-3. Start that run once and observe its lifecycle through \`GetSnapshot\`.
-4. Request cancellation through \`Cancel\`.
-5. Read the terminal \`WorkflowResult\` and per-step outcomes.
+1. Register allowed operations in `WorkflowHandlerRegistry`.
+2. Submit a typed workflow definition and receive an `Accepted` run snapshot.
+3. Start that run once and observe its lifecycle through `GetSnapshot`.
+4. Request cancellation through `Cancel`.
+5. Read the terminal `WorkflowResult` and per-step outcomes.
 
 The first version executes named handlers sequentially. It validates the complete definition before invoking any handler, stops after failure, distinguishes cancellation from failure, and records remaining steps as skipped. The coordinator retains snapshots only in memory.
 

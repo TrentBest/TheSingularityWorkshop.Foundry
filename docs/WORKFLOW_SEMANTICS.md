@@ -9,9 +9,9 @@
 
 A workflow definition is data. It identifies the workflow, declares schema version 1, and lists ordered steps. Each step names a handler key; it does not contain code. The host registers the operations it is willing to expose through a WorkflowHandlerRegistry.
 
-The existing \`WorkflowRunner\` remains the single authority for validating and executing sequential steps. \`WorkflowExecutionCoordinator\` adds the retained Hub-facing lifecycle around that runner: accept a definition, start it once, query an immutable status snapshot, request cancellation, and dispose the coordinator. It does not implement another step runner.
+The existing `WorkflowRunner` remains the single authority for validating and executing sequential steps. `WorkflowExecutionCoordinator` adds the retained Hub-facing lifecycle around that runner: accept a definition, start it once, query an immutable status snapshot, request cancellation, and dispose the coordinator. It does not implement another step runner.
 
-\`\`\`mermaid
+```mermaid
 flowchart TD
     A[Submit definition] --> B[Accepted run snapshot]
     B --> C[Explicit Start]
@@ -28,7 +28,7 @@ flowchart TD
     I --> N[Workflow cancelled]
     C -. cancellation command .-> I
     B -. cancel before start .-> N
-\`\`\`
+```
 
 ## Contract rules
 
@@ -43,15 +43,15 @@ flowchart TD
 
 ## Retained execution lifecycle
 
-\`WorkflowExecutionCoordinator\` exposes a host-neutral lifecycle without moving step execution out of \`WorkflowRunner\`:
+`WorkflowExecutionCoordinator` exposes a host-neutral lifecycle without moving step execution out of `WorkflowRunner`:
 
-- \`Submit(definition)\` accepts a definition but does not execute it. The returned snapshot starts in \`Accepted\`.
-- \`StartAsync(runId)\` starts an accepted run exactly once and returns its eventual \`WorkflowResult\`.
-- \`GetSnapshot(runId)\` returns an immutable snapshot with run identity, workflow identity/name, lifecycle status, timestamps, and the latest structured result when available.
-- \`Cancel(runId)\` requests cooperative cancellation for a running run, or marks an accepted-but-not-started run cancelled. It returns false for an already terminal run.
-- \`DisposeAsync()\` cancels accepted/running work and waits for running handlers to finish. Handlers must honor cancellation for disposal to finish promptly.
+- `Submit(definition)` accepts a definition but does not execute it. The returned snapshot starts in `Accepted`.
+- `StartAsync(runId)` starts an accepted run exactly once and returns its eventual `WorkflowResult`.
+- `GetSnapshot(runId)` returns an immutable snapshot with run identity, workflow identity/name, lifecycle status, timestamps, and the latest structured result when available.
+- `Cancel(runId)` requests cooperative cancellation for a running run, or marks an accepted-but-not-started run cancelled. It returns false for an already terminal run.
+- `DisposeAsync()` cancels accepted/running work and waits for running handlers to finish. Handlers must honor cancellation for disposal to finish promptly.
 
-Lifecycle statuses are \`Accepted\`, \`Running\`, \`Succeeded\`, \`Failed\`, \`Cancelled\`, and \`Invalid\`. The final workflow status remains the existing \`WorkflowStatus\`; the lifecycle enum does not replace or reinterpret step/workflow outcomes. Snapshots are observations, not mutable control objects. A presentation layer may display snapshots and send commands, but it does not own the authoritative state.
+Lifecycle statuses are `Accepted`, `Running`, `Succeeded`, `Failed`, `Cancelled`, and `Invalid`. The final workflow status remains the existing `WorkflowStatus`; the lifecycle enum does not replace or reinterpret step/workflow outcomes. Snapshots are observations, not mutable control objects. A presentation layer may display snapshots and send commands, but it does not own the authoritative state.
 
 This is an in-process coordinator, not a durable queue or cross-process service. Run snapshots are retained only for the coordinator's lifetime.
 

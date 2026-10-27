@@ -3,7 +3,7 @@
 
 # Foundry Architecture
 
-**Status:** the FSM_API integration probe and deterministic fox/sheepdog scenario passed prior CI. A host-neutral sequential workflow runner, focused xUnit tests, and a retained in-process lifecycle coordinator are implemented on \`development\`; the current CI run must verify the latest lifecycle tests before this slice is called green.
+**Status:** the FSM_API integration probe, deterministic fox/sheepdog scenario, sequential workflow runner, and retained in-process lifecycle coordinator passed [development CI run #84](https://github.com/TrentBest/TheSingularityWorkshop.Foundry/actions/runs/40546957980). Broader Hub migration and release readiness remain unverified.
 
 ## Purpose
 
@@ -25,9 +25,9 @@ Foundry is the Workshop Hub's host-neutral execution pipeline. It accepts explic
 
 ## Workflow execution and retained lifecycle
 
-The existing \`WorkflowRunner\` remains the only sequential workflow executor. It validates the entire definition against the host-owned handler registry, runs steps in declared order, and returns structured step/workflow outcomes.
+The existing `WorkflowRunner` remains the only sequential workflow executor. It validates the entire definition against the host-owned handler registry, runs steps in declared order, and returns structured step/workflow outcomes.
 
-\`WorkflowExecutionCoordinator\` adds the Hub-facing lifecycle around that runner:
+`WorkflowExecutionCoordinator` adds the Hub-facing lifecycle around that runner:
 
 - Accept a definition without executing it.
 - Start an accepted run exactly once.
@@ -35,17 +35,17 @@ The existing \`WorkflowRunner\` remains the only sequential workflow executor. I
 - Request cooperative cancellation before or during execution.
 - Dispose by cancelling accepted/running work and awaiting completion.
 
-This is an in-process, in-memory lifecycle. It is not a durable queue, scheduler, persisted run history, or cross-process transport. The coordinator does not reinterpret \`WorkflowResult\`, add retries, or turn arbitrary handlers into safe transactional operations.
+This is an in-process, in-memory lifecycle. It is not a durable queue, scheduler, persisted run history, or cross-process transport. The coordinator does not reinterpret `WorkflowResult`, add retries, or turn arbitrary handlers into safe transactional operations.
 
 ## Keep neighboring concepts distinct
 
-WebPage's Hub/process-group contracts include \`WorkDescriptor\`, \`CompletionToken\`, \`IExecutionProvider.Execute\`, and named process-group updates. FSM_COS returns a \`RuntimeAssembly\`. These contracts are not interchangeable with Foundry's \`WorkflowDefinition\` and \`WorkflowResult\`. Trace actual callers and tests before deciding whether they share any lower-level lifecycle or observation primitive.
+WebPage's Hub/process-group contracts include `WorkDescriptor`, `CompletionToken`, `IExecutionProvider.Execute`, and named process-group updates. FSM_COS returns a `RuntimeAssembly`. These contracts are not interchangeable with Foundry's `WorkflowDefinition` and `WorkflowResult`. Trace actual callers and tests before deciding whether they share any lower-level lifecycle or observation primitive.
 
 GUI consumes presentation-facing snapshots and sends explicit commands through an adapter. It does not own the authoritative loop or runtime state. WebPage remains a behavior/reference fixture while any migration is proven through tests. FSM_COS remains the composition authority.
 
 ## Verified first state-execution slice
 
-The \`Foundry.FsmApiProbe\` project uses the published FSM_API package to create a named FSM, assert its initial state, execute the public update path, assert the transition, and perform scoped cleanup. The \`Foundry.FoxSheepdog\` project exercises the fox/dog state sequence with scripted ticks, asserts the cross-FSM transition, and emits a TSV trace and SVG. The existing CI workflow compares repeat-run outputs byte-for-byte.
+The `Foundry.FsmApiProbe` project uses the published FSM_API package to create a named FSM, assert its initial state, execute the public update path, assert the transition, and perform scoped cleanup. The `Foundry.FoxSheepdog` project exercises the fox/dog state sequence with scripted ticks, asserts the cross-FSM transition, and emits a TSV trace and SVG. The existing CI workflow compares repeat-run outputs byte-for-byte.
 
 These are deterministic state-execution demonstrations, not automatically treated as Foundry workflows. The coordinator tests and deterministic state-evidence checks passed in [CI run #84](https://github.com/TrentBest/TheSingularityWorkshop.Foundry/actions/runs/40546957980).
 

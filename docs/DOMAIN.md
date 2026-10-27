@@ -19,7 +19,7 @@ A definition is data, not permission to execute arbitrary code. Its meaning shou
 
 ## Implemented domain slice
 
-The current runtime provides a version-1, in-memory workflow definition with ordered steps and handler keys; validation before any handler is invoked; a host-owned handler registry; sequential execution; and structured step/workflow outcomes. \`WorkflowExecutionCoordinator\` accepts work, starts a run once, exposes immutable snapshots, supports cancellation before or during execution, and waits for running handlers during asynchronous disposal.
+The current runtime provides a version-1, in-memory workflow definition with ordered steps and handler keys; validation before any handler is invoked; a host-owned handler registry; sequential execution; and structured step/workflow outcomes. `WorkflowExecutionCoordinator` accepts work, starts a run once, exposes immutable snapshots, supports cancellation before or during execution, and waits for running handlers during asynchronous disposal.
 
 The focused tests cover declared order, invalid definitions before side effects, handled failure with later steps skipped, cancellation, pre-cancelled runs, duplicate handler registration, accepted/running/terminal lifecycle states, cancellation, and duplicate start rejection. These tests passed in [CI run #84](https://github.com/TrentBest/TheSingularityWorkshop.Foundry/actions/runs/40546957980).
 

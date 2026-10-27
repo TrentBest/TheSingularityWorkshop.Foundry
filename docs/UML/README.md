@@ -9,17 +9,17 @@
 
 1. A diagram must represent source or runtime evidence, or be visibly labelled **Conceptual / Target**.
 2. Each new C# source file should have a companion Markdown document explaining its purpose, contract, and relevant UML view.
-3. Each significant type should have a separate \`[TypeName]UML.md\` neighborhood page in this directory: focus type centered, its users above, dependencies below, and relationships explicitly labelled.
+3. Each significant type should have a separate `[TypeName]UML.md` neighborhood page in this directory: focus type centered, its users above, dependencies below, and relationships explicitly labelled.
 4. Use cases describe user goals and are kept distinct from source structure.
 5. Generated evidence should preserve stable symbol identity, source spans, provenance, and generation inputs.
 6. Do not invent types, methods, dependencies, or runtime behavior to make a diagram look complete.
 
 ## Planned structure
 
-- \`docs/UML/README.md\` — policy, coverage, and navigation.
-- \`docs/UML/INVENTORY.md\` — source files, types, and view coverage once inventory is generated.
-- \`docs/UML/Standard/\` — reusable diagram and evidence conventions as they mature.
-- \`docs/UML/[TypeName]UML.md\` — type neighborhood diagrams grounded in actual declarations.
+- `docs/UML/README.md` — policy, coverage, and navigation.
+- `docs/UML/INVENTORY.md` — source files, types, and view coverage once inventory is generated.
+- `docs/UML/Standard/` — reusable diagram and evidence conventions as they mature.
+- `docs/UML/[TypeName]UML.md` — type neighborhood diagrams grounded in actual declarations.
 
 ## View types
 

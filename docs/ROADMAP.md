@@ -3,7 +3,7 @@
 
 # Foundry Roadmap and Readiness
 
-**Current readiness: 30% pending CI verification.** The real-package FSM_API probe and deterministic fox/sheepdog scenario passed prior CI. The version-1 sequential workflow runner, focused tests, and a retained in-process lifecycle coordinator are now present on \`development\`; the current CI run must verify the new lifecycle tests before readiness is recalculated.
+**Current readiness: 35%.** The real-package FSM_API probe, deterministic fox/sheepdog scenario, version-1 sequential workflow runner, and retained in-process lifecycle coordinator passed [development CI run #84](https://github.com/TrentBest/TheSingularityWorkshop.Foundry/actions/runs/40546957980). This remains an early implementation slice, not a release-readiness claim.
 
 ## Milestones
 

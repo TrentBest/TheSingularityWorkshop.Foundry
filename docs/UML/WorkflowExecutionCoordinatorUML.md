@@ -3,11 +3,11 @@
 
 # WorkflowExecutionCoordinator — UML Neighborhood
 
-**Status:** source-grounded view of the current \`development\` implementation. The lifecycle coordinator is implemented, but its current CI verification is pending.
+**Status:** source-grounded view of the current `development` implementation. The lifecycle coordinator and its tests passed [development CI run #84](https://github.com/TrentBest/TheSingularityWorkshop.Foundry/actions/runs/40546957980).
 
 ## Neighborhood
 
-\`\`\`mermaid
+```mermaid
 classDiagram
     direction TB
     class WorkflowExecutionCoordinator {
@@ -38,11 +38,11 @@ classDiagram
     WorkflowExecutionCoordinator --> WorkflowDefinition : retains accepted definition
     WorkflowExecutionCoordinator --> WorkflowRunSnapshot : returns immutable observation
     WorkflowRunner --> WorkflowResult : produces structured outcome
-\`\`\`
+```
 
 ## Lifecycle sequence
 
-\`\`\`mermaid
+```mermaid
 sequenceDiagram
     participant Host
     participant Coordinator as WorkflowExecutionCoordinator
@@ -65,15 +65,15 @@ sequenceDiagram
     Host->>Coordinator: GetSnapshot(run ID)
     Coordinator-->>Host: Current status and result when available
     Host->>Coordinator: Cancel(run ID) [optional]
-\`\`\`
+```
 
 ## Responsibility rules
 
 - The coordinator owns retained run identity and lifecycle state for its lifetime.
 - The existing runner remains the sole sequential step executor and definition validator.
-- \`WorkflowResult\` remains the workflow outcome; \`WorkflowRunStatus\` adds lifecycle states such as \`Accepted\` and \`Running\`.
+- `WorkflowResult` remains the workflow outcome; `WorkflowRunStatus` adds lifecycle states such as `Accepted` and `Running`.
 - The snapshot is observational and immutable. A presentation layer must send commands through the coordinator rather than mutate state.
-- FSM_COS \`RuntimeAssembly\` and WebPage process-group updates are separate contracts; this diagram does not claim they are workflow definitions or results.
+- FSM_COS `RuntimeAssembly` and WebPage process-group updates are separate contracts; this diagram does not claim they are workflow definitions or results.
 
 ## Source and tests
 
