@@ -20,7 +20,7 @@ Workflow meaning should not be buried in a desktop window, browser component, or
 - **The / Architect owns the Hub experience:** decides what work to request and when the Hub should present itself.
 - **GUI presents:** renders the Hub workbench and maps explicit user intents to supported commands. It does not own execution state or the authoritative loop.
 - **FSM_COS composes:** resolves MicroBundles and returns a `RuntimeAssembly`. Composition is not workflow execution.
-- **Hosts provide capabilities:** headless applications, CI, WebPage, and desktop hosts adapt their environment and register permitted handlers.
+- **Hosts provide capabilities:** AnyApp (WPF), WebApp (web), The (workshop/Hub surface), WebPage, and headless/CI hosts adapt their environment and register permitted handlers. The shared-runtime requirement applies to all four application hosts; listing a host here describes the intended ownership boundary, not proof that its adapter is already implemented.
 - **FSM_API supplies FSM mechanics** where a concrete integration consumes it. Foundry does not reimplement FSM_API.
 
 Foundry deliberately does not force workflow steps, WebPage process-group ticks, and FSM_COS `RuntimeAssembly` into one abstraction. They remain distinct until a source-backed, tested integration demonstrates the correct seam.
@@ -56,7 +56,7 @@ The focused xUnit suite covers ordering, invalid definitions, failure, cancellat
 
 The current contract is in-memory and sequential. It does not provide durable run history, persisted JSON/YAML manifests, retries, compensation, parallel/distributed execution, enforced handler timeouts, or recovery after process loss. Cancellation is cooperative: handlers must honor their token.
 
-The next gate is a current green CI run for the coordinator and runner tests. After that, trace WebPage's real Hub callers and tests to identify which behaviors are workflows, host-scheduled work, or legacy process-group ticks. Preserve those distinctions, add only a proven adapter, and then stabilize the minimal presentation-facing contract for GUI. Broader host migration, generated UML, and optional article workflows follow evidence rather than precede it.
+The next gate is to verify the current coordinator and runner tests, then implement and test the smallest concrete Foundry-facing execution handoff. AnyApp currently composes `RuntimeAssembly` through FSM_COS and owns host startup; WebApp still has a transitional `WebAppExperienceRuntime` with a private heartbeat; The is the Hub/workshop surface; and WebPage has legacy process-group contracts. These are not interchangeable inputs: `RuntimeAssembly`, `WorkflowDefinition`, and WebPage `WorkDescriptor` have distinct semantics until a tested adapter proves a mapping. Migrate one host at a time and verify status, cancellation, terminal outcomes, and cleanup before describing it as a Foundry consumer. Keep browser/server and separate-process boundaries explicit; the current coordinator is in-process and in-memory. GUI presentation work, generated UML, and optional article workflows follow evidence rather than precede it.
 
 Publication, release, and deployment remain separate actions and require Trent's explicit approval.
 
