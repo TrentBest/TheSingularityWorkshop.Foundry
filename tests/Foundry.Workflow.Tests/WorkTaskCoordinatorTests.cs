@@ -116,7 +116,7 @@ public sealed class WorkTaskCoordinatorTests
         Assert.Throws<ArgumentException>(() => coordinator.Submit(Request(paths:
             new[] { new string('p', 513) })));
         Assert.Throws<ArgumentException>(() => coordinator.Submit(Request() with
-            { TaskId = "bad\\u0001task" }));
+            { TaskId = "bad\u0001task" }));
     }
 
     [Fact]
