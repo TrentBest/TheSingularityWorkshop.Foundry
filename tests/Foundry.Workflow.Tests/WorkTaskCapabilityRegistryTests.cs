@@ -21,47 +21,53 @@ public sealed class WorkTaskCapabilityRegistryTests
         return coordinator.Claim("task-8", "agent-a", leaseDuration ?? TimeSpan.FromMinutes(20), Now);
     }
 
+    private static WorkTaskCapability Grant(WorkTaskCapabilityRegistry registry,
+        WorkTaskSnapshot task, TimeSpan? lifetime = null) =>
+        registry.Grant(task, "work/task-8", CandidateSha,
+            new[] { "src/Foundry.Workflow" },
+            new[] { WorkTaskAction.ReadRepository, WorkTaskAction.WriteFiles, WorkTaskAction.CreateCommit },
+            Now, lifetime ?? TimeSpan.FromMinutes(10));
+
+    private static void Demand(WorkTaskCapabilityRegistry registry, WorkTaskCapability capability,
+        WorkTaskSnapshot task, WorkTaskAction action, string? path = null,
+        DateTimeOffset? now = null, string? branch = null, string? candidateSha = null) =>
+        registry.Demand(capability.CapabilityId, task, branch ?? "work/task-8",
+            candidateSha ?? CandidateSha, action, path, now ?? Now.AddMinutes(1));
+
     [Fact]
     public void CapabilityAuthorizesOnlyExactTaskProvenanceLeaseActionsAndPaths()
     {
         var registry = new WorkTaskCapabilityRegistry();
         var task = ActiveTask();
-        var lease = task.Lease!;
-        var capability = registry.Grant(task, "work/task-8", CandidateSha,
-            new[] { "src/Foundry.Workflow" },
-            new[] { WorkTaskAction.ReadRepository, WorkTaskAction.WriteFiles, WorkTaskAction.CreateCommit },
-            Now, TimeSpan.FromMinutes(10));
+        var capability = Grant(registry, task);
 
-        registry.Demand(capability.CapabilityId, "task-8", Request().Repository, "agent-a", lease.LeaseId,
-            "work/task-8", BaseSha, CandidateSha, WorkTaskAction.ReadRepository,
-            "src/Foundry.Workflow/WorkTaskCoordinator.cs", Now.AddMinutes(1));
-        registry.Demand(capability.CapabilityId, "task-8", Request().Repository, "agent-a", lease.LeaseId,
-            "work/task-8", BaseSha, CandidateSha, WorkTaskAction.WriteFiles,
-            "src/Foundry.Workflow/WorkTaskCoordinator.cs", Now.AddMinutes(1));
-        registry.Demand(capability.CapabilityId, "task-8", Request().Repository, "agent-a", lease.LeaseId,
-            "work/task-8", BaseSha, CandidateSha, WorkTaskAction.CreateCommit, null, Now.AddMinutes(1));
+        Demand(registry, capability, task, WorkTaskAction.ReadRepository,
+            "src/Foundry.Workflow/WorkTaskCoordinator.cs");
+        Demand(registry, capability, task, WorkTaskAction.WriteFiles,
+            "src/Foundry.Workflow/WorkTaskCoordinator.cs");
+        Demand(registry, capability, task, WorkTaskAction.CreateCommit);
 
-        Assert.Throws<UnauthorizedAccessException>(() => registry.Demand(capability.CapabilityId,
-            "other-task", Request().Repository, "agent-a", lease.LeaseId, "work/task-8", BaseSha, CandidateSha,
-            WorkTaskAction.WriteFiles, "src/Foundry.Workflow/file.cs", Now.AddMinutes(1)));
-        Assert.Throws<UnauthorizedAccessException>(() => registry.Demand(capability.CapabilityId,
-            "task-8", "Other/Repository", "agent-a", lease.LeaseId, "work/task-8", BaseSha, CandidateSha,
-            WorkTaskAction.WriteFiles, "src/Foundry.Workflow/file.cs", Now.AddMinutes(1)));
-        Assert.Throws<UnauthorizedAccessException>(() => registry.Demand(capability.CapabilityId,
-            "task-8", Request().Repository, "agent-b", lease.LeaseId, "work/task-8", BaseSha, CandidateSha,
-            WorkTaskAction.WriteFiles, "src/Foundry.Workflow/file.cs", Now.AddMinutes(1)));
-        Assert.Throws<UnauthorizedAccessException>(() => registry.Demand(capability.CapabilityId,
-            "task-8", Request().Repository, "agent-a", Guid.NewGuid(), "work/task-8", BaseSha, CandidateSha,
-            WorkTaskAction.WriteFiles, "src/Foundry.Workflow/file.cs", Now.AddMinutes(1)));
-        Assert.Throws<UnauthorizedAccessException>(() => registry.Demand(capability.CapabilityId,
-            "task-8", Request().Repository, "agent-a", lease.LeaseId, "work/other", BaseSha, CandidateSha,
-            WorkTaskAction.WriteFiles, "src/Foundry.Workflow/file.cs", Now.AddMinutes(1)));
-        Assert.Throws<UnauthorizedAccessException>(() => registry.Demand(capability.CapabilityId,
-            "task-8", Request().Repository, "agent-a", lease.LeaseId, "work/task-8", BaseSha, new string('c', 40),
-            WorkTaskAction.WriteFiles, "src/Foundry.Workflow/file.cs", Now.AddMinutes(1)));
-        Assert.Throws<UnauthorizedAccessException>(() => registry.Demand(capability.CapabilityId,
-            "task-8", Request().Repository, "agent-a", lease.LeaseId, "work/task-8", BaseSha, CandidateSha,
-            WorkTaskAction.CreateDraftPullRequest, null, Now.AddMinutes(1)));
+        Assert.Throws<UnauthorizedAccessException>(() => Demand(registry, capability,
+            task with { Request = task.Request with { TaskId = "other-task" } },
+            WorkTaskAction.WriteFiles, "src/Foundry.Workflow/file.cs"));
+        Assert.Throws<UnauthorizedAccessException>(() => Demand(registry, capability,
+            task with { Request = task.Request with { Repository = "Other/Repository" } },
+            WorkTaskAction.WriteFiles, "src/Foundry.Workflow/file.cs"));
+        Assert.Throws<UnauthorizedAccessException>(() => Demand(registry, capability,
+            task with { Lease = task.Lease! with { AgentId = "agent-b" } },
+            WorkTaskAction.WriteFiles, "src/Foundry.Workflow/file.cs"));
+        Assert.Throws<UnauthorizedAccessException>(() => Demand(registry, capability,
+            task with { Lease = task.Lease! with { LeaseId = Guid.NewGuid() } },
+            WorkTaskAction.WriteFiles, "src/Foundry.Workflow/file.cs"));
+        Assert.Throws<UnauthorizedAccessException>(() => Demand(registry, capability, task,
+            WorkTaskAction.WriteFiles, "src/Foundry.Workflow/file.cs", branch: "work/other"));
+        Assert.Throws<UnauthorizedAccessException>(() => Demand(registry, capability, task,
+            WorkTaskAction.WriteFiles, "src/Foundry.Workflow/file.cs", candidateSha: new string('c', 40)));
+        Assert.Throws<UnauthorizedAccessException>(() => Demand(registry, capability, task,
+            WorkTaskAction.CreateDraftPullRequest));
+        Assert.Throws<UnauthorizedAccessException>(() => Demand(registry, capability,
+            task with { Status = WorkTaskStatus.Stopped, Lease = null }, WorkTaskAction.WriteFiles,
+            "src/Foundry.Workflow/file.cs"));
     }
 
     [Fact]
@@ -74,13 +80,9 @@ public sealed class WorkTaskCapabilityRegistryTests
         Assert.Throws<ArgumentException>(() => registry.Grant(task, "work/task-8", CandidateSha,
             new[] { "docs" }, new[] { WorkTaskAction.WriteFiles }, Now, TimeSpan.FromMinutes(5)));
 
-        var capability = registry.Grant(task, "work/task-8", CandidateSha,
-            new[] { "src/Foundry.Workflow" }, new[] { WorkTaskAction.WriteFiles },
-            Now, TimeSpan.FromMinutes(5));
-        Assert.Throws<UnauthorizedAccessException>(() => registry.Demand(capability.CapabilityId,
-            "task-8", Request().Repository, "agent-a", task.Lease!.LeaseId, "work/task-8",
-            BaseSha, CandidateSha, WorkTaskAction.WriteFiles,
-            "src/Foundry.Workflow/../../secrets.txt", Now.AddMinutes(1)));
+        var capability = Grant(registry, task);
+        Assert.Throws<UnauthorizedAccessException>(() => Demand(registry, capability, task,
+            WorkTaskAction.WriteFiles, "src/Foundry.Workflow/../../secrets.txt"));
     }
 
     [Fact]
@@ -88,38 +90,27 @@ public sealed class WorkTaskCapabilityRegistryTests
     {
         var registry = new WorkTaskCapabilityRegistry();
         var task = ActiveTask();
-        var capability = registry.Grant(task, "work/task-8", CandidateSha,
-            new[] { "src/Foundry.Workflow" }, new[] { WorkTaskAction.WriteFiles },
-            Now, TimeSpan.FromMinutes(5));
+        var capability = Grant(registry, task, TimeSpan.FromMinutes(5));
 
-        Assert.Throws<UnauthorizedAccessException>(() => registry.Demand(capability.CapabilityId,
-            "task-8", Request().Repository, "agent-a", task.Lease!.LeaseId, "work/task-8",
-            BaseSha, CandidateSha, WorkTaskAction.WriteFiles,
-            "src/Foundry.Workflow/file.cs", Now.AddMinutes(5)));
+        Assert.Throws<UnauthorizedAccessException>(() => Demand(registry, capability, task,
+            WorkTaskAction.WriteFiles, "src/Foundry.Workflow/file.cs", Now.AddMinutes(5)));
 
         registry.Revoke(capability.CapabilityId);
-        Assert.Throws<UnauthorizedAccessException>(() => registry.Demand(capability.CapabilityId,
-            "task-8", Request().Repository, "agent-a", task.Lease!.LeaseId, "work/task-8",
-            BaseSha, CandidateSha, WorkTaskAction.WriteFiles,
-            "src/Foundry.Workflow/file.cs", Now.AddMinutes(1)));
+        Assert.Throws<UnauthorizedAccessException>(() => Demand(registry, capability, task,
+            WorkTaskAction.WriteFiles, "src/Foundry.Workflow/file.cs"));
         registry.Revoke(capability.CapabilityId);
     }
-
 
     [Fact]
     public void CapabilityCannotOutliveItsOwningAgentLease()
     {
         var registry = new WorkTaskCapabilityRegistry();
         var task = ActiveTask(TimeSpan.FromMinutes(2));
-        var capability = registry.Grant(task, "work/task-8", CandidateSha,
-            new[] { "src/Foundry.Workflow" }, new[] { WorkTaskAction.WriteFiles },
-            Now, TimeSpan.FromMinutes(30));
+        var capability = Grant(registry, task, TimeSpan.FromMinutes(30));
 
         Assert.Equal(task.Lease!.ExpiresAt, capability.ExpiresAt);
-        Assert.Throws<UnauthorizedAccessException>(() => registry.Demand(capability.CapabilityId,
-            "task-8", Request().Repository, "agent-a", task.Lease.LeaseId, "work/task-8",
-            BaseSha, CandidateSha, WorkTaskAction.WriteFiles,
-            "src/Foundry.Workflow/file.cs", task.Lease.ExpiresAt));
+        Assert.Throws<UnauthorizedAccessException>(() => Demand(registry, capability, task,
+            WorkTaskAction.WriteFiles, "src/Foundry.Workflow/file.cs", task.Lease.ExpiresAt));
     }
 
     [Fact]
@@ -127,9 +118,7 @@ public sealed class WorkTaskCapabilityRegistryTests
     {
         var registry = new WorkTaskCapabilityRegistry();
         var queued = new WorkTaskCoordinator().Submit(Request());
-        Assert.Throws<UnauthorizedAccessException>(() => registry.Grant(queued, "work/task-8",
-            CandidateSha, new[] { "src/Foundry.Workflow" }, new[] { WorkTaskAction.WriteFiles },
-            Now, TimeSpan.FromMinutes(5)));
+        Assert.Throws<UnauthorizedAccessException>(() => Grant(registry, queued));
     }
 
     [Fact]
@@ -143,8 +132,6 @@ public sealed class WorkTaskCapabilityRegistryTests
         Assert.Throws<ArgumentException>(() => registry.Grant(task, "work/task-8", CandidateSha,
             new[] { "src/Foundry.Workflow" }, new[] { (WorkTaskAction)99 },
             Now, TimeSpan.FromMinutes(5)));
-        Assert.Throws<ArgumentOutOfRangeException>(() => registry.Grant(task, "work/task-8", CandidateSha,
-            new[] { "src/Foundry.Workflow" }, new[] { WorkTaskAction.WriteFiles },
-            Now, TimeSpan.FromHours(2)));
+        Assert.Throws<ArgumentOutOfRangeException>(() => Grant(registry, task, TimeSpan.FromHours(2)));
     }
 }
