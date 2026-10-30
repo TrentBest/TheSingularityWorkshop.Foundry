@@ -35,7 +35,7 @@ Queued -> Claimed -> Investigating -> Implementing -> Validating
 
 ## Claims and audit
 
-Claims have an agent identity, unique lease fencing token, and bounded expiry. A live lease prevents a second claim. After expiry, another agent can claim; the prior lease token is rejected for all subsequent transitions. Every accepted transition appends a monotonically sequenced event containing prior/current status, agent, lease ID, timestamp, and reason. Snapshots expose immutable event collections.
+Claims have an agent identity, unique lease fencing token, and bounded expiry. A live lease prevents a second claim. After expiry, another agent can claim; the prior lease token is rejected for all subsequent transitions. Every accepted transition appends a monotonically sequenced event containing prior/current status, agent, lease ID, timestamp, and reason. Evidence-derived decisions additionally retain the exact CI run ID, run attempt, and evidence-payload SHA-256 digest in that event. Journal replay requires these provenance fields and the corresponding policy decision reason for `ReviewReady` and `RepairRequired`; a plain lifecycle event cannot recreate either state. Snapshots expose immutable event collections.
 
 
 ## Host-issued action capabilities
