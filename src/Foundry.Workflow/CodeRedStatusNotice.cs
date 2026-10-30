@@ -39,8 +39,8 @@ public static class CodeRedStatusNoticeFactory
             task.Status != WorkTaskStatus.CodeRed ||
             task.Lease is not { } lease || lease.ExpiresAt <= now)
             throw new InvalidOperationException("An active CODE RED notice requires an active incident and a live CODE RED task lease.");
-        if (now == default || nextUpdateAt <= now || incident.UpdatedAt > now ||
-            incident.Repository != task.Request.Repository ||
+        if (now == default || nextUpdateAt <= now || nextUpdateAt >= lease.ExpiresAt ||
+            incident.UpdatedAt > now || incident.Repository != task.Request.Repository ||
             incident.TaskId != task.Request.TaskId ||
             incident.IssueNumber != task.Request.IssueNumber ||
             incident.CorrelationId != task.Request.CorrelationId ||
@@ -54,6 +54,7 @@ public static class CodeRedStatusNoticeFactory
             $"(issue #{incident.IssueNumber}, {ciIdentity}, candidate {incident.CandidateSha}). " +
             $"Current action: {incident.CurrentAction}. Blocker: {incident.Reason}. " +
             $"Next update: {nextUpdateAt:O}. " +
+            $"Human escalation required: {(incident.HumanEscalationRequired ? "yes" : "no")}. " +
             "I’ll request human input only if a defined authorization or decision is required.";
 
         return new CodeRedStatusNotice(incident.IncidentId, CodeRedNoticeStatus.Active,
