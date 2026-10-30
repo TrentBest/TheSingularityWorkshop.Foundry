@@ -16,11 +16,16 @@ public sealed class WorkTaskRepairDecisionPolicyTests
             actionable && !successful ? new string(diagnostics, 64) : null,
             TaskStart.AddMinutes(number * 3 - 2), TaskStart.AddMinutes(number * 3 - 1));
 
+    private static WorkTaskRepairEvidenceExpectation Expectation(WorkTaskRepairAttempt attempt) =>
+        new(attempt.TaskId, attempt.CorrelationId, attempt.Repository, attempt.Branch,
+            attempt.WorkflowPath, attempt.CandidateSha, attempt.TaskStartedAt);
+
     private static WorkTaskRepairDecisionResult Evaluate(
         IReadOnlyList<WorkTaskRepairAttempt> history, WorkTaskRepairAttempt current,
-        int maxAttempts = 3, TimeSpan? maxDuration = null) =>
-        WorkTaskRepairDecisionPolicy.Evaluate(history, current, maxAttempts,
-            maxDuration ?? TimeSpan.FromMinutes(30), current.ObservedAt.AddSeconds(1));
+        int maxAttempts = 3, TimeSpan? maxDuration = null,
+        WorkTaskRepairEvidenceExpectation? expectation = null) =>
+        WorkTaskRepairDecisionPolicy.Evaluate(history, current, expectation ?? Expectation(current),
+            maxAttempts, maxDuration ?? TimeSpan.FromMinutes(30), current.ObservedAt.AddSeconds(1));
 
     [Fact]
     public void NewActionableFailureRequestsOneBoundedRepairCycle()
@@ -104,15 +109,33 @@ public sealed class WorkTaskRepairDecisionPolicyTests
         Assert.Equal("repair.attempt-after-success", afterSuccess.ReasonCode);
     }
 
+
+    [Fact]
+    public void EvidenceMustMatchTheExactExpectedCandidateAndWorkflow()
+    {
+        var attempt = Attempt();
+        var wrongCandidate = Evaluate(Array.Empty<WorkTaskRepairAttempt>(), attempt,
+            expectation: Expectation(attempt) with { CandidateSha = new string('b', 40) });
+        var wrongWorkflow = Evaluate(Array.Empty<WorkTaskRepairAttempt>(), attempt,
+            expectation: Expectation(attempt) with { WorkflowPath = ".github/workflows/release.yml" });
+        var wrongRepository = Evaluate(Array.Empty<WorkTaskRepairAttempt>(), attempt,
+            expectation: Expectation(attempt) with { Repository = "Other/Repository" });
+
+        Assert.Equal(WorkTaskRepairDecision.Blocked, wrongCandidate.Decision);
+        Assert.Equal(WorkTaskRepairDecision.Blocked, wrongWorkflow.Decision);
+        Assert.Equal(WorkTaskRepairDecision.Blocked, wrongRepository.Decision);
+        Assert.Equal("repair.evidence-provenance-mismatch", wrongCandidate.ReasonCode);
+    }
+
     [Fact]
     public void PolicyRejectsInvalidBudgetsAndFutureEvidence()
     {
         var attempt = Attempt();
         Assert.Throws<ArgumentOutOfRangeException>(() =>
-            WorkTaskRepairDecisionPolicy.Evaluate(Array.Empty<WorkTaskRepairAttempt>(), attempt, 11,
+            WorkTaskRepairDecisionPolicy.Evaluate(Array.Empty<WorkTaskRepairAttempt>(), attempt, Expectation(attempt), 11,
                 TimeSpan.FromMinutes(30), attempt.ObservedAt.AddSeconds(1)));
         Assert.Throws<ArgumentException>(() =>
-            WorkTaskRepairDecisionPolicy.Evaluate(Array.Empty<WorkTaskRepairAttempt>(), attempt, 3,
+            WorkTaskRepairDecisionPolicy.Evaluate(Array.Empty<WorkTaskRepairAttempt>(), attempt, Expectation(attempt), 3,
                 TimeSpan.FromMinutes(30), attempt.ObservedAt.AddSeconds(-1)));
     }
 }
