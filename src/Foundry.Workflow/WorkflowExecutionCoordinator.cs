@@ -43,7 +43,8 @@ public sealed class WorkflowExecutionCoordinator : IAsyncDisposable
     public Task<WorkflowResult> StartAsync(Guid runId, TimeSpan? timeout)
     {
         if (timeout is { } duration &&
-            (duration <= TimeSpan.Zero && duration != Timeout.InfiniteTimeSpan))
+            (duration <= TimeSpan.Zero && duration != Timeout.InfiniteTimeSpan) ||
+            duration > TimeSpan.FromMilliseconds(uint.MaxValue - 1d))
             throw new ArgumentOutOfRangeException(nameof(timeout), "Timeout must be positive or infinite.");
 
         RunState state;
@@ -165,7 +166,8 @@ public sealed class WorkflowExecutionCoordinator : IAsyncDisposable
                 .ConfigureAwait(false);
 
             // Explicit caller cancellation wins if both cancellation sources race.
-            if (state.Timeout!.IsCancellationRequested &&
+            if (result.Status != WorkflowStatus.Invalid &&
+                state.Timeout!.IsCancellationRequested &&
                 !state.Cancellation.IsCancellationRequested)
             {
                 result = new WorkflowResult(result.WorkflowId, WorkflowStatus.TimedOut,
