@@ -51,6 +51,19 @@ public sealed class PersistentWorkTaskCoordinator
         }
     }
 
+    public WorkTaskSnapshot ApplyRepairDecision(string taskId, Guid leaseId,
+        IReadOnlyList<WorkTaskRepairAttempt> previousAttempts, WorkTaskRepairAttempt currentAttempt,
+        WorkTaskRepairEvidenceExpectation expectation, TimeSpan maximumDuration, DateTimeOffset now)
+    {
+        lock (_gate)
+        {
+            EnsureHealthy();
+            var snapshot = _coordinator.ApplyRepairDecision(taskId, leaseId, previousAttempts,
+                currentAttempt, expectation, maximumDuration, now);
+            return Persist(snapshot);
+        }
+    }
+
     public WorkTaskSnapshot GetSnapshot(string taskId)
     {
         lock (_gate)
