@@ -120,12 +120,18 @@ public sealed class JsonlWorkTaskRepairAttemptJournal
 
             if (attempt.AttemptNumber != history.Count + 1)
                 return WorkTaskRepairAttemptAppendOutcome.OutOfOrder;
+            if (history.Any(item => item.CiRunId == attempt.CiRunId &&
+                item.CiRunAttempt == attempt.CiRunAttempt))
+                return WorkTaskRepairAttemptAppendOutcome.Conflict;
+            if (_attempts.Values.SelectMany(items => items).Any(item =>
+                !string.Equals(item.Repository, attempt.Repository, StringComparison.OrdinalIgnoreCase) &&
+                item.CiRunId == attempt.CiRunId && item.CiRunAttempt == attempt.CiRunAttempt))
+                return WorkTaskRepairAttemptAppendOutcome.Conflict;
             if (history.Count > 0)
             {
                 var previous = history[^1];
                 if (!SameTask(previous, attempt) || previous.IsSuccessful ||
-                    attempt.StartedAt < previous.ObservedAt ||
-                    (previous.CiRunId == attempt.CiRunId && previous.CiRunAttempt == attempt.CiRunAttempt))
+                    attempt.StartedAt < previous.ObservedAt)
                     return WorkTaskRepairAttemptAppendOutcome.Conflict;
             }
 
@@ -187,11 +193,12 @@ public sealed class JsonlWorkTaskRepairAttemptJournal
 
             if (!_attempts.TryGetValue(attempt.TaskId, out var history))
                 _attempts.Add(attempt.TaskId, history = new List<WorkTaskRepairAttempt>());
-            if (attempt.AttemptNumber != history.Count + 1 ||
+            var reusedRunAttempt = _attempts.Values.SelectMany(items => items).Any(item =>
+                item.CiRunId == attempt.CiRunId && item.CiRunAttempt == attempt.CiRunAttempt);
+            if (attempt.AttemptNumber != history.Count + 1 || reusedRunAttempt ||
                 (history.Count > 0 && (!SameTask(history[^1], attempt) || history[^1].IsSuccessful ||
-                    attempt.StartedAt < history[^1].ObservedAt ||
-                    (history[^1].CiRunId == attempt.CiRunId && history[^1].CiRunAttempt == attempt.CiRunAttempt))))
-                throw new InvalidDataException($"Repair-attempt history for '{attempt.TaskId}' is discontinuous.");
+                    attempt.StartedAt < history[^1].ObservedAt)))
+                throw new InvalidDataException($"Repair-attempt history for '{attempt.TaskId}' is discontinuous or reuses CI evidence.");
             history.Add(attempt);
         }
     }
