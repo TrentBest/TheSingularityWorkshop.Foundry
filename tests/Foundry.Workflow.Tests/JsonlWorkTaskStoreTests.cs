@@ -98,6 +98,13 @@ public sealed class JsonlWorkTaskStoreTests
             Events = new[] { claimed.Events[0] with { Previous = WorkTaskStatus.Implementing } }
         };
         Assert.Throws<ArgumentException>(() => new WorkTaskCoordinator().Restore(brokenChain));
+
+        var invalidTransition = claimed with
+        {
+            Status = WorkTaskStatus.ReviewReady,
+            Events = new[] { claimed.Events[0] with { Current = WorkTaskStatus.ReviewReady } }
+        };
+        Assert.Throws<ArgumentException>(() => new WorkTaskCoordinator().Restore(invalidTransition));
     }
 
     [Fact]
