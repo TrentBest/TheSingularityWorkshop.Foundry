@@ -35,7 +35,7 @@ Claims have an agent identity, unique lease fencing token, and bounded expiry. A
 
 ## Host-issued action capabilities
 
-`WorkTaskCapabilityRegistry` issues opaque, short-lived capabilities only when the host explicitly calls `Grant`. Each grant is bound to the validated task/repository, isolated branch, base SHA, exact candidate SHA, a subset of the task's allowed paths, and an explicit action allowlist. File reads/writes require a path inside that scope; commit/CI/branch/draft-PR operations require their own named action. Grants expire within one hour and can be revoked immediately.
+`WorkTaskCapabilityRegistry` issues opaque, short-lived capabilities only when the host explicitly calls `Grant`. Each grant requires a live task lease and is bound to the task/repository, owning agent and fencing token, isolated branch, base SHA, exact candidate SHA, a subset of the task's allowed paths, and an explicit action allowlist. File reads/writes require a path inside that scope; commit/CI/branch/draft-PR operations require their own named action. Grants expire within one hour and can be revoked immediately.
 
 The registry is an in-process host boundary, not a security sandbox. The host must keep the registry and capability IDs out of model context, pass only the minimum capability to the operation adapter, and reissue after restart only after revalidating task and policy. Merge, release, deployment, package publication, and arbitrary shell/process execution are not grantable actions.
 
@@ -53,9 +53,9 @@ This is the incident data contract, not yet a durable incident service or notifi
 - CODE RED incident records have their own append-only local journal; this is single-process storage and is not yet a GitHub-backed or distributed incident service.
 - The coordinator does not claim GitHub issues, create branches, inspect CI, call models, or create PRs.
 - Lease arbitration is atomic only within one coordinator instance; it is not a cross-process lock. The local journal does not turn that lease into a distributed claim.
-- CODE RED human notification, durable incident history, secure re-authentication, and automatic status clear publication remain unimplemented.
+- CODE RED human notification, secure re-authentication, and automatic status clear publication remain unimplemented.
 - Exact-SHA CiAi evidence evaluation, duplicate/out-of-order callback reconciliation, secure re-authentication, bounded model repair, and draft-PR handoff are future slices. Host-issued action capabilities are implemented as an in-memory, short-lived authorization boundary.
 
 ## Verification
 
-See [WorkTaskCoordinatorTests](../tests/Foundry.Workflow.Tests/WorkTaskCoordinatorTests.cs), [JsonlWorkTaskStoreTests](../tests/Foundry.Workflow.Tests/JsonlWorkTaskStoreTests.cs) (including persistent-adapter restart and fail-closed tests), [CodeRedIncidentTests](../tests/Foundry.Workflow.Tests/CodeRedIncidentTests.cs), and [JsonlCodeRedIncidentStoreTests](../tests/Foundry.Workflow.Tests/JsonlCodeRedIncidentStoreTests.cs), and [WorkTaskCapabilityRegistryTests](../tests/Foundry.Workflow.Tests/WorkTaskCapabilityRegistryTests.cs) for lifecycle, fencing, retry, incident provenance, CI identity, timestamp, and clear behavior. CI status is linked from the pull request implementing these slices.
+See [WorkTaskCoordinatorTests](../tests/Foundry.Workflow.Tests/WorkTaskCoordinatorTests.cs), [JsonlWorkTaskStoreTests](../tests/Foundry.Workflow.Tests/JsonlWorkTaskStoreTests.cs) (including persistent-adapter restart and fail-closed tests), [CodeRedIncidentTests](../tests/Foundry.Workflow.Tests/CodeRedIncidentTests.cs), and [JsonlCodeRedIncidentStoreTests](../tests/Foundry.Workflow.Tests/JsonlCodeRedIncidentStoreTests.cs), and [WorkTaskCapabilityRegistryTests](../tests/Foundry.Workflow.Tests/WorkTaskCapabilityRegistryTests.cs) for lifecycle, fencing, retry, incident provenance, CI identity, timestamp, clear behavior, and capability scope/lease/expiry/revocation. CI status is linked from the pull request implementing these slices.
