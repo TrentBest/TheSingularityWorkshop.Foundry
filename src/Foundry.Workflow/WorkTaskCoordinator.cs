@@ -12,11 +12,13 @@ public sealed record WorkTaskRequest(int SchemaVersion, string TaskId, string Co
             throw new ArgumentException($"Unsupported task schema version '{SchemaVersion}'.");
         if (string.IsNullOrWhiteSpace(TaskId) || string.IsNullOrWhiteSpace(CorrelationId))
             throw new ArgumentException("Task and correlation identifiers are required.");
-        if (string.IsNullOrWhiteSpace(Repository) || !Repository.Contains('/', StringComparison.Ordinal))
+        var repositoryParts = Repository.Split('/');
+        if (repositoryParts.Length != 2 || repositoryParts.Any(string.IsNullOrWhiteSpace))
             throw new ArgumentException("Repository must use owner/name identity.");
         if (IssueNumber <= 0 || !Uri.TryCreate(IssueUrl, UriKind.Absolute, out var uri) ||
-            uri.Scheme != Uri.UriSchemeHttps || uri.Host != "github.com")
-            throw new ArgumentException("A valid GitHub issue reference is required.");
+            uri.Scheme != Uri.UriSchemeHttps || uri.Host != "github.com" ||
+            uri.AbsolutePath != $"/{repositoryParts[0]}/{repositoryParts[1]}/issues/{IssueNumber}")
+            throw new ArgumentException("Issue URL must identify this repository and issue number.");
         if (BaseSha is null || BaseSha.Length != 40 || !BaseSha.All(Uri.IsHexDigit))
             throw new ArgumentException("Base SHA must be a full 40-character hexadecimal commit.");
         if (AllowedPaths is null || AllowedPaths.Count == 0 ||
