@@ -64,6 +64,35 @@ public sealed class WorkTaskCoordinatorTests
         Assert.Equal(1, blocked.Attempt);
     }
 
+
+    [Fact]
+    public void RetryBudgetCannotBeBypassedThroughCodeRed()
+    {
+        var coordinator = new WorkTaskCoordinator();
+        coordinator.Submit(Request(maximumAttempts: 1));
+        var lease = coordinator.Claim("foundry-8", "agent-a", TimeSpan.FromMinutes(10), Now).Lease!.LeaseId;
+        coordinator.Transition("foundry-8", lease, WorkTaskStatus.Investigating, Now, "inspect");
+        coordinator.Transition("foundry-8", lease, WorkTaskStatus.Implementing, Now, "implement");
+        coordinator.Transition("foundry-8", lease, WorkTaskStatus.Validating, Now, "validate first attempt");
+        coordinator.Transition("foundry-8", lease, WorkTaskStatus.CodeRed, Now, "validation blocked");
+        coordinator.Transition("foundry-8", lease, WorkTaskStatus.Implementing, Now, "resume bounded repair");
+        Assert.Throws<InvalidOperationException>(() =>
+            coordinator.Transition("foundry-8", lease, WorkTaskStatus.Validating, Now, "attempt beyond budget"));
+        Assert.Equal(1, coordinator.GetSnapshot("foundry-8").Attempt);
+    }
+
+    [Fact]
+    public void ClaimAndTransitionRejectDefaultTimestamps()
+    {
+        var coordinator = new WorkTaskCoordinator();
+        coordinator.Submit(Request());
+        Assert.Throws<ArgumentException>(() =>
+            coordinator.Claim("foundry-8", "agent-a", TimeSpan.FromMinutes(5), default));
+        var lease = coordinator.Claim("foundry-8", "agent-a", TimeSpan.FromMinutes(5), Now).Lease!.LeaseId;
+        Assert.Throws<ArgumentException>(() =>
+            coordinator.Transition("foundry-8", lease, WorkTaskStatus.Investigating, default, "invalid time"));
+    }
+
     [Fact]
     public void DuplicateTaskAndUnsafeScopeAreRejected()
     {
