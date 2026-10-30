@@ -34,7 +34,7 @@ Claims have an agent identity, unique lease fencing token, and bounded expiry. A
 
 ## CODE RED incident record
 
-`CodeRedIncident` is a versioned, credential-free operational record containing repository/task/issue/correlation identity, agent and role, current action, isolated branch and exact candidate SHA, latest CI run and attempt, severity/reason, retry budget, timestamps, and human-escalation requirement.
+`CodeRedIncident` is a versioned, credential-free operational record containing repository/task/issue/correlation identity, agent and role, current action, isolated branch and exact candidate SHA, latest CI run and attempt, severity/reason, retry budget, timestamps, and human-escalation requirement. `JsonlCodeRedIncidentStore` persists every create/update/clear snapshot in an append-only, fsync-backed journal, validates immutable incident identity and monotonic history on replay, and rejects mutation after clear.
 
 Updates preserve the incident start time and reject backward timestamps. Clearing is explicit, records a clear timestamp, and clears the human-escalation requirement. A cleared incident cannot be updated again. Canonical branches and partial CI run/attempt identities are rejected.
 
@@ -43,7 +43,7 @@ This is the incident data contract, not yet a durable incident service or notifi
 ## Current limitations
 
 - `JsonlWorkTaskStore` and `PersistentWorkTaskCoordinator` persist task snapshots and event history locally. The adapter serializes its own operations and restores journal state before accepting new work. If a journal write fails after an in-memory mutation, it permanently fails closed for that process; restart and restore from the journal before dispatch resumes. This remains single-process only: separate adapter/store instances or processes are not coordinated, and this is not a distributed atomic claim.
-- CODE RED incident records are still value objects and are not yet persisted by this journal.
+- CODE RED incident records have their own append-only local journal; this is single-process storage and is not yet a GitHub-backed or distributed incident service.
 - The coordinator does not claim GitHub issues, create branches, inspect CI, call models, or create PRs.
 - Lease arbitration is atomic only within one coordinator instance; it is not a cross-process lock. The local journal does not turn that lease into a distributed claim.
 - CODE RED human notification, durable incident history, secure re-authentication, and automatic status clear publication remain unimplemented.
@@ -51,4 +51,4 @@ This is the incident data contract, not yet a durable incident service or notifi
 
 ## Verification
 
-See [WorkTaskCoordinatorTests](../tests/Foundry.Workflow.Tests/WorkTaskCoordinatorTests.cs), [JsonlWorkTaskStoreTests](../tests/Foundry.Workflow.Tests/JsonlWorkTaskStoreTests.cs) (including persistent-adapter restart and fail-closed tests), and [CodeRedIncidentTests](../tests/Foundry.Workflow.Tests/CodeRedIncidentTests.cs) for lifecycle, fencing, retry, incident provenance, CI identity, timestamp, and clear behavior. CI status is linked from the pull request implementing these slices.
+See [WorkTaskCoordinatorTests](../tests/Foundry.Workflow.Tests/WorkTaskCoordinatorTests.cs), [JsonlWorkTaskStoreTests](../tests/Foundry.Workflow.Tests/JsonlWorkTaskStoreTests.cs) (including persistent-adapter restart and fail-closed tests), [CodeRedIncidentTests](../tests/Foundry.Workflow.Tests/CodeRedIncidentTests.cs), and [JsonlCodeRedIncidentStoreTests](../tests/Foundry.Workflow.Tests/JsonlCodeRedIncidentStoreTests.cs) for lifecycle, fencing, retry, incident provenance, CI identity, timestamp, and clear behavior. CI status is linked from the pull request implementing these slices.
