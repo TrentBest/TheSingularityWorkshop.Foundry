@@ -69,7 +69,7 @@ public sealed class WorkTaskCapabilityRegistry
         var capability = new WorkTaskCapability(Guid.NewGuid(), request.TaskId, request.Repository,
             lease.AgentId, lease.LeaseId, branch, request.BaseSha, candidateSha,
             Array.AsReadOnly(normalizedPaths), Array.AsReadOnly(allowedActions.Distinct().Order().ToArray()),
-            now, now.Add(lifetime));
+            now, now.Add(lifetime) < lease.ExpiresAt ? now.Add(lifetime) : lease.ExpiresAt);
         lock (_gate)
             _capabilities.Add(capability.CapabilityId, capability);
         return capability;
