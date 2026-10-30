@@ -158,6 +158,13 @@ public sealed class JsonlWorkTaskRepairAttemptJournal
     private void Replay()
     {
         using var stream = new FileStream(_path, FileMode.Open, FileAccess.Read, FileShare.Read);
+        if (stream.Length > 0)
+        {
+            stream.Position = stream.Length - 1;
+            if (stream.ReadByte() != (byte)'\\n')
+                throw new InvalidDataException("Repair-attempt journal has an incomplete final record; refusing to discard evidence.");
+            stream.Position = 0;
+        }
         using var reader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
         string? line;
         var lineNumber = 0;
