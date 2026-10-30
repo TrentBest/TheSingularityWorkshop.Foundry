@@ -3,7 +3,7 @@
 
 # Foundry Roadmap and Readiness
 
-**Current readiness: 35%.** The real-package FSM_API probe, deterministic fox/sheepdog scenario, version-1 sequential workflow runner, and retained in-process lifecycle coordinator passed [development CI run #84](https://github.com/TrentBest/TheSingularityWorkshop.Foundry/actions/runs/40546957980). This remains an early implementation slice, not a release-readiness claim.
+**Readiness: early implementation; no current percentage is asserted.** The previous 35% estimate predates the governed-work lifecycle and is not comparable to the expanded scope. The version-1 workflow runtime and the current governed-work feature branch passed their respective CI verification; this is not a release-readiness claim.
 
 ## Milestones
 
@@ -59,18 +59,32 @@
 - [ ] Evaluate ProtocolAi/GrammarAi adapters with explicit contracts.
 - [ ] Add additional languages only when the first cross-boundary proof is testable.
 
+### M6 — Governed repository-work lifecycle
+The completed items below are implemented on PR #10's feature branch and are not yet part of `development` until the owner reviews and merges that PR.
+- [x] Add a versioned, repository/issue/SHA-bound work-task envelope with bounded identifiers, path scope, and attempt budget.
+- [x] Add validated lifecycle transitions, expiring agent leases, fencing tokens, and sequenced audit history.
+- [x] Add append-only local task, CODE RED incident, and CI repair-attempt journals with restart replay and fail-closed corruption handling.
+- [x] Add host-issued, short-lived capabilities scoped to task, lease, branch, candidate SHA, paths, and explicit actions.
+- [x] Add credential-free CODE RED incident records and validated active/cleared notice projections.
+- [x] Add exact-CI-attempt provenance checks and bounded deterministic repair decisions.
+- [ ] Connect the task lifecycle to HeadlessAi's resumable-turn request/executor without moving lifecycle or authorization into HeadlessAi.
+- [ ] Connect CiAi's exact-run evidence packet/outbox and bounded rerun request/ledger through trusted host adapters.
+- [ ] Bridge the task lifecycle into the existing WorkflowExecutionCoordinator/WorkflowRunner; do not create a competing runner.
+- [ ] Prove the red → evidence → bounded repair → green → draft-PR path with deterministic fake-provider/fake-GitHub tests.
+- [ ] Complete the first integrated MyVR pilot and preserve human review/merge authority.
+
 ## Readiness rubric
 
 | Gate | Weight | Current evidence |
 |---|---:|---|
 | Purpose and dependency boundaries | 15% | Source-level contract inspection plus an initial domain proposal |
-| Contracts and implementation | 20% | Version-1 in-memory workflow runner plus retained lifecycle coordinator; CI run #84 passed |
-| Automated tests | 20% | Focused runner and lifecycle xUnit tests passed in CI run #84 |
+| Contracts and implementation | 20% | Version-1 workflow runtime on development; PR #10 adds the governed task/lease/journal/capability/repair-policy slice |
+| Automated tests | 20% | Workflow runtime, task lifecycle, strict journal replay, and repair-policy tests passed on PR #10 head in CI run #186 |
 | CI execution and security | 20% | Pinned-action workflow has read-only contents permission and a 15-minute timeout; broader threat cases pending |
 | Demonstration and reproducibility | 15% | Successful basic probe plus fox/dog state assertions, cross-FSM transition, repeatable trace/SVG, and uploaded artifact |
 | Documentation/UML completeness | 10% | Bootstrap docs, lifecycle UML, and Hub integration boundary; source-derived UML and complete reader journey remain |
 
-**No release recommendation yet.** Readiness rises when gates are supported by verifiable implementation and test evidence, not merely by adding documents. The 35% estimate reflects the additional lifecycle implementation and its successful CI verification; it is not a release-readiness claim.
+**No release recommendation yet.** Readiness rises when gates are supported by verifiable implementation and test evidence, not merely by adding documents. CI run #186 verifies PR #10 head commit `5158f1d909cc504ce192a40b138f913cf61e12fc`; it does not prove the unimplemented live GitHub/HeadlessAi/CiAi integration or the MyVR pilot.
 
 ---
 
