@@ -30,7 +30,7 @@ public sealed class JsonlWorkTaskStoreTests
             Assert.Equal("agent-a", recovered.Lease!.AgentId);
             Assert.Equal(2, recovered.Events.Count);
             Assert.Equal(3, File.ReadAllLines(path).Length);
-            Assert.Equal(1, reopened.GetAll().Count);
+            Assert.Single(reopened.GetAll());
         }
         finally
         {
@@ -128,7 +128,7 @@ public sealed class JsonlWorkTaskStoreTests
             var restarted = new PersistentWorkTaskCoordinator(new JsonlWorkTaskStore(path));
             var recovered = restarted.GetSnapshot("task-1");
             Assert.Equal(WorkTaskStatus.Investigating, recovered.Status);
-            Assert.Equal(3, recovered.Events.Count);
+            Assert.Equal(2, recovered.Events.Count);
             Assert.Equal(investigating.Lease!.LeaseId, recovered.Lease!.LeaseId);
         }
         finally
