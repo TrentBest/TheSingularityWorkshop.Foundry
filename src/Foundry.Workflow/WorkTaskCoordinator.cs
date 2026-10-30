@@ -78,8 +78,8 @@ public sealed class WorkTaskCoordinator
 
     public WorkTaskSnapshot Claim(string taskId, string agentId, TimeSpan leaseDuration, DateTimeOffset now)
     {
-        if (string.IsNullOrWhiteSpace(agentId))
-            throw new ArgumentException("Agent identity is required.", nameof(agentId));
+        if (string.IsNullOrWhiteSpace(agentId) || agentId.Length > 128 || agentId.Any(char.IsControl))
+            throw new ArgumentException("Agent identity must be non-empty, control-free, and at most 128 characters.", nameof(agentId));
         if (leaseDuration <= TimeSpan.Zero || leaseDuration > TimeSpan.FromHours(1))
             throw new ArgumentOutOfRangeException(nameof(leaseDuration));
         if (now == default)
@@ -105,8 +105,8 @@ public sealed class WorkTaskCoordinator
     public WorkTaskSnapshot Transition(string taskId, Guid leaseId, WorkTaskStatus next,
         DateTimeOffset now, string reason)
     {
-        if (string.IsNullOrWhiteSpace(reason))
-            throw new ArgumentException("A transition reason is required.", nameof(reason));
+        if (string.IsNullOrWhiteSpace(reason) || reason.Length > 2048 || reason.Any(char.IsControl))
+            throw new ArgumentException("A transition reason must be non-empty, control-free, and at most 2048 characters.", nameof(reason));
         if (now == default)
             throw new ArgumentException("Transition time is required.", nameof(now));
         lock (_gate)
