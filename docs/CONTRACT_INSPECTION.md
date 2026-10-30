@@ -1,3 +1,6 @@
+<!-- The Singularity Workshop moniker -->
+<p align="center"><a href="https://github.com/TrentBest"><img src="https://raw.githubusercontent.com/TrentBest/TheSingularityWorkshop.Visualize/development/docs/assets/moniker.svg" alt="The Singularity Workshop animated moniker" width="720" /></a></p>
+
 # Foundry Contract Inspection Ledger
 
 **Inspection date:** 2026-10-23  
@@ -47,3 +50,8 @@
 ## Next evidence-producing action
 
 Build a small isolated prototype against the actual FSM_API package and tests. Compare a typed in-process workflow definition with a persisted-manifest path before committing to a public schema. Verify state stepping, context invalidation, failure capture, registry cleanup, repeat runs, and terminal-result mapping. Keep FSM_COS out of the prototype unless a test demonstrates a real composition requirement.
+
+---
+
+<!-- THE SINGULARITY WORKSHOP FOOTER -->
+<p align="center"><img src="https://raw.githubusercontent.com/TrentBest/FSM_API/master/Documentation/Branding/TheSingularityWorkshop.png" alt="The Singularity Workshop avatar" width="200" /></p>
