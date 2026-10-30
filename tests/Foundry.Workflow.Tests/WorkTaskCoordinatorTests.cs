@@ -138,6 +138,40 @@ public sealed class WorkTaskCoordinatorTests
     }
 
     [Fact]
+    public void ReviewReadyCannotBeAssertedByAnOrdinaryLifecycleTransition()
+    {
+        var coordinator = new WorkTaskCoordinator();
+        coordinator.Submit(Request());
+        var lease = coordinator.Claim("foundry-8", "agent-a", TimeSpan.FromMinutes(10), Now).Lease!.LeaseId;
+        coordinator.Transition("foundry-8", lease, WorkTaskStatus.Investigating, Now, "inspect");
+        coordinator.Transition("foundry-8", lease, WorkTaskStatus.Implementing, Now, "implement");
+        coordinator.Transition("foundry-8", lease, WorkTaskStatus.Validating, Now, "validate");
+        Assert.Throws<InvalidOperationException>(() =>
+            coordinator.Transition("foundry-8", lease, WorkTaskStatus.ReviewReady, Now, "claim success"));
+        coordinator.Transition("foundry-8", lease, WorkTaskStatus.CodeRed, Now, "urgent blocker");
+        Assert.Throws<InvalidOperationException>(() =>
+            coordinator.Transition("foundry-8", lease, WorkTaskStatus.ReviewReady, Now, "bypass CI from CODE RED"));
+    }
+
+    [Fact]
+    public void ExactSuccessfulCiEvidenceIsRequiredToReachReviewReady()
+    {
+        var coordinator = new WorkTaskCoordinator();
+        coordinator.Submit(Request());
+        var lease = coordinator.Claim("foundry-8", "agent-a", TimeSpan.FromMinutes(10), Now).Lease!.LeaseId;
+        coordinator.Transition("foundry-8", lease, WorkTaskStatus.Investigating, Now, "inspect");
+        coordinator.Transition("foundry-8", lease, WorkTaskStatus.Implementing, Now, "implement");
+        coordinator.Transition("foundry-8", lease, WorkTaskStatus.Validating, Now, "validate");
+        var attempt = SuccessfulAttempt();
+        var wrongExpectation = Expectation(attempt) with { CandidateSha = new string('b', 40) };
+        var rejected = coordinator.ApplyRepairDecision("foundry-8", lease,
+            Array.Empty<WorkTaskRepairAttempt>(), attempt, wrongExpectation,
+            TimeSpan.FromMinutes(30), Now.AddMinutes(3));
+        Assert.Equal(WorkTaskStatus.Blocked, rejected.Status);
+        Assert.Equal("repair.evidence-provenance-mismatch", rejected.Events[^1].Reason.Split(':')[0]);
+    }
+
+    [Fact]
     public void TerminalHandoffReleasesLease()
     {
         var coordinator = new WorkTaskCoordinator();
@@ -146,12 +180,24 @@ public sealed class WorkTaskCoordinatorTests
         coordinator.Transition("foundry-8", lease, WorkTaskStatus.Investigating, Now, "inspect");
         coordinator.Transition("foundry-8", lease, WorkTaskStatus.Implementing, Now, "implement");
         coordinator.Transition("foundry-8", lease, WorkTaskStatus.Validating, Now, "validate");
-        coordinator.Transition("foundry-8", lease, WorkTaskStatus.ReviewReady, Now, "checks passed");
-        var handedOff = coordinator.Transition("foundry-8", lease, WorkTaskStatus.HandedOff, Now, "draft PR ready");
+        var attempt = SuccessfulAttempt();
+        coordinator.ApplyRepairDecision("foundry-8", lease, Array.Empty<WorkTaskRepairAttempt>(),
+            attempt, Expectation(attempt), TimeSpan.FromMinutes(30), Now.AddMinutes(3));
+        var handedOff = coordinator.Transition("foundry-8", lease, WorkTaskStatus.HandedOff, Now.AddMinutes(4), "draft PR ready");
         Assert.Equal(WorkTaskStatus.HandedOff, handedOff.Status);
         Assert.Null(handedOff.Lease);
         Assert.Equal(6, handedOff.Events.Count);
     }
+
+    private static WorkTaskRepairAttempt SuccessfulAttempt() =>
+        new(1, "foundry-8", "correlation-8", "TrentBest/TheSingularityWorkshop.Foundry",
+            "work/code-red-task-lifecycle", ".github/workflows/build.yml", Now, 1,
+            new string('a', 40), 1001, 1, new string('f', 64), true, true, false,
+            null, Now.AddMinutes(1), Now.AddMinutes(2));
+
+    private static WorkTaskRepairEvidenceExpectation Expectation(WorkTaskRepairAttempt attempt) =>
+        new(attempt.TaskId, attempt.CorrelationId, attempt.Repository, attempt.Branch,
+            attempt.WorkflowPath, attempt.CandidateSha, attempt.TaskStartedAt);
 
     private static WorkTaskRequest Request(int maximumAttempts = 3, IReadOnlyList<string>? paths = null,
         string? baseSha = null, string taskId = "foundry-8", string correlationId = "correlation-8") =>
