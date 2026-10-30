@@ -30,9 +30,22 @@ public sealed class WorkflowExecutionCoordinator : IAsyncDisposable
         }
     }
 
-    /// <summary>Starts an accepted run once and returns its eventual structured result.</summary>
-    public Task<WorkflowResult> StartAsync(Guid runId)
+    /// <summary>Starts an accepted run once, without a workflow-level timeout.</summary>
+    public Task<WorkflowResult> StartAsync(Guid runId) => StartAsync(runId, timeout: null);
+
+    /// <summary>
+    /// Starts an accepted run once. A finite timeout requests cooperative cancellation and
+    /// produces a TimedOut outcome, distinct from caller-requested cancellation.
+    /// </summary>
+    /// <remarks>
+    /// A timeout cannot forcibly stop a handler that ignores its cancellation token.
+    /// </remarks>
+    public Task<WorkflowResult> StartAsync(Guid runId, TimeSpan? timeout)
     {
+        if (timeout is { } duration &&
+            (duration <= TimeSpan.Zero && duration != Timeout.InfiniteTimeSpan))
+            throw new ArgumentOutOfRangeException(nameof(timeout), "Timeout must be positive or infinite.");
+
         RunState state;
         lock (_gate)
         {
@@ -43,6 +56,11 @@ public sealed class WorkflowExecutionCoordinator : IAsyncDisposable
                     $"Run '{runId}' cannot start from status '{state.Status}'.");
             state.Status = WorkflowRunStatus.Running;
             state.StartedAt = DateTimeOffset.UtcNow;
+            state.Timeout = timeout is { } limit
+                ? new CancellationTokenSource(limit)
+                : new CancellationTokenSource();
+            state.ExecutionCancellation = CancellationTokenSource.CreateLinkedTokenSource(
+                state.Cancellation.Token, state.Timeout.Token);
         }
 
         _ = ExecuteAsync(state);
@@ -129,7 +147,11 @@ public sealed class WorkflowExecutionCoordinator : IAsyncDisposable
             lock (_gate)
             {
                 foreach (var state in _runs.Values)
+                {
+                    state.ExecutionCancellation?.Dispose();
+                    state.Timeout?.Dispose();
                     state.Cancellation.Dispose();
+                }
             }
         }
     }
@@ -139,8 +161,16 @@ public sealed class WorkflowExecutionCoordinator : IAsyncDisposable
         WorkflowResult result;
         try
         {
-            result = await _runner.RunAsync(state.Definition, state.Cancellation.Token)
+            result = await _runner.RunAsync(state.Definition, state.ExecutionCancellation!.Token)
                 .ConfigureAwait(false);
+
+            // Explicit caller cancellation wins if both cancellation sources race.
+            if (state.Timeout!.IsCancellationRequested &&
+                !state.Cancellation.IsCancellationRequested)
+            {
+                result = new WorkflowResult(result.WorkflowId, WorkflowStatus.TimedOut,
+                    result.Steps, result.Diagnostics);
+            }
         }
         catch (Exception exception)
         {
@@ -159,6 +189,7 @@ public sealed class WorkflowExecutionCoordinator : IAsyncDisposable
                 WorkflowStatus.Succeeded => WorkflowRunStatus.Succeeded,
                 WorkflowStatus.Failed => WorkflowRunStatus.Failed,
                 WorkflowStatus.Cancelled => WorkflowRunStatus.Cancelled,
+                WorkflowStatus.TimedOut => WorkflowRunStatus.TimedOut,
                 WorkflowStatus.Invalid => WorkflowRunStatus.Invalid,
                 _ => throw new ArgumentOutOfRangeException(nameof(result.Status))
             };
@@ -185,6 +216,8 @@ public sealed class WorkflowExecutionCoordinator : IAsyncDisposable
         public WorkflowRunStatus Status { get; set; } = WorkflowRunStatus.Accepted;
         public WorkflowResult? Result { get; set; }
         public CancellationTokenSource Cancellation { get; } = new();
+        public CancellationTokenSource? Timeout { get; set; }
+        public CancellationTokenSource? ExecutionCancellation { get; set; }
         public TaskCompletionSource<WorkflowResult> Completion { get; } =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
 
@@ -201,6 +234,7 @@ public enum WorkflowRunStatus
     Succeeded,
     Failed,
     Cancelled,
+    TimedOut,
     Invalid
 }
 
