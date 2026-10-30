@@ -145,12 +145,13 @@ public sealed class JsonlWorkTaskStore
             Events = Array.AsReadOnly(snapshot.Events.ToArray())
         };
 
-    private static void ValidateSnapshot(WorkTaskSnapshot snapshot)
+    internal static void ValidateSnapshot(WorkTaskSnapshot snapshot)
     {
+        ArgumentNullException.ThrowIfNull(snapshot);
         ArgumentNullException.ThrowIfNull(snapshot.Request);
         snapshot.Request.Validate();
-        if (snapshot.Events is null || snapshot.Events.Select((item, index) => item is not null && item.Sequence == index + 1).Any(valid => !valid))
-            throw new ArgumentException("Task event history must be contiguous and one-based.", nameof(snapshot));
+        if (snapshot.Events is null)
+            throw new ArgumentException("Task event history is required.", nameof(snapshot));
         if (!Enum.IsDefined(snapshot.Status))
             throw new ArgumentException("Task status is invalid.", nameof(snapshot));
         if (snapshot.Attempt < 0 || snapshot.Attempt > snapshot.Request.MaximumAttempts)
@@ -158,5 +159,48 @@ public sealed class JsonlWorkTaskStore
         if (snapshot.Lease is { } lease &&
             (string.IsNullOrWhiteSpace(lease.AgentId) || lease.LeaseId == Guid.Empty))
             throw new ArgumentException("Task lease identity is invalid.", nameof(snapshot));
+
+        if (snapshot.Events.Count == 0)
+        {
+            if (snapshot.Status != WorkTaskStatus.Queued || snapshot.Lease is not null || snapshot.Attempt != 0)
+                throw new ArgumentException("An event-free snapshot must be an untouched queued task.", nameof(snapshot));
+            return;
+        }
+
+        var previousStatus = WorkTaskStatus.Queued;
+        DateTimeOffset? previousTime = null;
+        var validationAttempts = 0;
+        for (var index = 0; index < snapshot.Events.Count; index++)
+        {
+            var item = snapshot.Events[index];
+            if (item is null || item.Sequence != index + 1 ||
+                !Enum.IsDefined(item.Previous) || !Enum.IsDefined(item.Current) ||
+                item.Previous != previousStatus || item.Current == item.Previous ||
+                item.Current == WorkTaskStatus.Queued ||
+                string.IsNullOrWhiteSpace(item.AgentId) || item.LeaseId == Guid.Empty ||
+                string.IsNullOrWhiteSpace(item.Reason) || item.OccurredAt == default ||
+                (previousTime.HasValue && item.OccurredAt < previousTime.Value))
+                throw new ArgumentException("Task event history must be contiguous, valid, and chronological.", nameof(snapshot));
+
+            if (item.Current == WorkTaskStatus.Validating)
+                validationAttempts++;
+            previousStatus = item.Current;
+            previousTime = item.OccurredAt;
+        }
+
+        var finalEvent = snapshot.Events[^1];
+        if (snapshot.Status != previousStatus || snapshot.Attempt != validationAttempts)
+            throw new ArgumentException("Snapshot status and attempt count must match its event history.", nameof(snapshot));
+        if (snapshot.Lease is { } activeLease)
+        {
+            if (snapshot.Status is WorkTaskStatus.HandedOff or WorkTaskStatus.Stopped or WorkTaskStatus.Failed ||
+                activeLease.AgentId != finalEvent.AgentId || activeLease.LeaseId != finalEvent.LeaseId ||
+                activeLease.ExpiresAt <= finalEvent.OccurredAt)
+                throw new ArgumentException("Active lease must match the latest non-terminal event.", nameof(snapshot));
+        }
+        else if (snapshot.Status is not (WorkTaskStatus.HandedOff or WorkTaskStatus.Stopped or WorkTaskStatus.Failed))
+        {
+            throw new ArgumentException("A non-terminal task snapshot must retain its agent lease.", nameof(snapshot));
+        }
     }
 }
