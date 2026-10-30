@@ -132,12 +132,19 @@ public sealed class WorkTaskRepairDecisionPolicyTests
                 ExpectedCiRunId = attempt.CiRunId,
                 ExpectedCiRunAttempt = attempt.CiRunAttempt + 1
             });
+        var matchingRun = Evaluate(Array.Empty<WorkTaskRepairAttempt>(), attempt,
+            expectation: Expectation(attempt) with
+            {
+                ExpectedCiRunId = attempt.CiRunId,
+                ExpectedCiRunAttempt = attempt.CiRunAttempt
+            });
 
         Assert.Equal(WorkTaskRepairDecision.Blocked, wrongCandidate.Decision);
         Assert.Equal(WorkTaskRepairDecision.Blocked, wrongWorkflow.Decision);
         Assert.Equal(WorkTaskRepairDecision.Blocked, wrongRepository.Decision);
         Assert.Equal(WorkTaskRepairDecision.Blocked, wrongRun.Decision);
         Assert.Equal(WorkTaskRepairDecision.Blocked, wrongRunAttempt.Decision);
+        Assert.Equal(WorkTaskRepairDecision.RepairRequired, matchingRun.Decision);
         Assert.Equal("repair.evidence-provenance-mismatch", wrongCandidate.ReasonCode);
     }
 
