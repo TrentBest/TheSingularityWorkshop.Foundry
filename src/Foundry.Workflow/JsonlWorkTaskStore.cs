@@ -157,7 +157,8 @@ public sealed class JsonlWorkTaskStore
         if (snapshot.Attempt < 0 || snapshot.Attempt > snapshot.Request.MaximumAttempts)
             throw new ArgumentException("Task attempt is outside its configured budget.", nameof(snapshot));
         if (snapshot.Lease is { } lease &&
-            (string.IsNullOrWhiteSpace(lease.AgentId) || lease.LeaseId == Guid.Empty))
+            (string.IsNullOrWhiteSpace(lease.AgentId) || lease.AgentId.Length > 128 ||
+             lease.AgentId.Any(char.IsControl) || lease.LeaseId == Guid.Empty))
             throw new ArgumentException("Task lease identity is invalid.", nameof(snapshot));
 
         if (snapshot.Events.Count == 0)
@@ -180,8 +181,10 @@ public sealed class JsonlWorkTaskStore
                 !(item.Current == WorkTaskStatus.Claimed &&
                     item.Previous is not (WorkTaskStatus.HandedOff or WorkTaskStatus.Stopped or WorkTaskStatus.Failed)) &&
                 !WorkTaskCoordinator.IsAllowedTransition(item.Previous, item.Current) ||
-                string.IsNullOrWhiteSpace(item.AgentId) || item.LeaseId == Guid.Empty ||
-                string.IsNullOrWhiteSpace(item.Reason) || item.OccurredAt == default ||
+                string.IsNullOrWhiteSpace(item.AgentId) || item.AgentId.Length > 128 ||
+                item.AgentId.Any(char.IsControl) || item.LeaseId == Guid.Empty ||
+                string.IsNullOrWhiteSpace(item.Reason) || item.Reason.Length > 2048 ||
+                item.Reason.Any(char.IsControl) || item.OccurredAt == default ||
                 (previousTime.HasValue && item.OccurredAt < previousTime.Value))
                 throw new ArgumentException("Task event history must be contiguous, valid, and chronological.", nameof(snapshot));
 
