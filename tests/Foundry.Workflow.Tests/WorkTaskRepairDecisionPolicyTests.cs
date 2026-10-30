@@ -120,10 +120,24 @@ public sealed class WorkTaskRepairDecisionPolicyTests
             expectation: Expectation(attempt) with { WorkflowPath = ".github/workflows/release.yml" });
         var wrongRepository = Evaluate(Array.Empty<WorkTaskRepairAttempt>(), attempt,
             expectation: Expectation(attempt) with { Repository = "Other/Repository" });
+        var wrongRun = Evaluate(Array.Empty<WorkTaskRepairAttempt>(), attempt,
+            expectation: Expectation(attempt) with
+            {
+                ExpectedCiRunId = attempt.CiRunId + 1,
+                ExpectedCiRunAttempt = attempt.CiRunAttempt
+            });
+        var wrongRunAttempt = Evaluate(Array.Empty<WorkTaskRepairAttempt>(), attempt,
+            expectation: Expectation(attempt) with
+            {
+                ExpectedCiRunId = attempt.CiRunId,
+                ExpectedCiRunAttempt = attempt.CiRunAttempt + 1
+            });
 
         Assert.Equal(WorkTaskRepairDecision.Blocked, wrongCandidate.Decision);
         Assert.Equal(WorkTaskRepairDecision.Blocked, wrongWorkflow.Decision);
         Assert.Equal(WorkTaskRepairDecision.Blocked, wrongRepository.Decision);
+        Assert.Equal(WorkTaskRepairDecision.Blocked, wrongRun.Decision);
+        Assert.Equal(WorkTaskRepairDecision.Blocked, wrongRunAttempt.Decision);
         Assert.Equal("repair.evidence-provenance-mismatch", wrongCandidate.ReasonCode);
     }
 
