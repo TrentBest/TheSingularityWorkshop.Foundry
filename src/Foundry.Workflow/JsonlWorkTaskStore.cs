@@ -185,6 +185,17 @@ public sealed class JsonlWorkTaskStore
                 item.AgentId.Any(char.IsControl) || item.LeaseId == Guid.Empty ||
                 string.IsNullOrWhiteSpace(item.Reason) || item.Reason.Length > 2048 ||
                 item.Reason.Any(char.IsControl) || item.OccurredAt == default ||
+                (item.CiRunId.HasValue != item.CiRunAttempt.HasValue) ||
+                (item.CiRunId.HasValue != (item.EvidencePayloadSha256 is not null)) ||
+                (item.CiRunId is <= 0) || (item.CiRunAttempt is <= 0) ||
+                (item.EvidencePayloadSha256 is not null &&
+                    (item.EvidencePayloadSha256.Length != 64 ||
+                     !item.EvidencePayloadSha256.All(Uri.IsHexDigit))) ||
+                (item.Current is WorkTaskStatus.ReviewReady or WorkTaskStatus.RepairRequired &&
+                    (!item.CiRunId.HasValue || item.Reason.StartsWith(
+                        item.Current == WorkTaskStatus.ReviewReady
+                            ? "repair.validation-passed: "
+                            : "repair.actionable-failure: ", StringComparison.Ordinal))) ||
                 (previousTime.HasValue && item.OccurredAt < previousTime.Value))
                 throw new ArgumentException("Task event history must be contiguous, valid, and chronological.", nameof(snapshot));
 
