@@ -3,7 +3,7 @@
 
 # Workflow Semantics — Version 1
 
-**Status:** the sequential runner and retained lifecycle baseline passed [development CI run #84](https://github.com/TrentBest/TheSingularityWorkshop.Foundry/actions/runs/40546957980). The `work/explicit-workflow-timeouts` branch adds a distinct timeout outcome and deterministic coordinator tests; that branch remains unverified until its CI run completes.
+**Status:** the sequential runner and retained lifecycle baseline passed [development CI run #84](https://github.com/TrentBest/TheSingularityWorkshop.Foundry/actions/runs/40546957980). The `work/explicit-workflow-timeouts` branch adds a distinct timeout outcome and deterministic coordinator tests; that branch passed [PR CI run #102](https://github.com/TrentBest/TheSingularityWorkshop.Foundry/actions/runs/41123855392).
 
 ## The execution model
 
@@ -92,7 +92,7 @@ This is an in-process coordinator, not a durable queue or cross-process service.
 - [Runner tests](../tests/Foundry.Workflow.Tests/WorkflowRunnerTests.cs)
 - [Lifecycle tests](../tests/Foundry.Workflow.Tests/WorkflowExecutionCoordinatorTests.cs)
 
-The current [Foundry CI run #84](https://github.com/TrentBest/TheSingularityWorkshop.Foundry/actions/runs/40546957980) passed the baseline runner and lifecycle tests, builds, and deterministic state-evidence checks. The timeout branch adds tests for timeout classification, caller-cancellation precedence, and invalid timeout values; do not treat those additions as verified until its PR CI passes. This document must be revised if the contract or tests change.
+The current [Foundry CI run #84](https://github.com/TrentBest/TheSingularityWorkshop.Foundry/actions/runs/40546957980) passed the baseline runner and lifecycle tests, builds, and deterministic state-evidence checks. The timeout branch adds tests for timeout classification, caller-cancellation precedence, and invalid timeout values; those additions passed [PR CI run #102](https://github.com/TrentBest/TheSingularityWorkshop.Foundry/actions/runs/41123855392). This document must be revised if the contract or tests change.
 
 ---
 
