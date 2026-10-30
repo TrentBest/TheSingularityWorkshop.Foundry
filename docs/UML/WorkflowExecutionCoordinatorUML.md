@@ -3,7 +3,7 @@
 
 # WorkflowExecutionCoordinator — UML Neighborhood
 
-**Status:** source-grounded view of the timeout implementation on `work/explicit-workflow-timeouts`; branch CI verification is pending. The baseline lifecycle passed [development CI run #84](https://github.com/TrentBest/TheSingularityWorkshop.Foundry/actions/runs/40546957980).
+**Status:** source-grounded view of the timeout implementation on `work/explicit-workflow-timeouts`; branch CI passed [PR CI run #102](https://github.com/TrentBest/TheSingularityWorkshop.Foundry/actions/runs/41123855392). The baseline lifecycle passed [development CI run #84](https://github.com/TrentBest/TheSingularityWorkshop.Foundry/actions/runs/40546957980).
 
 ## Neighborhood
 
