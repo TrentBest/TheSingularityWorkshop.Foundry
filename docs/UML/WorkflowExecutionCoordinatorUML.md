@@ -12,7 +12,8 @@ classDiagram
     direction TB
     class WorkflowExecutionCoordinator {
         +Submit(WorkflowDefinition) WorkflowRunSnapshot
-        +StartAsync(Guid) Task~WorkflowResult~\n        +StartAsync(Guid, TimeSpan?) Task~WorkflowResult~
+        +StartAsync(Guid) Task~WorkflowResult~
+        +StartAsync(Guid, TimeSpan?) Task~WorkflowResult~
         +Cancel(Guid) bool
         +GetSnapshot(Guid) WorkflowRunSnapshot
         +DisposeAsync() ValueTask
@@ -64,7 +65,14 @@ sequenceDiagram
     end
     Host->>Coordinator: GetSnapshot(run ID)
     Coordinator-->>Host: Current status and result when available
-    opt Caller cancellation\n        Host->>Coordinator: Cancel(run ID)\n    end\n    opt Workflow deadline expires\n        Coordinator->>Runner: Cancel linked execution token\n        Runner-->>Coordinator: Cancelled execution result\n        Coordinator->>Coordinator: Classify TimedOut (unless caller cancellation also requested)\n    end
+    opt Caller cancellation
+        Host->>Coordinator: Cancel(run ID)
+    end
+    opt Workflow deadline expires
+        Coordinator->>Runner: Cancel linked execution token
+        Runner-->>Coordinator: Cancelled execution result
+        Coordinator->>Coordinator: Classify TimedOut (unless caller cancellation also requested)
+    end
 ```
 
 ## Responsibility rules
