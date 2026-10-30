@@ -20,7 +20,9 @@ public sealed record WorkTaskRepairEvidenceExpectation(
     string Branch,
     string WorkflowPath,
     string CandidateSha,
-    DateTimeOffset TaskStartedAt)
+    DateTimeOffset TaskStartedAt,
+    long? ExpectedCiRunId = null,
+    int? ExpectedCiRunAttempt = null)
 {
     public WorkTaskRepairEvidenceExpectation Validate()
     {
@@ -34,7 +36,9 @@ public sealed record WorkTaskRepairEvidenceExpectation(
             !(WorkflowPath.EndsWith(".yml", StringComparison.Ordinal) || WorkflowPath.EndsWith(".yaml", StringComparison.Ordinal)) ||
             WorkflowPath.Contains('\\') || WorkflowPath.Split('/').Any(part => part.Length == 0 || part is "." or "..") ||
             CandidateSha is not { Length: 40 } || !CandidateSha.All(Uri.IsHexDigit) ||
-            TaskStartedAt == default)
+            TaskStartedAt == default ||
+            ExpectedCiRunId.HasValue != ExpectedCiRunAttempt.HasValue ||
+            ExpectedCiRunId is <= 0 || ExpectedCiRunAttempt is <= 0)
             throw new ArgumentException("Expected CI evidence provenance is invalid.");
         return this;
     }
@@ -134,7 +138,10 @@ public static class WorkTaskRepairDecisionPolicy
         string.Equals(attempt.Repository, expected.Repository, StringComparison.OrdinalIgnoreCase) &&
         attempt.Branch == expected.Branch && attempt.WorkflowPath == expected.WorkflowPath &&
         string.Equals(attempt.CandidateSha, expected.CandidateSha, StringComparison.OrdinalIgnoreCase) &&
-        attempt.TaskStartedAt == expected.TaskStartedAt;
+        attempt.TaskStartedAt == expected.TaskStartedAt &&
+        (!expected.ExpectedCiRunId.HasValue ||
+            (attempt.CiRunId == expected.ExpectedCiRunId.Value &&
+             attempt.CiRunAttempt == expected.ExpectedCiRunAttempt!.Value));
 
     private static bool SameTask(WorkTaskRepairAttempt left, WorkTaskRepairAttempt right) =>
         left.TaskId == right.TaskId && left.CorrelationId == right.CorrelationId &&
