@@ -115,7 +115,7 @@ public sealed class WorkflowExecutionCoordinatorTests
         await using var coordinator = new WorkflowExecutionCoordinator(registry);
         var accepted = coordinator.Submit(Definition(new WorkflowStep("step-1", "missing")));
 
-        Assert.Throws<ArgumentOutOfRangeException>(
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(
             () => coordinator.StartAsync(accepted.RunId, TimeSpan.Zero));
         Assert.Equal(WorkflowRunStatus.Accepted,
             coordinator.GetSnapshot(accepted.RunId).Status);
