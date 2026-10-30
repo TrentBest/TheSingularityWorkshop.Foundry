@@ -108,6 +108,38 @@ public sealed class JsonlWorkTaskStoreTests
     }
 
     [Fact]
+    public void RestoreRejectsOversizedOrControlCharacterAuditMetadata()
+    {
+        var coordinator = new WorkTaskCoordinator();
+        coordinator.Submit(Request());
+        var claimed = coordinator.Claim("task-1", "agent-a", TimeSpan.FromMinutes(5), Now);
+
+        var oversizedLease = claimed with
+        {
+            Lease = claimed.Lease! with { AgentId = new string('a', 129) }
+        };
+        Assert.Throws<ArgumentException>(() => new WorkTaskCoordinator().Restore(oversizedLease));
+
+        var controlAgent = claimed with
+        {
+            Events = new[] { claimed.Events[0] with { AgentId = "bad\\u0001agent" } }
+        };
+        Assert.Throws<ArgumentException>(() => new WorkTaskCoordinator().Restore(controlAgent));
+
+        var oversizedReason = claimed with
+        {
+            Events = new[] { claimed.Events[0] with { Reason = new string('r', 2049) } }
+        };
+        Assert.Throws<ArgumentException>(() => new WorkTaskCoordinator().Restore(oversizedReason));
+
+        var controlReason = claimed with
+        {
+            Events = new[] { claimed.Events[0] with { Reason = "bad\\u0001reason" } }
+        };
+        Assert.Throws<ArgumentException>(() => new WorkTaskCoordinator().Restore(controlReason));
+    }
+
+    [Fact]
     public void RehydratesCoordinatorAndReclaimsExpiredLeaseAfterRestart()
     {
         var path = Path.Combine(Path.GetTempPath(), $"foundry-{Guid.NewGuid():N}.jsonl");
