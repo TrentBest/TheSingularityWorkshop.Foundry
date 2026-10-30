@@ -58,6 +58,9 @@ public sealed class CodeRedStatusNoticeTests
         Assert.Contains("Required workflow failed", notice.Message);
         Assert.Contains("Next update:", notice.Message);
         Assert.True(notice.HumanEscalationRequired);
+        Assert.Contains("Human escalation required: yes", notice.Message);
+        Assert.Throws<ArgumentException>(() => CodeRedStatusNoticeFactory.CreateActive(
+            Incident(), task, Start.AddMinutes(1), task.Lease!.ExpiresAt));
     }
 
     [Fact]
