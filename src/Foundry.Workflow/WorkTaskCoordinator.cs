@@ -120,6 +120,8 @@ public sealed class WorkTaskCoordinator
     public void Restore(WorkTaskSnapshot snapshot)
     {
         ArgumentNullException.ThrowIfNull(snapshot);
+        if (snapshot.Request is null)
+            throw new ArgumentException("Task request is required.", nameof(snapshot));
         snapshot.Request.Validate();
         if (snapshot.Events is null ||
             snapshot.Events.Select((item, index) => item is not null && item.Sequence == index + 1).Any(valid => !valid) ||
