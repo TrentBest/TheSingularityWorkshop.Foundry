@@ -29,7 +29,7 @@ public sealed class JsonlWorkTaskStoreTests
             Assert.Equal(WorkTaskStatus.Investigating, recovered.Status);
             Assert.Equal("agent-a", recovered.Lease!.AgentId);
             Assert.Equal(2, recovered.Events.Count);
-            Assert.Equal(2, File.ReadAllLines(path).Length);
+            Assert.Equal(3, File.ReadAllLines(path).Length);
             Assert.Equal(1, reopened.GetAll().Count);
         }
         finally
