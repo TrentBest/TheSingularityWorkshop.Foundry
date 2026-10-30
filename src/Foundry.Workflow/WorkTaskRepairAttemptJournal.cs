@@ -161,7 +161,7 @@ public sealed class JsonlWorkTaskRepairAttemptJournal
         if (stream.Length > 0)
         {
             stream.Position = stream.Length - 1;
-            if (stream.ReadByte() != (byte)'\\n')
+            if (stream.ReadByte() != 10)
                 throw new InvalidDataException("Repair-attempt journal has an incomplete final record; refusing to discard evidence.");
             stream.Position = 0;
         }
