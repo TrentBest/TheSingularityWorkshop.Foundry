@@ -31,7 +31,7 @@ Queued -> Claimed -> Investigating -> Implementing -> Validating
                                       +-- RepairRequired <-+
 ```
 
-`Blocked`, `CodeRed`, `Stopped`, and `Failed` are explicit states with constrained recovery/terminal transitions. An exhausted attempt budget converts a requested `RepairRequired` transition into `Blocked`, and a later CODE RED recovery cannot bypass the validation-attempt ceiling.
+`Blocked`, `CodeRed`, `Stopped`, and `Failed` are explicit states with constrained recovery/terminal transitions. An exhausted attempt budget converts a requested repair decision into `Blocked`, and a later CODE RED recovery cannot bypass the validation-attempt ceiling. `ReviewReady` and `RepairRequired` are not ordinary status transitions: `ApplyRepairDecision` re-evaluates the exact candidate/workflow/run evidence against the task identity, contiguous attempt history, and configured attempt/time budgets before applying the resulting state. A caller cannot assert `ReviewReady` by supplying a transition reason such as “checks passed.”
 
 ## Claims and audit
 
