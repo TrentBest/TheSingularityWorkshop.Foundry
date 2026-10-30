@@ -37,7 +37,7 @@ public sealed class JsonlWorkTaskStore
             if (snapshot.Events.Count != 0 || snapshot.Status != WorkTaskStatus.Queued ||
                 snapshot.Lease is not null || snapshot.Attempt != 0)
                 throw new ArgumentException("A new journal task must be an untouched queued snapshot.", nameof(snapshot));
-            Append(snapshot);
+            WriteLine(snapshot);
             _latest.Add(id, Clone(snapshot));
             return Clone(snapshot);
         }
@@ -55,7 +55,7 @@ public sealed class JsonlWorkTaskStore
                 snapshot.Events.Count != previous.Events.Count + 1 ||
                 !snapshot.Events.Take(previous.Events.Count).SequenceEqual(previous.Events))
                 throw new InvalidOperationException("A journal append must add exactly one event to the existing history.");
-            if (snapshot.Request != previous.Request)
+            if (!SameRequest(snapshot.Request, previous.Request))
                 throw new InvalidOperationException("Task provenance cannot change after creation.");
             WriteLine(snapshot);
             _latest[snapshot.Request.TaskId] = Clone(snapshot);
@@ -110,7 +110,7 @@ public sealed class JsonlWorkTaskStore
             }
             else if (snapshot.Events.Count != previous.Events.Count + 1 ||
                      !snapshot.Events.Take(previous.Events.Count).SequenceEqual(previous.Events) ||
-                     snapshot.Request != previous.Request)
+                     !SameRequest(snapshot.Request, previous.Request))
             {
                 throw new InvalidDataException($"Journal history for task '{id}' is discontinuous.");
             }
@@ -127,6 +127,13 @@ public sealed class JsonlWorkTaskStore
         writer.Flush();
         stream.Flush(flushToDisk: true);
     }
+
+    private static bool SameRequest(WorkTaskRequest left, WorkTaskRequest right) =>
+        left.SchemaVersion == right.SchemaVersion && left.TaskId == right.TaskId &&
+        left.CorrelationId == right.CorrelationId && left.Repository == right.Repository &&
+        left.IssueNumber == right.IssueNumber && left.IssueUrl == right.IssueUrl &&
+        left.BaseSha == right.BaseSha && left.MaximumAttempts == right.MaximumAttempts &&
+        left.AllowedPaths.SequenceEqual(right.AllowedPaths, StringComparer.Ordinal);
 
     private static WorkTaskSnapshot Clone(WorkTaskSnapshot snapshot) =>
         snapshot with
