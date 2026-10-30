@@ -2,7 +2,7 @@
 
 ## Scope and status
 
-The task coordinator and CODE RED incident value contract are in-process reference components. `JsonlWorkTaskStore` adds an append-only, fsync-backed local journal of complete task snapshots with strict replay validation. `WorkTaskCoordinator.Restore` rehydrates validated snapshots before dispatch, preserving event sequence and lease identity so an expired lease can be reclaimed with a new fencing token. This is durable across process restarts on the same host, but is not a distributed store, GitHub-backed store, or connected live GitHub/HeadlessAi/CiAi integration.
+The task coordinator and CODE RED incident value contract are in-process reference components. `JsonlWorkTaskStore` adds an append-only, fsync-backed local journal of complete task snapshots with strict replay validation. `PersistentWorkTaskCoordinator` restores journaled tasks at startup and persists each accepted submit/claim/transition before returning it to the caller. `WorkTaskCoordinator.Restore` rehydrates validated snapshots while preserving event sequence and lease identity so an expired lease can be reclaimed with a new fencing token. This is durable across process restarts on the same host, but is not a distributed store, GitHub-backed store, or connected live GitHub/HeadlessAi/CiAi integration.
 
 ## Task envelope
 
@@ -42,7 +42,7 @@ This is the incident data contract, not yet a durable incident service or notifi
 
 ## Current limitations
 
-- `JsonlWorkTaskStore` persists task snapshots and event history locally. It is single-process only: separate store instances/processes are not coordinated, and it does not atomically couple a coordinator transition to journal append. Hosts must restore all snapshots before dispatch, persist each accepted snapshot, and stop dispatch if persistence fails.
+- `JsonlWorkTaskStore` and `PersistentWorkTaskCoordinator` persist task snapshots and event history locally. The adapter serializes its own operations and restores journal state before accepting new work. If a journal write fails after an in-memory mutation, it permanently fails closed for that process; restart and restore from the journal before dispatch resumes. This remains single-process only: separate adapter/store instances or processes are not coordinated, and this is not a distributed atomic claim.
 - CODE RED incident records are still value objects and are not yet persisted by this journal.
 - The coordinator does not claim GitHub issues, create branches, inspect CI, call models, or create PRs.
 - Lease arbitration is atomic only within one coordinator instance; it is not a cross-process lock. The local journal does not turn that lease into a distributed claim.
@@ -51,4 +51,4 @@ This is the incident data contract, not yet a durable incident service or notifi
 
 ## Verification
 
-See [WorkTaskCoordinatorTests](../tests/Foundry.Workflow.Tests/WorkTaskCoordinatorTests.cs), [JsonlWorkTaskStoreTests](../tests/Foundry.Workflow.Tests/JsonlWorkTaskStoreTests.cs), and [CodeRedIncidentTests](../tests/Foundry.Workflow.Tests/CodeRedIncidentTests.cs) for lifecycle, fencing, retry, incident provenance, CI identity, timestamp, and clear behavior. CI status is linked from the pull request implementing these slices.
+See [WorkTaskCoordinatorTests](../tests/Foundry.Workflow.Tests/WorkTaskCoordinatorTests.cs), [JsonlWorkTaskStoreTests](../tests/Foundry.Workflow.Tests/JsonlWorkTaskStoreTests.cs) (including persistent-adapter restart and fail-closed tests), and [CodeRedIncidentTests](../tests/Foundry.Workflow.Tests/CodeRedIncidentTests.cs) for lifecycle, fencing, retry, incident provenance, CI identity, timestamp, and clear behavior. CI status is linked from the pull request implementing these slices.
