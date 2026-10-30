@@ -14,11 +14,11 @@ public sealed class WorkTaskCapabilityRegistryTests
         "https://github.com/TrentBest/TheSingularityWorkshop.Foundry/issues/8",
         BaseSha, new[] { "src/Foundry.Workflow", "tests/Foundry.Workflow.Tests" }, 3);
 
-    private static WorkTaskSnapshot ActiveTask()
+    private static WorkTaskSnapshot ActiveTask(TimeSpan? leaseDuration = null)
     {
         var coordinator = new WorkTaskCoordinator();
         coordinator.Submit(Request());
-        return coordinator.Claim("task-8", "agent-a", TimeSpan.FromMinutes(20), Now);
+        return coordinator.Claim("task-8", "agent-a", leaseDuration ?? TimeSpan.FromMinutes(20), Now);
     }
 
     [Fact]
@@ -103,6 +103,23 @@ public sealed class WorkTaskCapabilityRegistryTests
             BaseSha, CandidateSha, WorkTaskAction.WriteFiles,
             "src/Foundry.Workflow/file.cs", Now.AddMinutes(1)));
         registry.Revoke(capability.CapabilityId);
+    }
+
+
+    [Fact]
+    public void CapabilityCannotOutliveItsOwningAgentLease()
+    {
+        var registry = new WorkTaskCapabilityRegistry();
+        var task = ActiveTask(TimeSpan.FromMinutes(2));
+        var capability = registry.Grant(task, "work/task-8", CandidateSha,
+            new[] { "src/Foundry.Workflow" }, new[] { WorkTaskAction.WriteFiles },
+            Now, TimeSpan.FromMinutes(30));
+
+        Assert.Equal(task.Lease!.ExpiresAt, capability.ExpiresAt);
+        Assert.Throws<UnauthorizedAccessException>(() => registry.Demand(capability.CapabilityId,
+            "task-8", Request().Repository, "agent-a", task.Lease.LeaseId, "work/task-8",
+            BaseSha, CandidateSha, WorkTaskAction.WriteFiles,
+            "src/Foundry.Workflow/file.cs", task.Lease.ExpiresAt));
     }
 
     [Fact]
