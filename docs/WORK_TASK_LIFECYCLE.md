@@ -2,7 +2,7 @@
 
 ## Scope and status
 
-The task coordinator and CODE RED incident value contract are in-process reference components. `JsonlWorkTaskStore` adds an append-only, fsync-backed local journal of complete task snapshots with strict replay validation. This is durable across process restarts on the same host, but is not a distributed store, GitHub-backed store, or connected live GitHub/HeadlessAi/CiAi integration.
+The task coordinator and CODE RED incident value contract are in-process reference components. `JsonlWorkTaskStore` adds an append-only, fsync-backed local journal of complete task snapshots with strict replay validation. `WorkTaskCoordinator.Restore` rehydrates validated snapshots before dispatch, preserving event sequence and lease identity so an expired lease can be reclaimed with a new fencing token. This is durable across process restarts on the same host, but is not a distributed store, GitHub-backed store, or connected live GitHub/HeadlessAi/CiAi integration.
 
 ## Task envelope
 
@@ -42,7 +42,7 @@ This is the incident data contract, not yet a durable incident service or notifi
 
 ## Current limitations
 
-- `JsonlWorkTaskStore` persists task snapshots and event history locally. It is single-process only: separate store instances/processes are not coordinated, and it does not atomically couple a coordinator transition to journal append. Hosts must persist each accepted snapshot and stop dispatch if persistence fails.
+- `JsonlWorkTaskStore` persists task snapshots and event history locally. It is single-process only: separate store instances/processes are not coordinated, and it does not atomically couple a coordinator transition to journal append. Hosts must restore all snapshots before dispatch, persist each accepted snapshot, and stop dispatch if persistence fails.
 - CODE RED incident records are still value objects and are not yet persisted by this journal.
 - The coordinator does not claim GitHub issues, create branches, inspect CI, call models, or create PRs.
 - Lease arbitration is atomic only within one coordinator instance; it is not a cross-process lock. The local journal does not turn that lease into a distributed claim.
