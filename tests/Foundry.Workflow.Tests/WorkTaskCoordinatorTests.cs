@@ -127,14 +127,14 @@ public sealed class WorkTaskCoordinatorTests
         Assert.Throws<ArgumentException>(() => coordinator.Claim("foundry-8",
             new string('a', 129), TimeSpan.FromMinutes(5), Now));
         Assert.Throws<ArgumentException>(() => coordinator.Claim("foundry-8",
-            "bad\\u0001agent", TimeSpan.FromMinutes(5), Now));
+            "bad\u0001agent", TimeSpan.FromMinutes(5), Now));
 
         var lease = coordinator.Claim("foundry-8", "agent-a",
             TimeSpan.FromMinutes(5), Now).Lease!.LeaseId;
         Assert.Throws<ArgumentException>(() => coordinator.Transition("foundry-8", lease,
             WorkTaskStatus.Investigating, Now, new string('r', 2049)));
         Assert.Throws<ArgumentException>(() => coordinator.Transition("foundry-8", lease,
-            WorkTaskStatus.Investigating, Now, "bad\\u0001reason"));
+            WorkTaskStatus.Investigating, Now, "bad\u0001reason"));
     }
 
     [Fact]
