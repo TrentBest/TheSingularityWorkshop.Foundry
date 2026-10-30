@@ -75,6 +75,31 @@ public sealed class JsonlWorkTaskStoreTests
     }
 
 
+
+    [Fact]
+    public void RestoreRejectsSnapshotStatusAndLeaseThatDisagreeWithAuditHistory()
+    {
+        var coordinator = new WorkTaskCoordinator();
+        coordinator.Submit(Request());
+        var claimed = coordinator.Claim("task-1", "agent-a", TimeSpan.FromMinutes(5), Now);
+        var lease = claimed.Lease!;
+
+        var wrongStatus = claimed with { Status = WorkTaskStatus.Investigating };
+        Assert.Throws<ArgumentException>(() => new WorkTaskCoordinator().Restore(wrongStatus));
+
+        var wrongLease = claimed with
+        {
+            Lease = new WorkTaskLease("agent-b", Guid.NewGuid(), lease.ExpiresAt)
+        };
+        Assert.Throws<ArgumentException>(() => new WorkTaskCoordinator().Restore(wrongLease));
+
+        var brokenChain = claimed with
+        {
+            Events = new[] { claimed.Events[0] with { Previous = WorkTaskStatus.Implementing } }
+        };
+        Assert.Throws<ArgumentException>(() => new WorkTaskCoordinator().Restore(brokenChain));
+    }
+
     [Fact]
     public void RehydratesCoordinatorAndReclaimsExpiredLeaseAfterRestart()
     {
