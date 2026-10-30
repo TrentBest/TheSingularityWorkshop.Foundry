@@ -3,7 +3,7 @@
 
 # Foundry Roadmap and Readiness
 
-**Readiness: early implementation; no current percentage is asserted.** The previous 35% estimate predates the governed-work lifecycle and is not comparable to the expanded scope. The version-1 workflow runtime and the current governed-work feature branch passed their respective CI verification; this is not a release-readiness claim.
+**Readiness: early implementation; no current percentage is asserted.** The previous 35% estimate predates the governed-work lifecycle and is not comparable to the expanded scope. The version-1 workflow runtime passed its development CI gate; the governed-work feature branch passed [feature-branch CI run #196](https://github.com/TrentBest/TheSingularityWorkshop.Foundry/actions/runs/41146291917) on commit `e85fd23fd5f897faaf1f28ab6d2141baeed657dd`. This is not a release-readiness claim.
 
 ## Milestones
 
@@ -79,12 +79,12 @@ The completed items below are implemented on PR #10's feature branch and are not
 |---|---:|---|
 | Purpose and dependency boundaries | 15% | Source-level contract inspection plus an initial domain proposal |
 | Contracts and implementation | 20% | Version-1 workflow runtime on development; PR #10 adds the governed task/lease/journal/capability/repair-policy slice |
-| Automated tests | 20% | Workflow runtime, task lifecycle, strict journal replay, and repair-policy tests passed on PR #10 head in CI run #186 |
+| Automated tests | 20% | Workflow runtime, task lifecycle, strict journal replay, repair-policy, and documentation checks passed on PR #10 head in CI run #196 |
 | CI execution and security | 20% | Pinned-action workflow has read-only contents permission and a 15-minute timeout; broader threat cases pending |
 | Demonstration and reproducibility | 15% | Successful basic probe plus fox/dog state assertions, cross-FSM transition, repeatable trace/SVG, and uploaded artifact |
 | Documentation/UML completeness | 10% | Bootstrap docs, lifecycle UML, and Hub integration boundary; source-derived UML and complete reader journey remain |
 
-**No release recommendation yet.** Readiness rises when gates are supported by verifiable implementation and test evidence, not merely by adding documents. CI run #186 verifies PR #10 head commit `5158f1d909cc504ce192a40b138f913cf61e12fc`; it does not prove the unimplemented live GitHub/HeadlessAi/CiAi integration or the MyVR pilot.
+**No release recommendation yet.** Readiness rises when gates are supported by verifiable implementation and test evidence, not merely by adding documents. CI run #196 verifies PR #10 head commit `e85fd23fd5f897faaf1f28ab6d2141baeed657dd`; it does not prove the unimplemented live GitHub/HeadlessAi/CiAi integration or the MyVR pilot.
 
 ---
 
