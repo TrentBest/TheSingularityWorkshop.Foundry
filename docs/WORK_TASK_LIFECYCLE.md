@@ -2,7 +2,7 @@
 
 ## Scope and status
 
-The task coordinator and CODE RED incident value contract are in-process reference components. `JsonlWorkTaskStore` adds an append-only, fsync-backed local journal of complete task snapshots with strict replay validation. `PersistentWorkTaskCoordinator` restores journaled tasks at startup and persists each accepted submit/claim/transition before returning it to the caller. `WorkTaskCoordinator.Restore` rehydrates validated snapshots while preserving event sequence and lease identity so an expired lease can be reclaimed with a new fencing token. This is durable across process restarts on the same host, but is not a distributed store, GitHub-backed store, or connected live GitHub/HeadlessAi/CiAi integration.
+The task coordinator and CODE RED incident value contract are in-process reference components. `JsonlWorkTaskStore` adds an append-only, fsync-backed local journal of complete task snapshots with strict replay validation. `PersistentWorkTaskCoordinator` restores journaled tasks at startup and persists each accepted submit/claim/transition before returning it to the caller. Replay validates event continuity, legal lifecycle edges, attempt counts, timestamps, and the latest lease identity; restore uses the same validator. `WorkTaskCoordinator.Restore` rehydrates validated snapshots while preserving event sequence and lease identity so an expired lease can be reclaimed with a new fencing token. This is durable across process restarts on the same host, but is not a distributed store, GitHub-backed store, or connected live GitHub/HeadlessAi/CiAi integration.
 
 ## Task envelope
 
@@ -26,7 +26,7 @@ Queued -> Claimed -> Investigating -> Implementing -> Validating
                                       +-- RepairRequired <-+
 ```
 
-`Blocked`, `CodeRed`, `Stopped`, and `Failed` are explicit states with constrained recovery/terminal transitions. An exhausted attempt budget converts a requested `RepairRequired` transition into `Blocked`.
+`Blocked`, `CodeRed`, `Stopped`, and `Failed` are explicit states with constrained recovery/terminal transitions. An exhausted attempt budget converts a requested `RepairRequired` transition into `Blocked`, and a later CODE RED recovery cannot bypass the validation-attempt ceiling.
 
 ## Claims and audit
 
