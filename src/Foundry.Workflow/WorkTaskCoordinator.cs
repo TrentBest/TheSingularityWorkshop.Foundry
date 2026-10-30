@@ -80,6 +80,8 @@ public sealed class WorkTaskCoordinator
             throw new ArgumentException("Agent identity is required.", nameof(agentId));
         if (leaseDuration <= TimeSpan.Zero || leaseDuration > TimeSpan.FromHours(1))
             throw new ArgumentOutOfRangeException(nameof(leaseDuration));
+        if (now == default)
+            throw new ArgumentException("Claim time is required.", nameof(now));
         lock (_gate)
         {
             var state = Get(taskId);
@@ -103,6 +105,8 @@ public sealed class WorkTaskCoordinator
     {
         if (string.IsNullOrWhiteSpace(reason))
             throw new ArgumentException("A transition reason is required.", nameof(reason));
+        if (now == default)
+            throw new ArgumentException("Transition time is required.", nameof(now));
         lock (_gate)
         {
             var state = Get(taskId);
@@ -111,6 +115,8 @@ public sealed class WorkTaskCoordinator
                 throw new InvalidOperationException("The task lease is missing, expired, or superseded.");
             if (!Allowed(state.Status, next))
                 throw new InvalidOperationException($"Transition '{state.Status}' -> '{next}' is not allowed.");
+            if (next == WorkTaskStatus.Validating && state.Attempt >= state.Request.MaximumAttempts)
+                throw new InvalidOperationException("The configured validation attempt budget is exhausted.");
             if (next == WorkTaskStatus.Validating)
                 state.Attempt++;
             if (next == WorkTaskStatus.RepairRequired && state.Attempt >= state.Request.MaximumAttempts)
@@ -146,9 +152,11 @@ public sealed class WorkTaskCoordinator
     private TaskState Get(string taskId) => _tasks.TryGetValue(taskId, out var state)
         ? state : throw new KeyNotFoundException($"Unknown task '{taskId}'.");
 
+    internal static bool IsAllowedTransition(WorkTaskStatus current, WorkTaskStatus next) => Allowed(current, next);
+
     private static bool Allowed(WorkTaskStatus current, WorkTaskStatus next) => (current, next) switch
     {
-        (WorkTaskStatus.Claimed, WorkTaskStatus.Investigating or WorkTaskStatus.Blocked or WorkTaskStatus.CodeRed or WorkTaskStatus.Stopped or WorkTaskStatus.Failed) => true,
+        (WorkTaskStatus.Claimed, WorkTaskStatus.Investigating or WorkTaskStatus.Blocked or WorkTaskStatus.CodeRed or WorkTaskStatus.HandedOff or WorkTaskStatus.Stopped or WorkTaskStatus.Failed) => true,
         (WorkTaskStatus.Investigating, WorkTaskStatus.Implementing or WorkTaskStatus.Blocked or WorkTaskStatus.CodeRed or WorkTaskStatus.Stopped or WorkTaskStatus.Failed) => true,
         (WorkTaskStatus.Implementing, WorkTaskStatus.Validating or WorkTaskStatus.Blocked or WorkTaskStatus.CodeRed or WorkTaskStatus.Stopped or WorkTaskStatus.Failed) => true,
         (WorkTaskStatus.Validating, WorkTaskStatus.RepairRequired or WorkTaskStatus.ReviewReady or WorkTaskStatus.Blocked or WorkTaskStatus.CodeRed or WorkTaskStatus.Stopped or WorkTaskStatus.Failed) => true,
