@@ -43,8 +43,8 @@ public sealed class WorkflowExecutionCoordinator : IAsyncDisposable
     public Task<WorkflowResult> StartAsync(Guid runId, TimeSpan? timeout)
     {
         if (timeout is { } duration &&
-            (duration <= TimeSpan.Zero && duration != Timeout.InfiniteTimeSpan) ||
-            duration > TimeSpan.FromMilliseconds(uint.MaxValue - 1d))
+            ((duration <= TimeSpan.Zero && duration != Timeout.InfiniteTimeSpan) ||
+             duration > TimeSpan.FromMilliseconds(uint.MaxValue - 1d)))
             throw new ArgumentOutOfRangeException(nameof(timeout), "Timeout must be positive or infinite.");
 
         RunState state;
