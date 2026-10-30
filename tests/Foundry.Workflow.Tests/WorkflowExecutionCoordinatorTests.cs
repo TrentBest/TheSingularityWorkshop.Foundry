@@ -117,6 +117,8 @@ public sealed class WorkflowExecutionCoordinatorTests
 
         await Assert.ThrowsAsync<ArgumentOutOfRangeException>(
             () => coordinator.StartAsync(accepted.RunId, TimeSpan.Zero));
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(
+            () => coordinator.StartAsync(accepted.RunId, TimeSpan.MaxValue));
         Assert.Equal(WorkflowRunStatus.Accepted,
             coordinator.GetSnapshot(accepted.RunId).Status);
     }
