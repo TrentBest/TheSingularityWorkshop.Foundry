@@ -177,6 +177,9 @@ public sealed class JsonlWorkTaskStore
                 !Enum.IsDefined(item.Previous) || !Enum.IsDefined(item.Current) ||
                 item.Previous != previousStatus || item.Current == item.Previous ||
                 item.Current == WorkTaskStatus.Queued ||
+                !(item.Current == WorkTaskStatus.Claimed &&
+                    item.Previous is not (WorkTaskStatus.HandedOff or WorkTaskStatus.Stopped or WorkTaskStatus.Failed)) &&
+                !WorkTaskCoordinator.IsAllowedTransition(item.Previous, item.Current) ||
                 string.IsNullOrWhiteSpace(item.AgentId) || item.LeaseId == Guid.Empty ||
                 string.IsNullOrWhiteSpace(item.Reason) || item.OccurredAt == default ||
                 (previousTime.HasValue && item.OccurredAt < previousTime.Value))
