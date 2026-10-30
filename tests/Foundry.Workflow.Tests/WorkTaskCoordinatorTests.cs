@@ -101,6 +101,8 @@ public sealed class WorkTaskCoordinatorTests
         Assert.Throws<InvalidOperationException>(() => coordinator.Submit(Request()));
         Assert.Throws<ArgumentException>(() => coordinator.Submit(Request(paths: new[] { "../secrets" })));
         Assert.Throws<ArgumentException>(() => coordinator.Submit(Request(baseSha: "abc")));
+        Assert.Throws<ArgumentException>(() => coordinator.Submit(Request(paths: new[] { "C:/outside" })));
+        Assert.Throws<ArgumentException>(() => coordinator.Submit(Request() with { Repository = null! }));
     }
 
     [Fact]
