@@ -10,15 +10,17 @@ public sealed record WorkTaskRequest(int SchemaVersion, string TaskId, string Co
     {
         if (SchemaVersion != CurrentSchemaVersion)
             throw new ArgumentException($"Unsupported task schema version '{SchemaVersion}'.");
-        if (string.IsNullOrWhiteSpace(TaskId) || string.IsNullOrWhiteSpace(CorrelationId) ||
-            string.IsNullOrWhiteSpace(Repository))
-            throw new ArgumentException("Task, correlation, and repository identifiers are required.");
+        if (string.IsNullOrWhiteSpace(TaskId) || TaskId.Length > 128 ||
+            string.IsNullOrWhiteSpace(CorrelationId) || CorrelationId.Length > 128 ||
+            string.IsNullOrWhiteSpace(Repository) || Repository.Length > 256 ||
+            TaskId.Any(char.IsControl) || CorrelationId.Any(char.IsControl))
+            throw new ArgumentException("Task and correlation identifiers must be non-empty, control-free, and at most 128 characters; repository identity is required and limited to 256 characters.");
         var repositoryParts = Repository.Split('/');
         if (repositoryParts.Length != 2 || repositoryParts.Any(part =>
             string.IsNullOrWhiteSpace(part) || part.Any(character =>
                 !(char.IsAsciiLetterOrDigit(character) || character is '-' or '_' or '.'))))
             throw new ArgumentException("Repository must use canonical owner/name identity.");
-        if (IssueNumber <= 0 || string.IsNullOrWhiteSpace(IssueUrl) ||
+        if (IssueNumber <= 0 || string.IsNullOrWhiteSpace(IssueUrl) || IssueUrl.Length > 512 ||
             !Uri.TryCreate(IssueUrl, UriKind.Absolute, out var uri) ||
             uri.Scheme != Uri.UriSchemeHttps || uri.Host != "github.com" ||
             !uri.IsDefaultPort || !string.IsNullOrEmpty(uri.UserInfo) ||
@@ -27,8 +29,8 @@ public sealed record WorkTaskRequest(int SchemaVersion, string TaskId, string Co
             throw new ArgumentException("Issue URL must identify this repository and issue number.");
         if (BaseSha is null || BaseSha.Length != 40 || !BaseSha.All(Uri.IsHexDigit))
             throw new ArgumentException("Base SHA must be a full 40-character hexadecimal commit.");
-        if (AllowedPaths is null || AllowedPaths.Count == 0 ||
-            AllowedPaths.Any(path => string.IsNullOrWhiteSpace(path) || path.StartsWith('/') ||
+        if (AllowedPaths is null || AllowedPaths.Count == 0 || AllowedPaths.Count > 128 ||
+            AllowedPaths.Any(path => string.IsNullOrWhiteSpace(path) || path.Length > 512 || path.StartsWith('/') ||
                 path.Contains('\\') || path.Contains(':') ||
                 path.Split('/').Any(segment => segment.Length == 0 || segment is ".." or "." ||
                     segment.Any(char.IsControl))))
