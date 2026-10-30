@@ -52,9 +52,15 @@ public sealed class CodeRedStatusNoticeTests
         var task = CodeRedTask();
         Assert.Throws<InvalidOperationException>(() => CodeRedStatusNoticeFactory.CreateActive(
             Incident(), task, task.Lease!.ExpiresAt, task.Lease.ExpiresAt.AddMinutes(1)));
+        var investigatingEvents = task.Events.ToArray();
+        investigatingEvents[^1] = investigatingEvents[^1] with { Current = WorkTaskStatus.Investigating };
+        var investigating = task with
+        {
+            Status = WorkTaskStatus.Investigating,
+            Events = Array.AsReadOnly(investigatingEvents)
+        };
         Assert.Throws<InvalidOperationException>(() => CodeRedStatusNoticeFactory.CreateActive(
-            Incident(), task with { Status = WorkTaskStatus.Investigating },
-            Start.AddMinutes(1), Start.AddMinutes(2)));
+            Incident(), investigating, Start.AddMinutes(1), Start.AddMinutes(2)));
         Assert.Throws<ArgumentException>(() => CodeRedStatusNoticeFactory.CreateActive(
             Incident() with { AgentId = "agent-b" }, task,
             Start.AddMinutes(1), Start.AddMinutes(2)));
