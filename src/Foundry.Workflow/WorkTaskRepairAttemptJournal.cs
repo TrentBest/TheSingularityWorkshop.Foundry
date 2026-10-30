@@ -124,7 +124,7 @@ public sealed class JsonlWorkTaskRepairAttemptJournal
                 item.CiRunAttempt == attempt.CiRunAttempt))
                 return WorkTaskRepairAttemptAppendOutcome.Conflict;
             if (_attempts.Values.SelectMany(items => items).Any(item =>
-                !string.Equals(item.Repository, attempt.Repository, StringComparison.OrdinalIgnoreCase) &&
+                string.Equals(item.Repository, attempt.Repository, StringComparison.OrdinalIgnoreCase) &&
                 item.CiRunId == attempt.CiRunId && item.CiRunAttempt == attempt.CiRunAttempt))
                 return WorkTaskRepairAttemptAppendOutcome.Conflict;
             if (history.Count > 0)
@@ -194,6 +194,7 @@ public sealed class JsonlWorkTaskRepairAttemptJournal
             if (!_attempts.TryGetValue(attempt.TaskId, out var history))
                 _attempts.Add(attempt.TaskId, history = new List<WorkTaskRepairAttempt>());
             var reusedRunAttempt = _attempts.Values.SelectMany(items => items).Any(item =>
+                string.Equals(item.Repository, attempt.Repository, StringComparison.OrdinalIgnoreCase) &&
                 item.CiRunId == attempt.CiRunId && item.CiRunAttempt == attempt.CiRunAttempt);
             if (attempt.AttemptNumber != history.Count + 1 || reusedRunAttempt ||
                 (history.Count > 0 && (!SameTask(history[^1], attempt) || history[^1].IsSuccessful ||
