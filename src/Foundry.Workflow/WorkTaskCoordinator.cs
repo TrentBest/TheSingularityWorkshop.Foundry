@@ -20,8 +20,8 @@ public sealed record WorkTaskRequest(int SchemaVersion, string TaskId, string Co
         if (BaseSha is null || BaseSha.Length != 40 || !BaseSha.All(Uri.IsHexDigit))
             throw new ArgumentException("Base SHA must be a full 40-character hexadecimal commit.");
         if (AllowedPaths is null || AllowedPaths.Count == 0 ||
-            AllowedPaths.Any(path => string.IsNullOrWhiteSpace(path) || path.StartsWith('/') ||
-                path.Split('/').Any(segment => segment == "..")))
+            AllowedPaths.Any(path => string.IsNullOrWhiteSpace(path) || path.StartsWith('/') || path.Contains('\\\\') ||
+                path.Split('/').Any(segment => segment is ".." or ".")))
             throw new ArgumentException("At least one safe, repository-relative path is required.");
         if (MaximumAttempts is < 1 or > 10)
             throw new ArgumentOutOfRangeException(nameof(MaximumAttempts));
@@ -101,8 +101,8 @@ public sealed class WorkTaskCoordinator
                 throw new InvalidOperationException("The task lease is missing, expired, or superseded.");
             if (!Allowed(state.Status, next))
                 throw new InvalidOperationException($"Transition '{state.Status}' -> '{next}' is not allowed.");
-            if (next == WorkTaskStatus.Validating && state.Attempt == 0)
-                state.Attempt = 1;
+            if (next == WorkTaskStatus.Validating)
+                state.Attempt++;
             if (next == WorkTaskStatus.RepairRequired && state.Attempt >= state.Request.MaximumAttempts)
                 next = WorkTaskStatus.Blocked;
             var previous = state.Status;
