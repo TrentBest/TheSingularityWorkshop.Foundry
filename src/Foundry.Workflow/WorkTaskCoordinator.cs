@@ -170,7 +170,7 @@ public sealed class WorkTaskCoordinator
     private sealed class TaskState(WorkTaskRequest request)
     {
         private readonly List<WorkTaskEvent> _events = new();
-        private TaskState(WorkTaskSnapshot snapshot)
+        private TaskState(WorkTaskSnapshot snapshot) : this(snapshot.Request.Validate())
         {
             Request = snapshot.Request.Validate();
             Status = snapshot.Status;
