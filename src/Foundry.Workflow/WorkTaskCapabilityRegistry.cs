@@ -76,23 +76,29 @@ public sealed class WorkTaskCapabilityRegistry
     }
 
     /// <summary>Throws unless the exact operation is within a live host-issued capability and agent lease.</summary>
-    public void Demand(Guid capabilityId, string taskId, string repository, string agentId, Guid leaseId,
-        string branch, string baseSha, string candidateSha, WorkTaskAction action, string? path, DateTimeOffset now)
+    public void Demand(Guid capabilityId, WorkTaskSnapshot currentTask, string branch,
+        string candidateSha, WorkTaskAction action, string? path, DateTimeOffset now)
     {
+        ArgumentNullException.ThrowIfNull(currentTask);
         lock (_gate)
         {
             if (!_capabilities.TryGetValue(capabilityId, out var capability))
                 throw new UnauthorizedAccessException("Capability is unknown or has been revoked.");
             if (now < capability.IssuedAt || now >= capability.ExpiresAt)
                 throw new UnauthorizedAccessException("Capability is not currently valid.");
-            if (!string.Equals(taskId, capability.TaskId, StringComparison.Ordinal) ||
-                !string.Equals(repository, capability.Repository, StringComparison.OrdinalIgnoreCase) ||
-                !string.Equals(agentId, capability.AgentId, StringComparison.Ordinal) ||
-                leaseId != capability.LeaseId ||
+            if (currentTask.Request is null || currentTask.Lease is not { } currentLease ||
+                currentLease.ExpiresAt <= now ||
+                currentTask.Status is WorkTaskStatus.Queued or WorkTaskStatus.Blocked or WorkTaskStatus.ReviewReady or
+                    WorkTaskStatus.HandedOff or WorkTaskStatus.Stopped or WorkTaskStatus.Failed)
+                throw new UnauthorizedAccessException("The task no longer has an active agent lease.");
+            if (!string.Equals(currentTask.Request.TaskId, capability.TaskId, StringComparison.Ordinal) ||
+                !string.Equals(currentTask.Request.Repository, capability.Repository, StringComparison.OrdinalIgnoreCase) ||
+                !string.Equals(currentLease.AgentId, capability.AgentId, StringComparison.Ordinal) ||
+                currentLease.LeaseId != capability.LeaseId ||
+                !string.Equals(currentTask.Request.BaseSha, capability.BaseSha, StringComparison.OrdinalIgnoreCase) ||
                 !string.Equals(branch, capability.Branch, StringComparison.Ordinal) ||
-                !string.Equals(baseSha, capability.BaseSha, StringComparison.OrdinalIgnoreCase) ||
                 !string.Equals(candidateSha, capability.CandidateSha, StringComparison.OrdinalIgnoreCase))
-                throw new UnauthorizedAccessException("Operation provenance or lease does not match the capability.");
+                throw new UnauthorizedAccessException("Operation provenance or active lease does not match the capability.");
             if (!Enum.IsDefined(action) || !capability.AllowedActions.Contains(action))
                 throw new UnauthorizedAccessException("Operation is not authorized by this capability.");
 
