@@ -42,6 +42,14 @@ public sealed class CodeRedIncidentTests
             null, null, updatedAt.AddMinutes(2)));
     }
 
+
+    [Fact]
+    public void NullRepositoryAndUnknownSeverityAreRejectedWithoutRuntimeFaults()
+    {
+        Assert.Throws<ArgumentException>(() => (Incident() with { Repository = null! }).Validate());
+        Assert.Throws<ArgumentException>(() => (Incident() with { Severity = (CodeRedSeverity)99 }).Validate());
+    }
+
     [Fact]
     public void IncidentCannotMoveTimeBackwardsOrClearBeforeLatestUpdate()
     {
