@@ -120,6 +120,24 @@ public sealed class WorkTaskCoordinatorTests
     }
 
     [Fact]
+    public void LeaseAndAuditMetadataBoundsRejectOversizedOrControlCharacters()
+    {
+        var coordinator = new WorkTaskCoordinator();
+        coordinator.Submit(Request());
+        Assert.Throws<ArgumentException>(() => coordinator.Claim("foundry-8",
+            new string('a', 129), TimeSpan.FromMinutes(5), Now));
+        Assert.Throws<ArgumentException>(() => coordinator.Claim("foundry-8",
+            "bad\\u0001agent", TimeSpan.FromMinutes(5), Now));
+
+        var lease = coordinator.Claim("foundry-8", "agent-a",
+            TimeSpan.FromMinutes(5), Now).Lease!.LeaseId;
+        Assert.Throws<ArgumentException>(() => coordinator.Transition("foundry-8", lease,
+            WorkTaskStatus.Investigating, Now, new string('r', 2049)));
+        Assert.Throws<ArgumentException>(() => coordinator.Transition("foundry-8", lease,
+            WorkTaskStatus.Investigating, Now, "bad\\u0001reason"));
+    }
+
+    [Fact]
     public void TerminalHandoffReleasesLease()
     {
         var coordinator = new WorkTaskCoordinator();
