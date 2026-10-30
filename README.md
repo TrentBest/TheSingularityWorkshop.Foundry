@@ -8,7 +8,7 @@
 
 **Foundry is the host-neutral execution pipeline for The Singularity Workshop Hub.** It accepts explicit work, validates it before side effects, coordinates execution, and reports authoritative lifecycle state and structured outcomes. GUI may present that state when the Hub chooses to appear; GUI is not the executor.
 
-> **Implementation status:** the sequential workflow runner, preflight validation, structured outcomes, and an in-process retained lifecycle coordinator are implemented on `development`. The retained lifecycle slice is verified by [development CI run #84](https://github.com/TrentBest/TheSingularityWorkshop.Foundry/actions/runs/40546957980). No package publication or deployment is part of this work.
+> **Implementation status:** the version-1 sequential workflow runner and retained workflow lifecycle are implemented on `development` and were verified by [development CI run #84](https://github.com/TrentBest/TheSingularityWorkshop.Foundry/actions/runs/40546957980). The current governed-work PR adds versioned task envelopes, fenced leases, append-only local journals, host-issued scoped capabilities, CODE RED incident notices, and bounded exact-CI repair decisions. Verification of the latest feature-branch changes is pending; these components are not yet connected to live GitHub, HeadlessAi, or CiAi operations. No package publication or deployment is part of this work.
 
 ## 01 — Why Foundry exists
 
@@ -55,9 +55,14 @@ The focused xUnit suite covers ordering, invalid definitions, failure, cancellat
 
 ## 05 — Limits and next steps
 
-The current contract is in-memory and sequential. It does not provide durable run history, persisted JSON/YAML manifests, retries, compensation, parallel/distributed execution, enforced handler timeouts, or recovery after process loss. Cancellation is cooperative: handlers must honor their token.
+Foundry now has two deliberately separate lifecycle boundaries:
 
-The next gate is to verify the current coordinator and runner tests, then implement and test the smallest concrete Foundry-facing execution handoff. AnyApp currently composes `RuntimeAssembly` through FSM_COS and owns host startup; WebApp still has a transitional `WebAppExperienceRuntime` with a private heartbeat; The is the Hub/workshop surface; and WebPage has legacy process-group contracts. These are not interchangeable inputs: `RuntimeAssembly`, `WorkflowDefinition`, and WebPage `WorkDescriptor` have distinct semantics until a tested adapter proves a mapping. Migrate one host at a time and verify status, cancellation, terminal outcomes, and cleanup before describing it as a Foundry consumer. Keep browser/server and separate-process boundaries explicit; the current coordinator is in-process and in-memory. GUI presentation work, generated UML, and optional article workflows follow evidence rather than precede it.
+- **Workflow execution:** `WorkflowDefinition`, `WorkflowRunner`, and `WorkflowExecutionCoordinator` remain a sequential, in-process execution path. Workflow run snapshots are retained in memory; cancellation is cooperative; retries, compensation, parallel execution, enforced handler timeouts, and recovery of workflow runs after process loss are not provided.
+- **Governed repository work:** `WorkTaskCoordinator` and its persistent adapter record issue/task provenance, bounded attempts, expiring agent leases, audit events, CODE RED incidents, and exact-CI repair decisions. JSONL journals survive a process restart on the same host, but claims and writes are single-process only. They are not a GitHub-backed or distributed store.
+
+The governed-work components do not yet select or claim live GitHub issues, create branches or commits, invoke HeadlessAi, consume CiAi evidence packets, dispatch authenticated CI reruns, receive remote callbacks, send external CODE RED notifications, or complete a draft-PR handoff. Host-issued capabilities are an authorization boundary, not a sandbox or a live GitHub adapter.
+
+The next integration gate is to connect the existing task lifecycle to the verified HeadlessAi resumable-turn and CiAi exact-run evidence contracts without introducing another workflow runner. AnyApp currently composes `RuntimeAssembly` through FSM_COS and owns host startup; WebApp still has a transitional `WebAppExperienceRuntime` with a private heartbeat; The is the Hub/workshop surface; and WebPage has legacy process-group contracts. These are not interchangeable inputs: `RuntimeAssembly`, `WorkflowDefinition`, and WebPage `WorkDescriptor` have distinct semantics until a tested adapter proves a mapping. Migrate one host at a time and verify status, cancellation, terminal outcomes, and cleanup before describing it as a Foundry consumer. Keep browser/server and separate-process boundaries explicit. GUI presentation work, generated UML, and optional article workflows follow evidence rather than precede it.
 
 Publication, release, and deployment remain separate actions and require Trent's explicit approval.
 
