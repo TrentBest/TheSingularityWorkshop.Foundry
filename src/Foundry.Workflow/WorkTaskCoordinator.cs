@@ -20,7 +20,7 @@ public sealed record WorkTaskRequest(int SchemaVersion, string TaskId, string Co
         if (BaseSha is null || BaseSha.Length != 40 || !BaseSha.All(Uri.IsHexDigit))
             throw new ArgumentException("Base SHA must be a full 40-character hexadecimal commit.");
         if (AllowedPaths is null || AllowedPaths.Count == 0 ||
-            AllowedPaths.Any(path => string.IsNullOrWhiteSpace(path) || path.StartsWith('/') || path.Contains('\\\\') ||
+            AllowedPaths.Any(path => string.IsNullOrWhiteSpace(path) || path.StartsWith('/') || path.Contains('\\') ||
                 path.Split('/').Any(segment => segment is ".." or ".")))
             throw new ArgumentException("At least one safe, repository-relative path is required.");
         if (MaximumAttempts is < 1 or > 10)
