@@ -49,7 +49,8 @@ public enum WorkTaskStatus
 
 public sealed record WorkTaskLease(string AgentId, Guid LeaseId, DateTimeOffset ExpiresAt);
 public sealed record WorkTaskEvent(long Sequence, WorkTaskStatus Previous, WorkTaskStatus Current,
-    string AgentId, Guid LeaseId, DateTimeOffset OccurredAt, string Reason);
+    string AgentId, Guid LeaseId, DateTimeOffset OccurredAt, string Reason,
+    long? CiRunId = null, int? CiRunAttempt = null, string? EvidencePayloadSha256 = null);
 public sealed record WorkTaskSnapshot(WorkTaskRequest Request, WorkTaskStatus Status,
     WorkTaskLease? Lease, int Attempt, IReadOnlyList<WorkTaskEvent> Events);
 
@@ -181,7 +182,8 @@ public sealed class WorkTaskCoordinator
             if (next == WorkTaskStatus.Blocked)
                 state.Lease = null;
             state.AddEvent(previous, next, lease.AgentId, lease.LeaseId, now,
-                $"{decision.ReasonCode}: {decision.Reason}");
+                $"{decision.ReasonCode}: {decision.Reason}", currentAttempt.CiRunId,
+                currentAttempt.CiRunAttempt, currentAttempt.EvidencePayloadSha256);
             return state.Snapshot();
         }
     }
@@ -240,8 +242,10 @@ public sealed class WorkTaskCoordinator
         public WorkTaskLease? Lease { get; set; }
         public int Attempt { get; set; }
         public void AddEvent(WorkTaskStatus previous, WorkTaskStatus current, string agent, Guid lease,
-            DateTimeOffset at, string reason) =>
-            _events.Add(new WorkTaskEvent(_events.Count + 1, previous, current, agent, lease, at, reason));
+            DateTimeOffset at, string reason, long? ciRunId = null, int? ciRunAttempt = null,
+            string? evidencePayloadSha256 = null) =>
+            _events.Add(new WorkTaskEvent(_events.Count + 1, previous, current, agent, lease, at,
+                reason, ciRunId, ciRunAttempt, evidencePayloadSha256));
         public WorkTaskSnapshot Snapshot() =>
             new(Request, Status, Lease, Attempt, Array.AsReadOnly(_events.ToArray()));
     }
