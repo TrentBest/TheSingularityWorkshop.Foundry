@@ -202,6 +202,47 @@ public sealed class JsonlWorkTaskStoreTests
     }
 
     [Fact]
+    public void PersistentCoordinatorPersistsEvidenceGatedReviewDecisionAndCiIdentity()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"foundry-{Guid.NewGuid():N}.jsonl");
+        try
+        {
+            var coordinator = new PersistentWorkTaskCoordinator(new JsonlWorkTaskStore(path));
+            coordinator.Submit(Request());
+            var claimed = coordinator.Claim("task-1", "agent-a", TimeSpan.FromMinutes(10), Now);
+            var lease = claimed.Lease!.LeaseId;
+            coordinator.Transition("task-1", lease, WorkTaskStatus.Investigating, Now, "inspect");
+            coordinator.Transition("task-1", lease, WorkTaskStatus.Implementing, Now, "implement");
+            coordinator.Transition("task-1", lease, WorkTaskStatus.Validating, Now, "validate");
+            var attempt = new WorkTaskRepairAttempt(1, "task-1", "correlation-1",
+                "TrentBest/TheSingularityWorkshop.Foundry", "work/task-1",
+                ".github/workflows/build.yml", Now, 1, new string('a', 40), 1001, 1,
+                new string('f', 64), true, true, false, null,
+                Now.AddMinutes(1), Now.AddMinutes(2));
+            var expectation = new WorkTaskRepairEvidenceExpectation("task-1", "correlation-1",
+                "TrentBest/TheSingularityWorkshop.Foundry", "work/task-1",
+                ".github/workflows/build.yml", new string('a', 40), Now);
+            var ready = coordinator.ApplyRepairDecision("task-1", lease,
+                Array.Empty<WorkTaskRepairAttempt>(), attempt, expectation,
+                TimeSpan.FromMinutes(30), Now.AddMinutes(3));
+
+            Assert.Equal(WorkTaskStatus.ReviewReady, ready.Status);
+            Assert.Equal(1001, ready.Events[^1].CiRunId);
+            Assert.Equal(1, ready.Events[^1].CiRunAttempt);
+            Assert.Equal(new string('f', 64), ready.Events[^1].EvidencePayloadSha256);
+
+            var restarted = new PersistentWorkTaskCoordinator(new JsonlWorkTaskStore(path));
+            var recovered = restarted.GetSnapshot("task-1");
+            Assert.Equal(WorkTaskStatus.ReviewReady, recovered.Status);
+            Assert.Equal(ready.Events[^1], recovered.Events[^1]);
+        }
+        finally
+        {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
     public void PersistentCoordinatorFailsClosedAfterJournalWriteFailure()
     {
         var path = Path.Combine(Path.GetTempPath(), $"foundry-{Guid.NewGuid():N}.jsonl");
