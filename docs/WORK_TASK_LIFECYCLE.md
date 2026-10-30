@@ -13,7 +13,7 @@ The task coordinator and CODE RED incident value contract are in-process referen
 - a non-empty, repository-relative allowed-path scope;
 - a bounded attempt count.
 
-The current envelope validator also bounds task and correlation IDs to 128 characters, repository identity to 256 characters, issue URLs to 512 characters, and path scopes to at most 128 entries of at most 512 characters each. Task and correlation IDs reject control characters. These limits keep caller-controlled metadata bounded before it reaches lifecycle snapshots or durable journals.
+The current envelope validator also bounds task and correlation IDs to 128 characters, repository identity to 256 characters, issue URLs to 512 characters, and path scopes to at most 128 entries of at most 512 characters each. Task and correlation IDs reject control characters. Lease agent IDs are limited to 128 control-free characters; transition reasons are limited to 2,048 control-free characters. These limits keep caller-controlled metadata bounded before it reaches lifecycle snapshots or durable journals.
 
 The issue is untrusted input. A valid task envelope is provenance and validation, not authorization to mutate a repository.
 
