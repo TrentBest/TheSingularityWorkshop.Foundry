@@ -35,7 +35,7 @@ Claims have an agent identity, unique lease fencing token, and bounded expiry. A
 
 ## Host-issued action capabilities
 
-`WorkTaskCapabilityRegistry` issues opaque, short-lived capabilities only when the host explicitly calls `Grant`. Each grant requires a live task lease and is bound to the task/repository, owning agent and fencing token, isolated branch, base SHA, exact candidate SHA, a subset of the task's allowed paths, and an explicit action allowlist. File reads/writes require a path inside that scope; commit/CI/branch/draft-PR operations require their own named action. Grants expire within one hour and can be revoked immediately.
+`WorkTaskCapabilityRegistry` issues opaque, short-lived capabilities only when the host explicitly calls `Grant`. Each grant requires a live task lease and is bound to the task/repository, owning agent and fencing token, isolated branch, base SHA, exact candidate SHA, a subset of the task's allowed paths, and an explicit action allowlist. File reads/writes require a path inside that scope; commit/CI/branch/draft-PR operations require their own named action. Grants expire at the earlier of their configured lifetime (maximum one hour) or the owning agent lease expiry, and can be revoked immediately.
 
 The registry is an in-process host boundary, not a security sandbox. The host must keep the registry and capability IDs out of model context, pass only the minimum capability to the operation adapter, and reissue after restart only after revalidating task and policy. Merge, release, deployment, package publication, and arbitrary shell/process execution are not grantable actions.
 
