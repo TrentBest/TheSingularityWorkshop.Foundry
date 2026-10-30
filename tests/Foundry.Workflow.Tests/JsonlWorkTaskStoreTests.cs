@@ -112,4 +112,48 @@ public sealed class JsonlWorkTaskStoreTests
         "TrentBest/TheSingularityWorkshop.Foundry", 8,
         "https://github.com/TrentBest/TheSingularityWorkshop.Foundry/issues/8",
         new string('a', 40), new[] { "src/Foundry.Workflow" }, 3);
+
+    [Fact]
+    public void PersistentCoordinatorRestoresAndPersistsEveryAcceptedMutation()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"foundry-{Guid.NewGuid():N}.jsonl");
+        try
+        {
+            var coordinator = new PersistentWorkTaskCoordinator(new JsonlWorkTaskStore(path));
+            coordinator.Submit(Request());
+            var claimed = coordinator.Claim("task-1", "agent-a", TimeSpan.FromMinutes(5), Now);
+            var investigating = coordinator.Transition("task-1", claimed.Lease!.LeaseId,
+                WorkTaskStatus.Investigating, Now.AddSeconds(1), "inspect task");
+
+            var restarted = new PersistentWorkTaskCoordinator(new JsonlWorkTaskStore(path));
+            var recovered = restarted.GetSnapshot("task-1");
+            Assert.Equal(WorkTaskStatus.Investigating, recovered.Status);
+            Assert.Equal(3, recovered.Events.Count);
+            Assert.Equal(investigating.Lease!.LeaseId, recovered.Lease!.LeaseId);
+        }
+        finally
+        {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void PersistentCoordinatorFailsClosedAfterJournalWriteFailure()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"foundry-{Guid.NewGuid():N}.jsonl");
+        Directory.CreateDirectory(path);
+        try
+        {
+            var coordinator = new PersistentWorkTaskCoordinator(new JsonlWorkTaskStore(path));
+            Assert.Throws<InvalidOperationException>(() => coordinator.Submit(Request()));
+            Assert.Throws<InvalidOperationException>(() =>
+                coordinator.Claim("task-1", "agent-a", TimeSpan.FromMinutes(5), Now));
+            Assert.Throws<InvalidOperationException>(() => coordinator.GetSnapshot("task-1"));
+        }
+        finally
+        {
+            Directory.Delete(path);
+        }
+    }
+
 }
