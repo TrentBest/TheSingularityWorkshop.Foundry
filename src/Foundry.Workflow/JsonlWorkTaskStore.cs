@@ -149,8 +149,10 @@ public sealed class JsonlWorkTaskStore
     {
         ArgumentNullException.ThrowIfNull(snapshot.Request);
         snapshot.Request.Validate();
-        if (snapshot.Events is null || snapshot.Events.Select((item, index) => item.Sequence == index + 1).Any(valid => !valid))
+        if (snapshot.Events is null || snapshot.Events.Select((item, index) => item is not null && item.Sequence == index + 1).Any(valid => !valid))
             throw new ArgumentException("Task event history must be contiguous and one-based.", nameof(snapshot));
+        if (!Enum.IsDefined(snapshot.Status))
+            throw new ArgumentException("Task status is invalid.", nameof(snapshot));
         if (snapshot.Attempt < 0 || snapshot.Attempt > snapshot.Request.MaximumAttempts)
             throw new ArgumentException("Task attempt is outside its configured budget.", nameof(snapshot));
         if (snapshot.Lease is { } lease &&
