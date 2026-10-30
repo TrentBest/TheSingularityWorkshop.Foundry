@@ -14,7 +14,8 @@ The runner is a single awaited invocation. A Hub presentation or headless host n
 ## Public contract
 
 - `Submit(WorkflowDefinition)` accepts work and returns an `Accepted` snapshot without invoking handlers.
-- `StartAsync(runId)` starts an accepted run once without a workflow-level deadline.\n- `StartAsync(runId, timeout)` applies an optional positive timeout; expiration requests cooperative cancellation and produces `TimedOut`, distinct from caller-requested `Cancelled`. Caller cancellation wins if both signals race.
+- `StartAsync(runId)` starts an accepted run once without a workflow-level deadline.
+- `StartAsync(runId, timeout)` applies an optional positive timeout; expiration requests cooperative cancellation and produces `TimedOut`, distinct from caller-requested `Cancelled`. Caller cancellation wins if both signals race.
 - `GetSnapshot(runId)` returns a point-in-time immutable snapshot.
 - `Cancel(runId)` requests cooperative cancellation, including cancellation before start.
 - `DisposeAsync()` cancels outstanding work and waits for its completion.
@@ -23,7 +24,7 @@ The coordinator is in-process and in-memory. It does not provide durable run his
 
 ## Verification
 
-See [WorkflowExecutionCoordinatorTests](../../tests/Foundry.Workflow.Tests/WorkflowExecutionCoordinatorTests.cs) for lifecycle, caller cancellation, timeout classification, invalid timeout values, invalid-workflow, and single-start behavior. The tests passed in [development CI run #84](https://github.com/TrentBest/TheSingularityWorkshop.Foundry/actions/runs/40546957980).
+See [WorkflowExecutionCoordinatorTests](../../tests/Foundry.Workflow.Tests/WorkflowExecutionCoordinatorTests.cs) for lifecycle, caller cancellation, timeout classification, invalid timeout values, invalid-workflow, and single-start behavior. The baseline lifecycle tests passed in [development CI run #84](https://github.com/TrentBest/TheSingularityWorkshop.Foundry/actions/runs/40546957980); the new timeout-specific tests await this branch's CI.
 
 ## UML
 
