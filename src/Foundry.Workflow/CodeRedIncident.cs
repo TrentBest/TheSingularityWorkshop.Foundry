@@ -30,8 +30,11 @@ public sealed record CodeRedIncident(
 
     public CodeRedIncident Validate()
     {
+        if (string.IsNullOrWhiteSpace(Repository))
+            throw new ArgumentException("Incident repository identity is required.", nameof(Repository));
         var parts = Repository.Split('/');
         if (SchemaVersion != CurrentSchemaVersion ||
+            !Enum.IsDefined(Severity) ||
             string.IsNullOrWhiteSpace(IncidentId) ||
             parts.Length != 2 || parts.Any(string.IsNullOrWhiteSpace) ||
             string.IsNullOrWhiteSpace(TaskId) || IssueNumber <= 0 ||
@@ -41,7 +44,8 @@ public sealed record CodeRedIncident(
             throw new ArgumentException("Incident identity, ownership, action, and reason are required.");
         if (string.IsNullOrWhiteSpace(Branch) ||
             Branch is "master" or "development" ||
-            Branch.StartsWith('/') || Branch.Contains("..", StringComparison.Ordinal) ||
+            Branch.StartsWith('/') || Branch.Contains('\\') ||
+            Branch.Split('/').Any(segment => segment.Length == 0 || segment is "." or "..") ||
             string.IsNullOrWhiteSpace(CandidateSha) || CandidateSha.Length != 40 ||
             !CandidateSha.All(Uri.IsHexDigit))
             throw new ArgumentException("Incident must identify an isolated branch and full candidate SHA.");
