@@ -116,6 +116,34 @@ public sealed class WorkTaskCoordinator
         }
     }
 
+    /// <summary>Rehydrates a task from a validated durable snapshot before dispatch starts.</summary>
+    public void Restore(WorkTaskSnapshot snapshot)
+    {
+        ArgumentNullException.ThrowIfNull(snapshot);
+        snapshot.Request.Validate();
+        if (snapshot.Events is null ||
+            snapshot.Events.Select((item, index) => item is not null && item.Sequence == index + 1).Any(valid => !valid) ||
+            snapshot.Attempt < 0 || snapshot.Attempt > snapshot.Request.MaximumAttempts ||
+            (snapshot.Lease is { } lease && (string.IsNullOrWhiteSpace(lease.AgentId) || lease.LeaseId == Guid.Empty)))
+            throw new ArgumentException("The task snapshot is invalid.", nameof(snapshot));
+        if (snapshot.Events.Count == 0)
+        {
+            if (snapshot.Status != WorkTaskStatus.Queued || snapshot.Lease is not null || snapshot.Attempt != 0)
+                throw new ArgumentException("An event-free snapshot must be an untouched queued task.", nameof(snapshot));
+        }
+        else if (snapshot.Events[^1].Current != snapshot.Status)
+        {
+            throw new ArgumentException("Snapshot status must match the final event.", nameof(snapshot));
+        }
+
+        lock (_gate)
+        {
+            if (_tasks.ContainsKey(snapshot.Request.TaskId))
+                throw new InvalidOperationException($"Task '{snapshot.Request.TaskId}' already exists.");
+            _tasks.Add(snapshot.Request.TaskId, TaskState.Restore(snapshot));
+        }
+    }
+
     public WorkTaskSnapshot GetSnapshot(string taskId)
     {
         lock (_gate) return Get(taskId).Snapshot();
@@ -140,6 +168,15 @@ public sealed class WorkTaskCoordinator
     private sealed class TaskState(WorkTaskRequest request)
     {
         private readonly List<WorkTaskEvent> _events = new();
+        private TaskState(WorkTaskSnapshot snapshot)
+        {
+            Request = snapshot.Request.Validate();
+            Status = snapshot.Status;
+            Lease = snapshot.Lease;
+            Attempt = snapshot.Attempt;
+            _events.AddRange(snapshot.Events);
+        }
+        public static TaskState Restore(WorkTaskSnapshot snapshot) => new(snapshot);
         public WorkTaskRequest Request { get; } = request;
         public WorkTaskStatus Status { get; set; } = WorkTaskStatus.Queued;
         public WorkTaskLease? Lease { get; set; }
