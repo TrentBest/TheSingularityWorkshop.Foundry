@@ -43,6 +43,7 @@ The separate [FSM_API probe](src/Foundry.FsmApiProbe/Program.cs) and [fox/sheepd
 ## 04 — Contracts, tests, and boundaries
 
 - [Workflow semantics](docs/WORKFLOW_SEMANTICS.md) — validation, execution, lifecycle, cancellation, and outcome rules.
+- [Governed work task lifecycle](docs/WORK_TASK_LIFECYCLE.md) — versioned task envelope, fenced leases, validated transitions, audit events, and current limitations.
 - [Domain and ownership](docs/DOMAIN.md) — what Foundry owns and what it does not.
 - [Architecture](docs/ARCHITECTURE.md) — subsystem boundaries and integration decisions.
 - [Contract inspection ledger](docs/CONTRACT_INSPECTION.md) — source-backed findings and unresolved questions.
