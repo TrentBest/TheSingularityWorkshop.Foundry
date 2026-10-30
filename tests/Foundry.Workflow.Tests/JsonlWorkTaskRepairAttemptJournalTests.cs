@@ -58,6 +58,8 @@ public sealed class JsonlWorkTaskRepairAttemptJournalTests
                 journal.Append(first with { CandidateSha = new string('c', 40) }));
             Assert.Equal(WorkTaskRepairAttemptAppendOutcome.Conflict,
                 journal.Append(Attempt(2, 'b', 'e', runId: first.CiRunId, runAttempt: first.CiRunAttempt)));
+            Assert.Equal(WorkTaskRepairAttemptAppendOutcome.Conflict,
+                journal.Append(first with { TaskId = "task-9", CorrelationId = "correlation-9" }));
         }
         finally
         {
