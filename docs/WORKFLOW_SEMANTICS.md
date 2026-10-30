@@ -46,7 +46,8 @@ flowchart TD
 `WorkflowExecutionCoordinator` exposes a host-neutral lifecycle without moving step execution out of `WorkflowRunner`:
 
 - `Submit(definition)` accepts a definition but does not execute it. The returned snapshot starts in `Accepted`.
-- `StartAsync(runId)` starts an accepted run exactly once without a workflow timeout.\n- `StartAsync(runId, timeout)` optionally applies a positive finite timeout (or `Timeout.InfiniteTimeSpan`). Expiration requests cooperative cancellation and returns `WorkflowStatus.TimedOut`; an explicit caller cancellation remains `Cancelled`. If both signals race, caller cancellation takes precedence.
+- `StartAsync(runId)` starts an accepted run exactly once without a workflow timeout.
+- `StartAsync(runId, timeout)` optionally applies a positive finite timeout (or `Timeout.InfiniteTimeSpan`). Expiration requests cooperative cancellation and returns `WorkflowStatus.TimedOut`; an explicit caller cancellation remains `Cancelled`. If both signals race, caller cancellation takes precedence.
 - `GetSnapshot(runId)` returns an immutable snapshot with run identity, workflow identity/name, lifecycle status, timestamps, and the latest structured result when available.
 - `Cancel(runId)` requests cooperative cancellation for a running run, or marks an accepted-but-not-started run cancelled. It returns false for an already terminal run.
 - `DisposeAsync()` cancels accepted/running work and waits for running handlers to finish. Handlers must honor cancellation for disposal to finish promptly.
@@ -61,7 +62,8 @@ This is an in-process coordinator, not a durable queue or cross-process service.
 |---|---|
 | Succeeded | All declared steps completed successfully. |
 | Failed | A handler failed; later steps were skipped. |
-| Cancelled | The caller requested cancellation; the current/remaining execution did not complete. |\n| TimedOut | The configured workflow deadline expired; cancellation was requested cooperatively. |
+| Cancelled | The caller requested cancellation; the current/remaining execution did not complete. |
+| TimedOut | The configured workflow deadline expired; cancellation was requested cooperatively. |
 | Invalid | Definition validation failed before execution. |
 
 | Step status | Meaning |
