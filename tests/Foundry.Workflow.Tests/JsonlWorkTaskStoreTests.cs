@@ -122,7 +122,7 @@ public sealed class JsonlWorkTaskStoreTests
 
         var controlAgent = claimed with
         {
-            Events = new[] { claimed.Events[0] with { AgentId = "bad\\u0001agent" } }
+            Events = new[] { claimed.Events[0] with { AgentId = "bad\u0001agent" } }
         };
         Assert.Throws<ArgumentException>(() => new WorkTaskCoordinator().Restore(controlAgent));
 
@@ -134,7 +134,7 @@ public sealed class JsonlWorkTaskStoreTests
 
         var controlReason = claimed with
         {
-            Events = new[] { claimed.Events[0] with { Reason = "bad\\u0001reason" } }
+            Events = new[] { claimed.Events[0] with { Reason = "bad\u0001reason" } }
         };
         Assert.Throws<ArgumentException>(() => new WorkTaskCoordinator().Restore(controlReason));
     }
