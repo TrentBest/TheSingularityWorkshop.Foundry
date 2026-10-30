@@ -13,12 +13,40 @@ public sealed record WorkTaskRepairDecisionResult(
     string ReasonCode,
     string Reason);
 
+public sealed record WorkTaskRepairEvidenceExpectation(
+    string TaskId,
+    string CorrelationId,
+    string Repository,
+    string Branch,
+    string WorkflowPath,
+    string CandidateSha,
+    DateTimeOffset TaskStartedAt)
+{
+    public WorkTaskRepairEvidenceExpectation Validate()
+    {
+        if (string.IsNullOrWhiteSpace(TaskId) || string.IsNullOrWhiteSpace(CorrelationId) ||
+            string.IsNullOrWhiteSpace(Repository) || Repository.Split('/').Length != 2 ||
+            string.IsNullOrWhiteSpace(Branch) || Branch is "master" or "development" ||
+            Branch.StartsWith('/') || Branch.Contains('\\') ||
+            Branch.Split('/').Any(part => part.Length == 0 || part is "." or "..") ||
+            string.IsNullOrWhiteSpace(WorkflowPath) ||
+            !WorkflowPath.StartsWith(".github/workflows/", StringComparison.Ordinal) ||
+            !(WorkflowPath.EndsWith(".yml", StringComparison.Ordinal) || WorkflowPath.EndsWith(".yaml", StringComparison.Ordinal)) ||
+            WorkflowPath.Contains('\\') || WorkflowPath.Split('/').Any(part => part.Length == 0 || part is "." or "..") ||
+            CandidateSha is not { Length: 40 } || !CandidateSha.All(Uri.IsHexDigit) ||
+            TaskStartedAt == default)
+            throw new ArgumentException("Expected CI evidence provenance is invalid.");
+        return this;
+    }
+}
+
 /// <summary>Deterministic bounded decision policy over exact, append-only CI attempt history.</summary>
 public static class WorkTaskRepairDecisionPolicy
 {
     public static WorkTaskRepairDecisionResult Evaluate(
         IReadOnlyList<WorkTaskRepairAttempt> previousAttempts,
         WorkTaskRepairAttempt currentAttempt,
+        WorkTaskRepairEvidenceExpectation expectation,
         int maximumAttempts,
         TimeSpan maximumDuration,
         DateTimeOffset now)
@@ -26,6 +54,11 @@ public static class WorkTaskRepairDecisionPolicy
         ArgumentNullException.ThrowIfNull(previousAttempts);
         ArgumentNullException.ThrowIfNull(currentAttempt);
         currentAttempt.Validate();
+        ArgumentNullException.ThrowIfNull(expectation);
+        expectation.Validate();
+        if (!MatchesExpectation(currentAttempt, expectation))
+            return new(WorkTaskRepairDecision.Blocked, "repair.evidence-provenance-mismatch",
+                "The CI packet does not match the task, repository, branch, workflow, and candidate SHA authorized for this attempt.");
         if (maximumAttempts is < 1 or > 10)
             throw new ArgumentOutOfRangeException(nameof(maximumAttempts), "Maximum attempts must be between one and ten.");
         if (maximumDuration <= TimeSpan.Zero || maximumDuration > TimeSpan.FromHours(24))
@@ -94,6 +127,14 @@ public static class WorkTaskRepairDecisionPolicy
         return new(WorkTaskRepairDecision.RepairRequired, "repair.actionable-failure",
             "The exact candidate failed with new actionable diagnostics and remains within configured budgets.");
     }
+
+
+    private static bool MatchesExpectation(WorkTaskRepairAttempt attempt, WorkTaskRepairEvidenceExpectation expected) =>
+        attempt.TaskId == expected.TaskId && attempt.CorrelationId == expected.CorrelationId &&
+        string.Equals(attempt.Repository, expected.Repository, StringComparison.OrdinalIgnoreCase) &&
+        attempt.Branch == expected.Branch && attempt.WorkflowPath == expected.WorkflowPath &&
+        string.Equals(attempt.CandidateSha, expected.CandidateSha, StringComparison.OrdinalIgnoreCase) &&
+        attempt.TaskStartedAt == expected.TaskStartedAt;
 
     private static bool SameTask(WorkTaskRepairAttempt left, WorkTaskRepairAttempt right) =>
         left.TaskId == right.TaskId && left.CorrelationId == right.CorrelationId &&
