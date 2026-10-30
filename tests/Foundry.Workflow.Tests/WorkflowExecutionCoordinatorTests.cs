@@ -60,6 +60,68 @@ public sealed class WorkflowExecutionCoordinatorTests
     }
 
     [Fact]
+    public async Task WorkflowTimeoutProducesTimedOutOutcomeDistinctFromCallerCancellation()
+    {
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var registry = new WorkflowHandlerRegistry();
+        registry.Register("wait", async token =>
+        {
+            entered.TrySetResult();
+            await Task.Delay(Timeout.InfiniteTimeSpan, token);
+        });
+        await using var coordinator = new WorkflowExecutionCoordinator(registry);
+        var accepted = coordinator.Submit(Definition(new WorkflowStep("step-1", "wait")));
+
+        var completion = coordinator.StartAsync(accepted.RunId, TimeSpan.FromMilliseconds(100));
+        await entered.Task.WaitAsync(TimeSpan.FromSeconds(5));
+
+        var result = await completion.WaitAsync(TimeSpan.FromSeconds(5));
+
+        Assert.Equal(WorkflowStatus.TimedOut, result.Status);
+        Assert.Equal(StepStatus.Cancelled, Assert.Single(result.Steps).Status);
+        Assert.Equal(WorkflowRunStatus.TimedOut,
+            coordinator.GetSnapshot(accepted.RunId).Status);
+        Assert.False(coordinator.Cancel(accepted.RunId));
+    }
+
+    [Fact]
+    public async Task CallerCancellationWinsWhenTimeoutAndCallerCancellationRace()
+    {
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var registry = new WorkflowHandlerRegistry();
+        registry.Register("wait", async token =>
+        {
+            entered.TrySetResult();
+            await Task.Delay(Timeout.InfiniteTimeSpan, token);
+        });
+        await using var coordinator = new WorkflowExecutionCoordinator(registry);
+        var accepted = coordinator.Submit(Definition(new WorkflowStep("step-1", "wait")));
+
+        var completion = coordinator.StartAsync(accepted.RunId, TimeSpan.FromSeconds(5));
+        await entered.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        Assert.True(coordinator.Cancel(accepted.RunId));
+
+        var result = await completion.WaitAsync(TimeSpan.FromSeconds(5));
+
+        Assert.Equal(WorkflowStatus.Cancelled, result.Status);
+        Assert.Equal(WorkflowRunStatus.Cancelled,
+            coordinator.GetSnapshot(accepted.RunId).Status);
+    }
+
+    [Fact]
+    public async Task StartRejectsNonPositiveTimeout()
+    {
+        var registry = new WorkflowHandlerRegistry();
+        await using var coordinator = new WorkflowExecutionCoordinator(registry);
+        var accepted = coordinator.Submit(Definition(new WorkflowStep("step-1", "missing")));
+
+        Assert.Throws<ArgumentOutOfRangeException>(
+            () => coordinator.StartAsync(accepted.RunId, TimeSpan.Zero));
+        Assert.Equal(WorkflowRunStatus.Accepted,
+            coordinator.GetSnapshot(accepted.RunId).Status);
+    }
+
+    [Fact]
     public async Task AcceptedRunCanBeCancelledWithoutInvokingHandlers()
     {
         var calls = 0;
