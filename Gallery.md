@@ -1,3 +1,6 @@
+<!-- The Singularity Workshop moniker -->
+<p align="center"><a href="https://github.com/TrentBest"><img src="https://raw.githubusercontent.com/TrentBest/TheSingularityWorkshop.Visualize/development/docs/assets/moniker.svg" alt="The Singularity Workshop animated moniker" width="720" /></a></p>
+
 # Foundry Gallery
 
 Foundry is intended to demonstrate manifest-defined, state-driven computation using The Singularity Workshop's own technologies.
@@ -61,3 +64,8 @@ The bounded scenario runs real FSM_API definitions for fox states Walking/Jumpin
 - Never label static mock data as live behavior.
 - Record the commit and verification evidence for each living demonstration.
 - Generated code images must remain traceable to source and must not replace selectable text.
+
+---
+
+<!-- THE SINGULARITY WORKSHOP FOOTER -->
+<p align="center"><img src="https://raw.githubusercontent.com/TrentBest/FSM_API/master/Documentation/Branding/TheSingularityWorkshop.png" alt="The Singularity Workshop avatar" width="200" /></p>
