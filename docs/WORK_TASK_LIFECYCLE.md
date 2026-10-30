@@ -48,6 +48,15 @@ Updates preserve the incident start time and reject backward timestamps. Clearin
 This is the incident data contract, not yet a durable incident service or notification dispatcher. No credential/token field exists in the record.
 
 
+
+## Exact CI repair-attempt history and bounded decisions
+
+`WorkTaskRepairAttempt` is Foundry's compact audit projection for one CI run attempt: task/correlation identity, repository, isolated branch, workflow path, candidate SHA, run ID and attempt, packet digest, evidence completeness/success, actionable-diagnostic fingerprint, and timestamps. It does not replace CiAi's evidence packet or required-workflow policy.
+
+`JsonlWorkTaskRepairAttemptJournal` preserves every attempt in order, treats an identical redelivery as a duplicate, rejects conflicting/out-of-order callbacks, rejects reuse of the same run attempt, and prevents new attempts after a successful result. A torn final journal record fails closed.
+
+`WorkTaskRepairDecisionPolicy` returns only four deterministic dispositions: `ReviewReady`, `RepairRequired`, `Blocked`, or `CodeRed`. Incomplete evidence blocks; successful exact evidence moves to review; actionable failures can retry only within attempt/time budgets; unchanged candidate SHAs, repeated diagnostic fingerprints, or non-actionable failures stop the loop and raise CODE RED. No CI run is dispatched and no agent is invoked by this policy.
+
 ## CODE RED status notices
 
 `CodeRedStatusNoticeFactory` creates credential-free active and cleared status messages; `ICodeRedStatusPublisher` and `CodeRedStatusNotifier` provide the host-owned delivery boundary. An active notice is refused unless the incident matches a currently leased task in `CodeRed` state, the agent identity matches, and a next-update time before the lease expiry is supplied. The rendered notice states whether human escalation is required. The message includes repository, issue, candidate SHA, CI run/attempt when known, current action, blocker, and next update. A cleared notice requires an explicit incident clear and does not claim the agent is still engaged.
@@ -65,4 +74,4 @@ The notifier propagates delivery failures and does not mark an incident cleared 
 
 ## Verification
 
-See [WorkTaskCoordinatorTests](../tests/Foundry.Workflow.Tests/WorkTaskCoordinatorTests.cs), [JsonlWorkTaskStoreTests](../tests/Foundry.Workflow.Tests/JsonlWorkTaskStoreTests.cs) (including persistent-adapter restart and fail-closed tests), [CodeRedIncidentTests](../tests/Foundry.Workflow.Tests/CodeRedIncidentTests.cs), and [JsonlCodeRedIncidentStoreTests](../tests/Foundry.Workflow.Tests/JsonlCodeRedIncidentStoreTests.cs), and [WorkTaskCapabilityRegistryTests](../tests/Foundry.Workflow.Tests/WorkTaskCapabilityRegistryTests.cs), and [CodeRedStatusNoticeTests](../tests/Foundry.Workflow.Tests/CodeRedStatusNoticeTests.cs), and [CodeRedStatusNotifierTests](../tests/Foundry.Workflow.Tests/CodeRedStatusNotifierTests.cs) for lifecycle, fencing, retry, incident provenance, CI identity, timestamp, clear behavior, and capability scope/lease/expiry/revocation. CI status is linked from the pull request implementing these slices.
+See [WorkTaskCoordinatorTests](../tests/Foundry.Workflow.Tests/WorkTaskCoordinatorTests.cs), [JsonlWorkTaskStoreTests](../tests/Foundry.Workflow.Tests/JsonlWorkTaskStoreTests.cs) (including persistent-adapter restart and fail-closed tests), [CodeRedIncidentTests](../tests/Foundry.Workflow.Tests/CodeRedIncidentTests.cs), and [JsonlCodeRedIncidentStoreTests](../tests/Foundry.Workflow.Tests/JsonlCodeRedIncidentStoreTests.cs), and [WorkTaskCapabilityRegistryTests](../tests/Foundry.Workflow.Tests/WorkTaskCapabilityRegistryTests.cs), and [CodeRedStatusNoticeTests](../tests/Foundry.Workflow.Tests/CodeRedStatusNoticeTests.cs), and [CodeRedStatusNotifierTests](../tests/Foundry.Workflow.Tests/CodeRedStatusNotifierTests.cs), [JsonlWorkTaskRepairAttemptJournalTests](../tests/Foundry.Workflow.Tests/JsonlWorkTaskRepairAttemptJournalTests.cs), and [WorkTaskRepairDecisionPolicyTests](../tests/Foundry.Workflow.Tests/WorkTaskRepairDecisionPolicyTests.cs) for lifecycle, fencing, retry, incident provenance, CI identity, timestamp, clear behavior, and capability scope/lease/expiry/revocation. CI status is linked from the pull request implementing these slices.
