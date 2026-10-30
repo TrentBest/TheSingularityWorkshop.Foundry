@@ -9,6 +9,7 @@
 ## Entry points
 
 - [README](README.md) — product intent and five-section overview.
+- [Agent onboarding](AGENTS.md) — repository-specific contribution, safety, branch, release, and documentation rules.
 - [Gallery](Gallery.md) — demonstrations and recipes.
 - [Domain and ownership](docs/DOMAIN.md) — proposed Foundry domain, ownership boundaries, safety invariants, and first release slice.
 - [Workflow semantics](docs/WORKFLOW_SEMANTICS.md) — version-1 execution model, validation, outcomes, and explicit limitations.
