@@ -2,7 +2,7 @@
 
 ## Scope and status
 
-The task coordinator and CODE RED incident value contract are implemented as in-process reference components. They are not durable, distributed, or connected to live GitHub/HeadlessAi/CiAi operations. GitHub remains the intended durable provenance and transport boundary; these components do not claim to provide persistence.
+The task coordinator and CODE RED incident value contract are in-process reference components. `JsonlWorkTaskStore` adds an append-only, fsync-backed local journal of complete task snapshots with strict replay validation. This is durable across process restarts on the same host, but is not a distributed store, GitHub-backed store, or connected live GitHub/HeadlessAi/CiAi integration.
 
 ## Task envelope
 
@@ -42,12 +42,13 @@ This is the incident data contract, not yet a durable incident service or notifi
 
 ## Current limitations
 
-- Task state, event history, and incident records are currently in process memory/value objects; they are lost unless a host persists them.
+- `JsonlWorkTaskStore` persists task snapshots and event history locally. It is single-process only: separate store instances/processes are not coordinated, and it does not atomically couple a coordinator transition to journal append. Hosts must persist each accepted snapshot and stop dispatch if persistence fails.
+- CODE RED incident records are still value objects and are not yet persisted by this journal.
 - The coordinator does not claim GitHub issues, create branches, inspect CI, call models, or create PRs.
-- Lease arbitration is atomic only within one coordinator instance; it is not a cross-process lock.
+- Lease arbitration is atomic only within one coordinator instance; it is not a cross-process lock. The local journal does not turn that lease into a distributed claim.
 - CODE RED human notification, durable incident history, secure re-authentication, and automatic status clear publication remain unimplemented.
 - Authorization capabilities, exact-SHA CiAi evidence evaluation, duplicate/out-of-order callback reconciliation, and bounded model repair are future slices.
 
 ## Verification
 
-See [WorkTaskCoordinatorTests](../tests/Foundry.Workflow.Tests/WorkTaskCoordinatorTests.cs) and [CodeRedIncidentTests](../tests/Foundry.Workflow.Tests/CodeRedIncidentTests.cs) for lifecycle, fencing, retry, incident provenance, CI identity, timestamp, and clear behavior. CI status is linked from the pull request implementing these slices.
+See [WorkTaskCoordinatorTests](../tests/Foundry.Workflow.Tests/WorkTaskCoordinatorTests.cs), [JsonlWorkTaskStoreTests](../tests/Foundry.Workflow.Tests/JsonlWorkTaskStoreTests.cs), and [CodeRedIncidentTests](../tests/Foundry.Workflow.Tests/CodeRedIncidentTests.cs) for lifecycle, fencing, retry, incident provenance, CI identity, timestamp, and clear behavior. CI status is linked from the pull request implementing these slices.
