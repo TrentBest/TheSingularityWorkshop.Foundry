@@ -14,16 +14,17 @@ The runner is a single awaited invocation. A Hub presentation or headless host n
 ## Public contract
 
 - `Submit(WorkflowDefinition)` accepts work and returns an `Accepted` snapshot without invoking handlers.
-- `StartAsync(runId)` starts an accepted run once and returns the final `WorkflowResult`.
+- `StartAsync(runId)` starts an accepted run once without a workflow-level deadline.
+- `StartAsync(runId, timeout)` applies an optional positive timeout; expiration requests cooperative cancellation and produces `TimedOut`, distinct from caller-requested `Cancelled`. Caller cancellation wins if both signals race.
 - `GetSnapshot(runId)` returns a point-in-time immutable snapshot.
 - `Cancel(runId)` requests cooperative cancellation, including cancellation before start.
 - `DisposeAsync()` cancels outstanding work and waits for its completion.
 
-The coordinator is in-process and in-memory. It does not provide durable run history, a persisted queue, timeouts, retries, or a cross-process transport. Handlers must honor cancellation for timely shutdown.
+The coordinator is in-process and in-memory. It does not provide durable run history, a persisted queue, retries, or a cross-process transport. A timeout is cooperative and cannot forcibly stop a handler that ignores its token. Handlers must honor cancellation for timely shutdown.
 
 ## Verification
 
-See [WorkflowExecutionCoordinatorTests](../../tests/Foundry.Workflow.Tests/WorkflowExecutionCoordinatorTests.cs) for lifecycle, cancellation, invalid-workflow, and single-start behavior. The tests passed in [development CI run #84](https://github.com/TrentBest/TheSingularityWorkshop.Foundry/actions/runs/40546957980).
+See [WorkflowExecutionCoordinatorTests](../../tests/Foundry.Workflow.Tests/WorkflowExecutionCoordinatorTests.cs) for lifecycle, caller cancellation, timeout classification, invalid timeout values, invalid-workflow, and single-start behavior. The baseline lifecycle tests passed in [development CI run #84](https://github.com/TrentBest/TheSingularityWorkshop.Foundry/actions/runs/40546957980); the timeout-specific tests passed [PR CI run #102](https://github.com/TrentBest/TheSingularityWorkshop.Foundry/actions/runs/41123855392).
 
 ## UML
 

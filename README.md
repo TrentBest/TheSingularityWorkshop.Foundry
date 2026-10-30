@@ -8,7 +8,7 @@
 
 **Foundry is the host-neutral execution pipeline for The Singularity Workshop Hub.** It accepts explicit work, validates it before side effects, coordinates execution, and reports authoritative lifecycle state and structured outcomes. GUI may present that state when the Hub chooses to appear; GUI is not the executor.
 
-> **Implementation status:** the sequential workflow runner, preflight validation, structured outcomes, and an in-process retained lifecycle coordinator are implemented on `development`. The retained lifecycle slice is verified by [development CI run #84](https://github.com/TrentBest/TheSingularityWorkshop.Foundry/actions/runs/40546957980). No package publication or deployment is part of this work.
+> **Implementation status:** the sequential workflow runner, preflight validation, structured outcomes, and an in-process retained lifecycle coordinator are implemented on `development`. The retained lifecycle baseline is verified by [development CI run #84](https://github.com/TrentBest/TheSingularityWorkshop.Foundry/actions/runs/40546957980). The `work/explicit-workflow-timeouts` branch adds timeout/cancellation distinction and passed [PR CI run #102](https://github.com/TrentBest/TheSingularityWorkshop.Foundry/actions/runs/41123855392); the PR remains draft and unmerged. No package publication or deployment is part of this work.
 
 ## 01 — Why Foundry exists
 
@@ -34,7 +34,7 @@ A host can:
 2. Submit a typed workflow definition and receive an `Accepted` run snapshot.
 3. Start that run once and observe its lifecycle through `GetSnapshot`.
 4. Request cancellation through `Cancel`.
-5. Read the terminal `WorkflowResult` and per-step outcomes.
+5. Read the terminal `WorkflowResult` and per-step outcomes; an optional workflow timeout is reported separately from caller cancellation.
 
 The first version executes named handlers sequentially. It validates the complete definition before invoking any handler, stops after failure, distinguishes cancellation from failure, and records remaining steps as skipped. The coordinator retains snapshots only in memory.
 
@@ -54,9 +54,9 @@ The focused xUnit suite covers ordering, invalid definitions, failure, cancellat
 
 ## 05 — Limits and next steps
 
-The current contract is in-memory and sequential. It does not provide durable run history, persisted JSON/YAML manifests, retries, compensation, parallel/distributed execution, enforced handler timeouts, or recovery after process loss. Cancellation is cooperative: handlers must honor their token.
+The current contract is in-memory and sequential. It does not provide durable run history, persisted JSON/YAML manifests, retries, compensation, parallel/distributed execution, or recovery after process loss. The `work/explicit-workflow-timeouts` implementation passed CI run #102; both timeout and caller cancellation remain cooperative, so handlers must honor their token.
 
-The next gate is to verify the current coordinator and runner tests, then implement and test the smallest concrete Foundry-facing execution handoff. AnyApp currently composes `RuntimeAssembly` through FSM_COS and owns host startup; WebApp still has a transitional `WebAppExperienceRuntime` with a private heartbeat; The is the Hub/workshop surface; and WebPage has legacy process-group contracts. These are not interchangeable inputs: `RuntimeAssembly`, `WorkflowDefinition`, and WebPage `WorkDescriptor` have distinct semantics until a tested adapter proves a mapping. Migrate one host at a time and verify status, cancellation, terminal outcomes, and cleanup before describing it as a Foundry consumer. Keep browser/server and separate-process boundaries explicit; the current coordinator is in-process and in-memory. GUI presentation work, generated UML, and optional article workflows follow evidence rather than precede it.
+The next gate is the smallest concrete Foundry-facing execution handoff, followed by the governed task/run lifecycle and bounded CI-to-agent repair loop tracked in Foundry issues #5 and #8. AnyApp currently composes `RuntimeAssembly` through FSM_COS and owns host startup; WebApp still has a transitional `WebAppExperienceRuntime` with a private heartbeat; The is the Hub/workshop surface; and WebPage has legacy process-group contracts. These are not interchangeable inputs: `RuntimeAssembly`, `WorkflowDefinition`, and WebPage `WorkDescriptor` have distinct semantics until a tested adapter proves a mapping. Migrate one host at a time and verify status, cancellation, terminal outcomes, and cleanup before describing it as a Foundry consumer. Keep browser/server and separate-process boundaries explicit; the current coordinator is in-process and in-memory. GUI presentation work, generated UML, and optional article workflows follow evidence rather than precede it.
 
 Publication, release, and deployment remain separate actions and require Trent's explicit approval.
 

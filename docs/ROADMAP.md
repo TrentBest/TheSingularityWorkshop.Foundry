@@ -3,7 +3,7 @@
 
 # Foundry Roadmap and Readiness
 
-**Current readiness: 35%.** The real-package FSM_API probe, deterministic fox/sheepdog scenario, version-1 sequential workflow runner, and retained in-process lifecycle coordinator passed [development CI run #84](https://github.com/TrentBest/TheSingularityWorkshop.Foundry/actions/runs/40546957980). This remains an early implementation slice, not a release-readiness claim.
+**Current readiness: 35%.** The real-package FSM_API probe, deterministic fox/sheepdog scenario, version-1 sequential workflow runner, and retained in-process lifecycle coordinator passed [development CI run #84](https://github.com/TrentBest/TheSingularityWorkshop.Foundry/actions/runs/40546957980). The workflow timeout/cancellation distinction also passed [PR CI run #102](https://github.com/TrentBest/TheSingularityWorkshop.Foundry/actions/runs/41123855392) on its unmerged feature branch. This remains an early implementation slice, not a release-readiness claim.
 
 ## Milestones
 
@@ -39,7 +39,7 @@
 - [x] Verify CI exit-code mapping and upload a probe-output artifact.
 - [x] Compare deterministic output from two fresh basic-probe processes.
 - [x] Run the fox/sheepdog scenario in two fresh processes and compare TSV and SVG evidence byte-for-byte.
-- [ ] Prove workflow-level timeout enforcement and distinguish timeout from caller-requested cancellation.
+- [x] Prove workflow-level timeout enforcement and distinguish timeout from caller-requested cancellation ([PR CI run #102](https://github.com/TrentBest/TheSingularityWorkshop.Foundry/actions/runs/41123855392)).
 - [ ] Harden permissions for untrusted pull requests.
 - [ ] Publish workflow logs and a concise evidence summary.
 

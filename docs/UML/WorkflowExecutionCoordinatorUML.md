@@ -3,7 +3,7 @@
 
 # WorkflowExecutionCoordinator — UML Neighborhood
 
-**Status:** source-grounded view of the current `development` implementation. The lifecycle coordinator and its tests passed [development CI run #84](https://github.com/TrentBest/TheSingularityWorkshop.Foundry/actions/runs/40546957980).
+**Status:** source-grounded view of the timeout implementation on `work/explicit-workflow-timeouts`; branch CI passed [PR CI run #102](https://github.com/TrentBest/TheSingularityWorkshop.Foundry/actions/runs/41123855392). The baseline lifecycle passed [development CI run #84](https://github.com/TrentBest/TheSingularityWorkshop.Foundry/actions/runs/40546957980).
 
 ## Neighborhood
 
@@ -13,6 +13,7 @@ classDiagram
     class WorkflowExecutionCoordinator {
         +Submit(WorkflowDefinition) WorkflowRunSnapshot
         +StartAsync(Guid) Task~WorkflowResult~
+        +StartAsync(Guid, TimeSpan?) Task~WorkflowResult~
         +Cancel(Guid) bool
         +GetSnapshot(Guid) WorkflowRunSnapshot
         +DisposeAsync() ValueTask
@@ -50,7 +51,7 @@ sequenceDiagram
     participant Handler as Registered handler
     Host->>Coordinator: Submit(definition)
     Coordinator-->>Host: Accepted snapshot + run ID
-    Host->>Coordinator: StartAsync(run ID)
+    Host->>Coordinator: StartAsync(run ID, optional timeout)
     Coordinator->>Runner: RunAsync(definition, cancellation token)
     Runner->>Runner: Validate complete definition
     alt Invalid definition
@@ -64,14 +65,21 @@ sequenceDiagram
     end
     Host->>Coordinator: GetSnapshot(run ID)
     Coordinator-->>Host: Current status and result when available
-    Host->>Coordinator: Cancel(run ID) [optional]
+    opt Caller cancellation
+        Host->>Coordinator: Cancel(run ID)
+    end
+    opt Workflow deadline expires
+        Coordinator->>Runner: Cancel linked execution token
+        Runner-->>Coordinator: Cancelled execution result
+        Coordinator->>Coordinator: Classify TimedOut (unless caller cancellation also requested)
+    end
 ```
 
 ## Responsibility rules
 
 - The coordinator owns retained run identity and lifecycle state for its lifetime.
 - The existing runner remains the sole sequential step executor and definition validator.
-- `WorkflowResult` remains the workflow outcome; `WorkflowRunStatus` adds lifecycle states such as `Accepted` and `Running`.
+- `WorkflowResult` reports `TimedOut` separately from caller-requested `Cancelled`; `WorkflowRunStatus` mirrors both terminal states.
 - The snapshot is observational and immutable. A presentation layer must send commands through the coordinator rather than mutate state.
 - FSM_COS `RuntimeAssembly` and WebPage process-group updates are separate contracts; this diagram does not claim they are workflow definitions or results.
 
