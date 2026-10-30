@@ -47,15 +47,22 @@ Updates preserve the incident start time and reject backward timestamps. Clearin
 
 This is the incident data contract, not yet a durable incident service or notification dispatcher. No credential/token field exists in the record.
 
+
+## CODE RED status notices
+
+`CodeRedStatusNoticeFactory` creates credential-free active and cleared status messages for a host publisher. An active notice is refused unless the incident matches a currently leased task in `CodeRed` state, the agent identity matches, and a future next-update time is supplied. The message includes repository, issue, candidate SHA, CI run/attempt when known, current action, blocker, and next update. A cleared notice requires an explicit incident clear and does not claim the agent is still engaged.
+
+This is the truthful message projection only. Delivery to GitHub, chat, or another human notification channel remains a host adapter responsibility.
+
 ## Current limitations
 
 - `JsonlWorkTaskStore` and `PersistentWorkTaskCoordinator` persist task snapshots and event history locally. The adapter serializes its own operations and restores journal state before accepting new work. If a journal write fails after an in-memory mutation, it permanently fails closed for that process; restart and restore from the journal before dispatch resumes. This remains single-process only: separate adapter/store instances or processes are not coordinated, and this is not a distributed atomic claim.
 - CODE RED incident records have their own append-only local journal; this is single-process storage and is not yet a GitHub-backed or distributed incident service.
 - The coordinator does not claim GitHub issues, create branches, inspect CI, call models, or create PRs.
 - Lease arbitration is atomic only within one coordinator instance; it is not a cross-process lock. The local journal does not turn that lease into a distributed claim.
-- CODE RED human notification, secure re-authentication, and automatic status clear publication remain unimplemented.
+- CODE RED message delivery, secure re-authentication, and automatic status clear publication remain unimplemented; the active/cleared notice projection is implemented.
 - Exact-SHA CiAi evidence evaluation, duplicate/out-of-order callback reconciliation, secure re-authentication, bounded model repair, and draft-PR handoff are future slices. Host-issued action capabilities are implemented as an in-memory, short-lived authorization boundary.
 
 ## Verification
 
-See [WorkTaskCoordinatorTests](../tests/Foundry.Workflow.Tests/WorkTaskCoordinatorTests.cs), [JsonlWorkTaskStoreTests](../tests/Foundry.Workflow.Tests/JsonlWorkTaskStoreTests.cs) (including persistent-adapter restart and fail-closed tests), [CodeRedIncidentTests](../tests/Foundry.Workflow.Tests/CodeRedIncidentTests.cs), and [JsonlCodeRedIncidentStoreTests](../tests/Foundry.Workflow.Tests/JsonlCodeRedIncidentStoreTests.cs), and [WorkTaskCapabilityRegistryTests](../tests/Foundry.Workflow.Tests/WorkTaskCapabilityRegistryTests.cs) for lifecycle, fencing, retry, incident provenance, CI identity, timestamp, clear behavior, and capability scope/lease/expiry/revocation. CI status is linked from the pull request implementing these slices.
+See [WorkTaskCoordinatorTests](../tests/Foundry.Workflow.Tests/WorkTaskCoordinatorTests.cs), [JsonlWorkTaskStoreTests](../tests/Foundry.Workflow.Tests/JsonlWorkTaskStoreTests.cs) (including persistent-adapter restart and fail-closed tests), [CodeRedIncidentTests](../tests/Foundry.Workflow.Tests/CodeRedIncidentTests.cs), and [JsonlCodeRedIncidentStoreTests](../tests/Foundry.Workflow.Tests/JsonlCodeRedIncidentStoreTests.cs), and [WorkTaskCapabilityRegistryTests](../tests/Foundry.Workflow.Tests/WorkTaskCapabilityRegistryTests.cs), and [CodeRedStatusNoticeTests](../tests/Foundry.Workflow.Tests/CodeRedStatusNoticeTests.cs) for lifecycle, fencing, retry, incident provenance, CI identity, timestamp, clear behavior, and capability scope/lease/expiry/revocation. CI status is linked from the pull request implementing these slices.
