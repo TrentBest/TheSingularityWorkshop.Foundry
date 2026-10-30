@@ -50,7 +50,7 @@ This is the incident data contract, not yet a durable incident service or notifi
 
 ## CODE RED status notices
 
-`CodeRedStatusNoticeFactory` creates credential-free active and cleared status messages for a host publisher. An active notice is refused unless the incident matches a currently leased task in `CodeRed` state, the agent identity matches, and a future next-update time is supplied. The message includes repository, issue, candidate SHA, CI run/attempt when known, current action, blocker, and next update. A cleared notice requires an explicit incident clear and does not claim the agent is still engaged.
+`CodeRedStatusNoticeFactory` creates credential-free active and cleared status messages for a host publisher. An active notice is refused unless the incident matches a currently leased task in `CodeRed` state, the agent identity matches, and a next-update time before the lease expiry is supplied. The rendered notice states whether human escalation is required. The message includes repository, issue, candidate SHA, CI run/attempt when known, current action, blocker, and next update. A cleared notice requires an explicit incident clear and does not claim the agent is still engaged.
 
 This is the truthful message projection only. Delivery to GitHub, chat, or another human notification channel remains a host adapter responsibility.
 
