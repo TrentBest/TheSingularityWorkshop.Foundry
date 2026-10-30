@@ -106,6 +106,20 @@ public sealed class WorkTaskCoordinatorTests
     }
 
     [Fact]
+    public void TaskEnvelopeBoundsRejectOversizedIdentifiersAndScopes()
+    {
+        var coordinator = new WorkTaskCoordinator();
+        Assert.Throws<ArgumentException>(() => coordinator.Submit(Request(taskId: new string('t', 129))));
+        Assert.Throws<ArgumentException>(() => coordinator.Submit(Request(correlationId: new string('c', 129))));
+        Assert.Throws<ArgumentException>(() => coordinator.Submit(Request(paths:
+            Enumerable.Range(0, 129).Select(index => $"src/{index}").ToArray())));
+        Assert.Throws<ArgumentException>(() => coordinator.Submit(Request(paths:
+            new[] { new string('p', 513) })));
+        Assert.Throws<ArgumentException>(() => coordinator.Submit(Request() with
+            { TaskId = "bad\\u0001task" }));
+    }
+
+    [Fact]
     public void TerminalHandoffReleasesLease()
     {
         var coordinator = new WorkTaskCoordinator();
@@ -121,8 +135,9 @@ public sealed class WorkTaskCoordinatorTests
         Assert.Equal(6, handedOff.Events.Count);
     }
 
-    private static WorkTaskRequest Request(int maximumAttempts = 3, IReadOnlyList<string>? paths = null, string? baseSha = null) =>
-        new(1, "foundry-8", "correlation-8", "TrentBest/TheSingularityWorkshop.Foundry", 8,
+    private static WorkTaskRequest Request(int maximumAttempts = 3, IReadOnlyList<string>? paths = null,
+        string? baseSha = null, string taskId = "foundry-8", string correlationId = "correlation-8") =>
+        new(1, taskId, correlationId, "TrentBest/TheSingularityWorkshop.Foundry", 8,
             "https://github.com/TrentBest/TheSingularityWorkshop.Foundry/issues/8",
             baseSha ?? new string('a', 40), paths ?? new[] { "src/Foundry.Workflow", "tests/Foundry.Workflow.Tests" },
             maximumAttempts);
