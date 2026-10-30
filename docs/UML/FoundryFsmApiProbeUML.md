@@ -1,3 +1,6 @@
+<!-- The Singularity Workshop moniker -->
+<p align="center"><a href="https://github.com/TrentBest"><img src="https://raw.githubusercontent.com/TrentBest/TheSingularityWorkshop.Visualize/development/docs/assets/moniker.svg" alt="The Singularity Workshop animated moniker" width="720" /></a></p>
+
 # Program — UML Neighborhood
 
 **Status:** manually maintained, source-grounded view of the first CI probe. Not generated output.
@@ -46,3 +49,8 @@ classDiagram
 ## Scope boundary
 
 This diagram describes the probe only. It does not imply that Foundry has a workflow manifest, general-purpose execution runtime, FSM_COS integration, or failure/recovery engine.
+
+---
+
+<!-- THE SINGULARITY WORKSHOP FOOTER -->
+<p align="center"><img src="https://raw.githubusercontent.com/TrentBest/FSM_API/master/Documentation/Branding/TheSingularityWorkshop.png" alt="The Singularity Workshop avatar" width="200" /></p>
