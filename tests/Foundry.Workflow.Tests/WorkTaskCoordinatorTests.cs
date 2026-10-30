@@ -59,7 +59,10 @@ public sealed class WorkTaskCoordinatorTests
         coordinator.Transition("foundry-8", lease, WorkTaskStatus.Investigating, Now, "inspect");
         coordinator.Transition("foundry-8", lease, WorkTaskStatus.Implementing, Now, "change");
         coordinator.Transition("foundry-8", lease, WorkTaskStatus.Validating, Now, "validate");
-        var blocked = coordinator.Transition("foundry-8", lease, WorkTaskStatus.RepairRequired, Now, "budget exhausted");
+        var attempt = FailedAttempt();
+        var blocked = coordinator.ApplyRepairDecision("foundry-8", lease,
+            Array.Empty<WorkTaskRepairAttempt>(), attempt, Expectation(attempt),
+            TimeSpan.FromMinutes(30), Now.AddMinutes(3));
         Assert.Equal(WorkTaskStatus.Blocked, blocked.Status);
         Assert.Equal(1, blocked.Attempt);
     }
@@ -188,6 +191,12 @@ public sealed class WorkTaskCoordinatorTests
         Assert.Null(handedOff.Lease);
         Assert.Equal(6, handedOff.Events.Count);
     }
+
+    private static WorkTaskRepairAttempt FailedAttempt() =>
+        new(1, "foundry-8", "correlation-8", "TrentBest/TheSingularityWorkshop.Foundry",
+            "work/code-red-task-lifecycle", ".github/workflows/build.yml", Now, 1,
+            new string('a', 40), 1001, 1, new string('e', 64), true, false, true,
+            new string('d', 64), Now.AddMinutes(1), Now.AddMinutes(2));
 
     private static WorkTaskRepairAttempt SuccessfulAttempt() =>
         new(1, "foundry-8", "correlation-8", "TrentBest/TheSingularityWorkshop.Foundry",
