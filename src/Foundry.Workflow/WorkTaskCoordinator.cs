@@ -115,6 +115,8 @@ public sealed class WorkTaskCoordinator
             var lease = state.Lease;
             if (lease is null || lease.LeaseId != leaseId || lease.ExpiresAt <= now)
                 throw new InvalidOperationException("The task lease is missing, expired, or superseded.");
+            if (next is WorkTaskStatus.ReviewReady or WorkTaskStatus.RepairRequired)
+                throw new InvalidOperationException("Review readiness and repair authorization must be derived from exact CI evidence through ApplyRepairDecision.");
             if (!Allowed(state.Status, next))
                 throw new InvalidOperationException($"Transition '{state.Status}' -> '{next}' is not allowed.");
             if (next == WorkTaskStatus.Validating && state.Attempt >= state.Request.MaximumAttempts)
@@ -128,6 +130,58 @@ public sealed class WorkTaskCoordinator
             if (next is WorkTaskStatus.HandedOff or WorkTaskStatus.Stopped or WorkTaskStatus.Failed)
                 state.Lease = null;
             state.AddEvent(previous, next, lease.AgentId, lease.LeaseId, now, reason);
+            return state.Snapshot();
+        }
+    }
+
+    /// <summary>
+    /// Applies a bounded lifecycle decision derived from the exact CI attempt and its validated history.
+    /// Caller-supplied evidence is re-evaluated here; a status transition alone cannot assert CI success.
+    /// </summary>
+    public WorkTaskSnapshot ApplyRepairDecision(string taskId, Guid leaseId,
+        IReadOnlyList<WorkTaskRepairAttempt> previousAttempts, WorkTaskRepairAttempt currentAttempt,
+        WorkTaskRepairEvidenceExpectation expectation, TimeSpan maximumDuration, DateTimeOffset now)
+    {
+        ArgumentNullException.ThrowIfNull(previousAttempts);
+        ArgumentNullException.ThrowIfNull(currentAttempt);
+        ArgumentNullException.ThrowIfNull(expectation);
+        if (now == default)
+            throw new ArgumentException("Decision time is required.", nameof(now));
+        lock (_gate)
+        {
+            var state = Get(taskId);
+            var lease = state.Lease;
+            if (lease is null || lease.LeaseId != leaseId || lease.ExpiresAt <= now)
+                throw new InvalidOperationException("The task lease is missing, expired, or superseded.");
+            if (state.Status is not (WorkTaskStatus.Validating or WorkTaskStatus.CodeRed))
+                throw new InvalidOperationException("CI evidence can be applied only while the task is validating or under CODE RED review.");
+            if (currentAttempt.AttemptNumber != state.Attempt ||
+                currentAttempt.TaskId != state.Request.TaskId ||
+                currentAttempt.CorrelationId != state.Request.CorrelationId ||
+                !string.Equals(currentAttempt.Repository, state.Request.Repository, StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException("CI evidence does not identify the current task validation attempt.");
+            if (expectation.TaskId != state.Request.TaskId ||
+                expectation.CorrelationId != state.Request.CorrelationId ||
+                !string.Equals(expectation.Repository, state.Request.Repository, StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException("The CI evidence expectation does not identify the current task.");
+            var decision = WorkTaskRepairDecisionPolicy.Evaluate(previousAttempts, currentAttempt,
+                expectation, state.Request.MaximumAttempts, maximumDuration, now);
+            var next = decision.Decision switch
+            {
+                WorkTaskRepairDecision.ReviewReady => WorkTaskStatus.ReviewReady,
+                WorkTaskRepairDecision.RepairRequired => WorkTaskStatus.RepairRequired,
+                WorkTaskRepairDecision.Blocked => WorkTaskStatus.Blocked,
+                WorkTaskRepairDecision.CodeRed => WorkTaskStatus.CodeRed,
+                _ => throw new InvalidOperationException("Unknown repair decision.")
+            };
+            if (!Allowed(state.Status, next))
+                throw new InvalidOperationException($"Evidence decision '{state.Status}' -> '{next}' is not allowed.");
+            var previous = state.Status;
+            state.Status = next;
+            if (next == WorkTaskStatus.Blocked)
+                state.Lease = null;
+            state.AddEvent(previous, next, lease.AgentId, lease.LeaseId, now,
+                $"{decision.ReasonCode}: {decision.Reason}");
             return state.Snapshot();
         }
     }
