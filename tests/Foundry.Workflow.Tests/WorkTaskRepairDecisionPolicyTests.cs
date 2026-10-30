@@ -151,5 +151,9 @@ public sealed class WorkTaskRepairDecisionPolicyTests
         Assert.Throws<ArgumentException>(() =>
             WorkTaskRepairDecisionPolicy.Evaluate(Array.Empty<WorkTaskRepairAttempt>(), attempt, Expectation(attempt), 3,
                 TimeSpan.FromMinutes(30), attempt.ObservedAt.AddSeconds(-1)));
+        Assert.Throws<ArgumentException>(() =>
+            WorkTaskRepairDecisionPolicy.Evaluate(Array.Empty<WorkTaskRepairAttempt>(), attempt,
+                Expectation(attempt) with { ExpectedCiRunId = attempt.CiRunId }, 3,
+                TimeSpan.FromMinutes(30), attempt.ObservedAt.AddSeconds(1)));
     }
 }
