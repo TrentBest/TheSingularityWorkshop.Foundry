@@ -55,7 +55,7 @@ This is the incident data contract with a local append-only journal and a host n
 
 `JsonlWorkTaskRepairAttemptJournal` preserves every attempt in order, treats an identical redelivery as a duplicate, rejects conflicting/out-of-order callbacks, rejects reuse of the same run attempt, and prevents new attempts after a successful result. A torn final journal record fails closed.
 
-`WorkTaskRepairDecisionPolicy` returns only four deterministic dispositions: `ReviewReady`, `RepairRequired`, `Blocked`, or `CodeRed`. Incomplete evidence blocks; successful exact evidence moves to review; actionable failures can retry only within attempt/time budgets; unchanged candidate SHAs, repeated diagnostic fingerprints, or non-actionable failures stop the loop and raise CODE RED. No CI run is dispatched and no agent is invoked by this policy.
+`WorkTaskRepairDecisionPolicy` requires an explicit expected task/repository/branch/workflow/candidate-SHA tuple and can additionally bind the expected CI run ID/attempt returned by a rerun dispatcher. It returns only four deterministic dispositions: `ReviewReady`, `RepairRequired`, `Blocked`, or `CodeRed`. Incomplete evidence blocks; successful exact evidence moves to review; actionable failures can retry only within attempt/time budgets; unchanged candidate SHAs, repeated diagnostic fingerprints, or non-actionable failures stop the loop and raise CODE RED. No CI run is dispatched and no agent is invoked by this policy.
 
 ## CODE RED status notices
 
