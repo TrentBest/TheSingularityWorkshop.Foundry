@@ -50,6 +50,9 @@ public static class WorkTaskRepairDecisionPolicy
         if (previousAttempts.Count > 0)
         {
             var previous = previousAttempts[^1];
+            if (previous.IsSuccessful)
+                return new(WorkTaskRepairDecision.Blocked, "repair.attempt-after-success",
+                    "A successful task cannot enter another repair cycle.");
             if (previous.StartedAt > currentAttempt.StartedAt ||
                 previous.ObservedAt > currentAttempt.StartedAt ||
                 (previous.CiRunId == currentAttempt.CiRunId && previous.CiRunAttempt == currentAttempt.CiRunAttempt))
