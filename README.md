@@ -49,6 +49,7 @@ The separate [FSM_API probe](src/Foundry.FsmApiProbe/Program.cs) and [fox/sheepd
 - [Contract inspection ledger](docs/CONTRACT_INSPECTION.md) — source-backed findings and unresolved questions.
 - [Roadmap and readiness](docs/ROADMAP.md) — milestones and verification gates.
 - [Documentation index](DOCUMENTATION_INDEX.md) — documentation entry points.
+- [Agent onboarding and contribution policy](AGENTS.md) — ownership boundaries, branch/release guardrails, safety invariants, and documentation/evidence rules.
 - [UML documentation](docs/UML/README.md) — source-grounded diagram policy and inventory.
 
 The focused xUnit suite covers ordering, invalid definitions, failure, cancellation, and retained run lifecycle. The [Foundry CI workflow](.github/workflows/foundry-fsm-api-probe.yml) runs those tests alongside the FSM_API and fox/sheepdog evidence checks.
