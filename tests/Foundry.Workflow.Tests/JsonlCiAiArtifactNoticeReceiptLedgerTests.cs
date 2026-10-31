@@ -6,7 +6,7 @@ namespace Foundry.Workflow.Tests;
 public sealed class JsonlCiAiArtifactNoticeReceiptLedgerTests
 {
     private static CiAiArtifactReadyNotice Notice(string id = "notice-1", string key = "request-artifact-1", char digest = 'a') =>
-        new("ciai-sender", id, key, new string(digest, 64));
+        new("ciai-sender", id, key, $"""{"noticeId":"{{id}}","manifest":{"idempotencyKey":"{{key}}"}}""");
 
     [Fact]
     public void AcceptsOnceAndReturnsTheSameDurableReceiptForAnExactRetryAfterRestart()
@@ -67,7 +67,7 @@ public sealed class JsonlCiAiArtifactNoticeReceiptLedgerTests
             Assert.Equal(CiAiArtifactNoticeReceiptReceiptOutcome.Accepted,
                 ledger.Accept(Notice() with { SenderIdentity = "other-sender" }, acceptedAt).Outcome);
             Assert.Throws<ArgumentException>(() => ledger.Accept(Notice() with { NoticeId = "bad id" }, acceptedAt));
-            Assert.Throws<ArgumentException>(() => ledger.Accept(Notice() with { PayloadSha256 = "bad" }, acceptedAt));
+            Assert.Throws<ArgumentException>(() => ledger.Accept(Notice() with { PayloadUtf8 = "not-json" }, acceptedAt));
         }
         finally
         {
