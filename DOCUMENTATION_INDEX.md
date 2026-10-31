@@ -16,7 +16,7 @@
 - [Governed work task lifecycle](docs/WORK_TASK_LIFECYCLE.md) — task envelopes, fenced leases, local journals, capabilities, CODE RED notices, and exact-CI repair decisions.
 - [CiAi artifact callback contract](docs/CIAI_ARTIFACT_CALLBACK_CONTRACT.md) — Foundry-owned v1 HTTPS ingress, authentication, durable idempotency receipts, immutable artifact pull, and provider acknowledgement.
 - [Foundry–HeadlessAi turn bridge](docs/HEADLESSAI_TURN_BRIDGE.md) — task-lease-gated invocation, durable at-most-once journal, host adapter mapping, and remaining live-integration gates.
-- [Concrete HeadlessAi host adapter](docs/HEADLESSAI_HOST_ADAPTER.md) — pinned source integration, immutable request mapping, normalized result mapping, and credential boundaries.
+- [Concrete HeadlessAi host adapter](docs/HEADLESSAI_HOST_ADAPTER.md) — pinned source integration, immutable request mapping, normalized result mapping, credential boundaries, and manual provider smoke runner.
 - [Architecture](docs/ARCHITECTURE.md) — system boundaries and evidence labels.
 - [Contract inspection ledger](docs/CONTRACT_INSPECTION.md) — source-backed findings from the Workshop stack and unresolved decisions.
 - [Roadmap and readiness](docs/ROADMAP.md) — milestones and verification gates.
