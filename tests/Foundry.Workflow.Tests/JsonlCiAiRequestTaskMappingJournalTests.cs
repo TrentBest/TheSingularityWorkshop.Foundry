@@ -98,6 +98,16 @@ public sealed class JsonlCiAiRequestTaskMappingJournalTests
     }
 
     [Fact]
+    public void RunBindingTimestampMustFallInsideDispatchIntentWindow()
+    {
+        var mapping = Mapping();
+        Assert.Throws<InvalidOperationException>(() =>
+            (Binding() with { BoundAt = Created.AddMinutes(-1) }).ValidateAgainst(mapping));
+        Assert.Throws<InvalidOperationException>(() =>
+            (Binding() with { BoundAt = Created.AddHours(3) }).ValidateAgainst(mapping));
+    }
+
+    [Fact]
     public void JournalRejectsTornFinalRecord()
     {
         var path = Path.Combine(Path.GetTempPath(), $"foundry-request-map-torn-{Guid.NewGuid():N}.jsonl");
