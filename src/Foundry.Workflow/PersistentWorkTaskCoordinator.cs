@@ -68,15 +68,17 @@ public sealed class PersistentWorkTaskCoordinator
             EnsureHealthy();
             var journal = _repairAttemptJournal ?? throw new InvalidOperationException(
                 "A durable repair-attempt journal is required before applying a persistent repair decision.");
-            var history = journal.GetAttempts(taskId);
-            if (history.Count == 0 || history[^1] != currentAttempt ||
-                currentAttempt.TaskId != taskId)
-                throw new InvalidOperationException(
-                    "The current CI attempt must exactly match the latest durable attempt-journal record for this task.");
-            var previousAttempts = history.Take(history.Count - 1).ToArray();
-            var snapshot = _coordinator.ApplyRepairDecision(taskId, leaseId, previousAttempts,
-                currentAttempt, expectation, maximumDuration, now);
-            return Persist(snapshot);
+            return journal.ExecuteWithAttempts(taskId, history =>
+            {
+                if (history.Count == 0 || history[^1] != currentAttempt ||
+                    currentAttempt.TaskId != taskId)
+                    throw new InvalidOperationException(
+                        "The current CI attempt must exactly match the latest durable attempt-journal record for this task.");
+                var previousAttempts = history.Take(history.Count - 1).ToArray();
+                var snapshot = _coordinator.ApplyRepairDecision(taskId, leaseId, previousAttempts,
+                    currentAttempt, expectation, maximumDuration, now);
+                return Persist(snapshot);
+            });
         }
     }
 
