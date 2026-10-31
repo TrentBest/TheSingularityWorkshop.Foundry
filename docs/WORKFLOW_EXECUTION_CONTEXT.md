@@ -5,15 +5,15 @@
 
 ## Purpose
 
-\`WorkflowExecutionContext\` carries bounded JSON data through one sequential workflow run. It lets registered host handlers exchange typed inputs and outputs without putting application state into workflow definitions or turning workflow data into executable instructions.
+`WorkflowExecutionContext` carries bounded JSON data through one sequential workflow run. It lets registered host handlers exchange typed inputs and outputs without putting application state into workflow definitions or turning workflow data into executable instructions.
 
-The context is a data channel, not an authority channel. A value such as \`"delete-branch"\` does not authorize that operation. Only a handler explicitly registered by the host can perform an operation, and the handler must apply its own authorization and validation.
+The context is a data channel, not an authority channel. A value such as `"delete-branch"` does not authorize that operation. Only a handler explicitly registered by the host can perform an operation, and the handler must apply its own authorization and validation.
 
 ## Supply input data
 
 Create the context from JSON values and pass it to the existing runner or coordinator:
 
-\`\`\`csharp
+```csharp
 using System.Text.Json;
 
 using var document = JsonDocument.Parse("\\\"task-42\\\"");
@@ -25,17 +25,17 @@ var context = new WorkflowExecutionContext(
 
 var accepted = coordinator.Submit(workflowDefinition, context);
 var result = await coordinator.StartAsync(accepted.RunId);
-\`\`\`
+```
 
-The constructor clones each input value. The caller may dispose the source \`JsonDocument\` after construction; the context retains its own JSON snapshot.
+The constructor clones each input value. The caller may dispose the source `JsonDocument` after construction; the context retains its own JSON snapshot.
 
-A context-aware handler reads typed input through \`GetInput<T>\` or \`TryGetInput<T>\`. Missing required input through \`GetInput<T>\` throws \`KeyNotFoundException\`.
+A context-aware handler reads typed input through `GetInput<T>` or `TryGetInput<T>`. Missing required input through `GetInput<T>` throws `KeyNotFoundException`.
 
 ## Exchange output between handlers
 
-Register a context-aware handler with the host-owned \`WorkflowHandlerRegistry\`:
+Register a context-aware handler with the host-owned `WorkflowHandlerRegistry`:
 
-\`\`\`csharp
+```csharp
 registry.Register("validate-task", (context, cancellationToken) =>
 {
     var taskId = context.GetInput<string>("taskId");
@@ -49,11 +49,11 @@ registry.Register("consume-task", (context, cancellationToken) =>
     // Continue with a host-authorized operation.
     return ValueTask.CompletedTask;
 });
-\`\`\`
+```
 
-The same context is passed to each handler in declared workflow order. Outputs are write-once: a key cannot replace an input or an earlier output. Use \`GetOutput<T>\` or \`TryGetOutput<T>\` to read values produced by earlier handlers. A missing required output through \`GetOutput<T>\` throws \`KeyNotFoundException\`.
+The same context is passed to each handler in declared workflow order. Outputs are write-once: a key cannot replace an input or an earlier output. Use `GetOutput<T>` or `TryGetOutput<T>` to read values produced by earlier handlers. A missing required output through `GetOutput<T>` throws `KeyNotFoundException`.
 
-The legacy \`Register(key, Func<CancellationToken, ValueTask>)\` overload remains supported. It adapts the handler to the context-aware registration path and does not require changes to existing handlers.
+The legacy `Register(key, Func<CancellationToken, ValueTask>)` overload remains supported. It adapts the handler to the context-aware registration path and does not require changes to existing handlers.
 
 ## Enforced bounds
 
@@ -67,7 +67,7 @@ The legacy \`Register(key, Func<CancellationToken, ValueTask>)\` overload remain
 
 Keys must be non-empty, non-whitespace, and control-character-free. Values are serialized as JSON before being stored. Input construction rejects entry-count, per-value, and aggregate-budget violations. Output writes reject duplicate keys and enforce the same entry, per-value, and aggregate budgets.
 
-The byte budgets measure serialized JSON values; they do not represent an exact managed-heap allocation limit. Hosts should still avoid constructing arbitrarily large objects before passing them to \`SetOutput<T>\`.
+The byte budgets measure serialized JSON values; they do not represent an exact managed-heap allocation limit. Hosts should still avoid constructing arbitrarily large objects before passing them to `SetOutput<T>`.
 
 ## Ownership and safety
 
