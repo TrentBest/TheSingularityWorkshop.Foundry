@@ -16,5 +16,6 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../../src/Foundry.Workflow/Foundry.Workflow.csproj" />
+    <ProjectReference Include="../../src/Foundry.HeadlessAiHost/Foundry.HeadlessAiHost.csproj" />
   </ItemGroup>
 </Project>
