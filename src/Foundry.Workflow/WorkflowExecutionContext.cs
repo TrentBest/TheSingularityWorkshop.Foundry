@@ -65,6 +65,12 @@ public sealed class WorkflowExecutionContext
     public void SetOutput<T>(string key, T value)
     {
         ValidateKey(key);
+        lock (_gate)
+        {
+            if (_frozen)
+                throw new InvalidOperationException("Workflow context ownership transferred at submission; outputs can only be written by workflow handlers.");
+        }
+
         var bytes = JsonSerializer.SerializeToUtf8Bytes(value, JsonOptions);
         if (bytes.Length > MaximumValueBytes)
             throw new ArgumentException("Workflow output exceeds the per-value size budget.", nameof(value));
