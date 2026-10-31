@@ -69,7 +69,8 @@ The completed items below are implemented on PR #10's feature branch and are not
 - [x] Require a short-lived, signed host approval receipt for CODE RED recovery, bound to the active incident sequence and exact task-event sequence; persist the complete signed receipt in the task audit.
 - [x] Add exact-CI-attempt provenance checks and bounded deterministic repair decisions.
 - [x] Add a concrete `Foundry.HeadlessAiHost` adapter that maps Foundry turns to HeadlessAi's immutable request/executor without moving lifecycle or authorization into HeadlessAi; build it against pinned HeadlessAi source in CI run #337.
-- [ ] Compose the adapter with host-managed provider credentials and verify a real provider invocation.
+- [x] Add `Foundry.HeadlessAiHost.Console` as a manual host composition root and compile it in CI run #352.
+- [ ] Provision host-managed provider credentials and execute one real provider turn through the manual smoke runner.
 - [ ] Connect CiAi's exact-run evidence packet/outbox and bounded rerun request/ledger through trusted host adapters.
 - [ ] Bridge the task lifecycle into the existing WorkflowExecutionCoordinator/WorkflowRunner; do not create a competing runner.
 - [ ] Prove the red → evidence → bounded repair → green → draft-PR path with deterministic fake-provider/fake-GitHub tests.
