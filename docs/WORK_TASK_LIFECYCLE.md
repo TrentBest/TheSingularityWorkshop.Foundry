@@ -50,7 +50,7 @@ The registry is an in-process host boundary, not a security sandbox. The host mu
 
 `CodeRedIncident` is a versioned, credential-free operational record containing repository/task/issue/correlation identity, agent and role, current action, isolated branch and exact candidate SHA, latest CI run and attempt, severity/reason, retry budget, timestamps, and human-escalation requirement. `JsonlCodeRedIncidentStore` persists every create/update/clear snapshot in an append-only, fsync-backed journal, validates immutable incident identity and monotonic history on replay, and rejects mutation after clear.
 
-Updates preserve the incident start time and reject backward timestamps. Clearing is explicit, records a clear timestamp, and clears the human-escalation requirement. A cleared incident cannot be updated again. Canonical branches and partial CI run/attempt identities are rejected.
+Updates preserve the incident start time, increment a monotonic incident sequence, and reject backward timestamps. Clearing is explicit, increments that sequence, records a clear timestamp, and clears the human-escalation requirement. CODE RED recovery receipts bind to the exact active incident sequence as well as the current task-event sequence. A cleared incident cannot be updated again. Canonical branches and partial CI run/attempt identities are rejected.
 
 This is the incident data contract with a local append-only journal and a host notification boundary, not a GitHub-backed or distributed incident service. No credential/token field exists in the record.
 
