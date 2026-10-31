@@ -4,9 +4,11 @@ using System.Text.Json;
 namespace TheSingularityWorkshop.Foundry;
 
 /// <summary>
-/// Durable, append-only at-most-once invocation ledger for Foundry's HeadlessAi bridge.
+/// Durable, append-only invocation ledger for Foundry's HeadlessAi bridge.
 /// A pending entry is never automatically replayed after a crash because the provider may
 /// already have received the request. Such entries require explicit host reconciliation.
+/// Synchronization is per instance only: callers must use exactly one journal instance per
+/// path and process. This is not a cross-process or distributed ledger.
 /// </summary>
 public sealed class JsonlHeadlessAiTurnJournal
 {

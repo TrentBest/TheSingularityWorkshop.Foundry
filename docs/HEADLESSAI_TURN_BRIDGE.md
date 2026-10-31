@@ -41,7 +41,7 @@ The task must already be in `Investigating`. The branch must be an isolated Git-
 
 ## Implement the host adapter
 
-Foundry intentionally has no compile-time dependency on the HeadlessAi assembly. The host implements `IHeadlessAiAgentTurnClient` and maps the Foundry request to HeadlessAi's `HeadlessAiAgentTurnEnvelope`.
+Foundry intentionally has no compile-time dependency on the HeadlessAi assembly. The host implements `IHeadlessAiAgentTurnClient` and maps the Foundry request to HeadlessAi's `HeadlessAiAgentTurnEnvelope`. Its `Prepare` method must be local and side-effect-free: create the immutable `HeadlessAiAgentTurnRequest` snapshot once and return it behind `IFoundryHeadlessAiPreparedTurn`, exposing that snapshot's `Fingerprint`. `ExecuteAsync` must execute that exact prepared snapshot rather than reconstructing a second envelope.
 
 | Foundry request | HeadlessAi envelope |
 |---|---|
@@ -52,22 +52,23 @@ Foundry intentionally has no compile-time dependency on the HeadlessAi assembly.
 | `Role`, `Instructions`, `CanonicalPrompt` | Same role and prompt fields |
 | `ResponseSchema`, `ExpiresAt` | Same response schema and expiry |
 | `PriorTurnId`, `PriorCandidateCommitSha`, `IdempotencyKey` | Same resumable-turn fields; prior turn ID and prior candidate SHA must be supplied together |
-| `Evidence` | Map each item to a `HeadlessAiEvidenceReference` |\n| (No Foundry field) | Use default `HeadlessAiAgentTurnLimits` and an empty `ContextReferences` collection unless the host has separately bounded context references |
+| `Evidence` | Map each item to a `HeadlessAiEvidenceReference` |
+| (No Foundry field) | Use default `HeadlessAiAgentTurnLimits` and an empty `ContextReferences` collection unless the host has separately bounded context references |
 
-The adapter creates a `HeadlessAiAgentTurnEnvelope`, maps the evidence list, and invokes the configured `HeadlessAiAgentTurnExecutor.ExecuteAsync(envelope, cancellationToken)` once. The executor creates the immutable `HeadlessAiAgentTurnRequest` snapshot and returns a `HeadlessAiAgentTurnResult`. Validate the returned result, then map its task/candidate provenance, turn identity, request fingerprint, provider/model identity, timestamps, error/diagnostic, and normalized proposal fields—including `OperationalStatus`—into `FoundryHeadlessAiTurnResult`. Do not copy `RawResponse` into Foundry task state.
+The adapter's `Prepare` method creates the envelope, maps evidence, and calls `HeadlessAiAgentTurnRequest.Create(envelope, now)` once. It returns a prepared wrapper around that immutable snapshot and its canonical SHA-256 `Fingerprint`. `ExecuteAsync` invokes the configured `HeadlessAiAgentTurnExecutor.ExecuteAsync(preparedSnapshot, cancellationToken)` once, validates the returned `HeadlessAiAgentTurnResult`, and maps its task/candidate provenance, turn identity, request fingerprint, provider/model identity, timestamps, error/diagnostic, and normalized proposal fields—including `OperationalStatus`—into `FoundryHeadlessAiTurnResult`. Foundry independently checks that the mapped result's `RequestFingerprint` equals the prepared snapshot fingerprint; a 64-character hexadecimal shape check alone is not sufficient. Do not copy `RawResponse` into Foundry task state.
 
 Use the host's configured `HeadlessAiAgentTemplate` and shared `HttpClient`. Provider credentials are resolved out of band by the host's request-header provider. Never put provider credentials, GitHub credentials, capability IDs, or authorization grants in the prompt, envelope, model response, or evidence summary.
 
 ## Durable invocation behavior
 
-`JsonlHeadlessAiTurnJournal` records a pending intent and flushes it to disk before the provider call. After the returned result passes Foundry's provenance and bounds checks, the journal records the completed result.
+`JsonlHeadlessAiTurnJournal` records a pending intent and flushes it to disk before the provider call. After the returned result passes Foundry's provenance, canonical HeadlessAi fingerprint, and bounds checks, the journal records the completed result. The bridge then re-reads the task snapshot. If the lease expired, was superseded, or the task left `Investigating` during the provider call, the validated result remains durably recorded for host reconciliation, but the stale invocation throws and does not return the result to its caller.
 
 - An exact duplicate of a completed invocation returns the recorded result without another provider call.
 - Reuse of an idempotency key with different canonical invocation data is rejected.
 - A cancellation already requested before dispatch is honored before the pending record is written. If cancellation, transport failure, or process loss occurs after reservation, a pending invocation with no completed result is treated as **indeterminate**. The provider may have received the request before the host stopped, so Foundry does not invoke it again automatically. The host must reconcile the provider outcome or escalate for an explicit decision.
 - A failed journal write disables further use of that journal instance. Restart and inspect/recover the durable journal before dispatch resumes.
 
-The JSONL journal is local and single-process. It does not provide distributed locking or cross-host coordination. Keep one journal instance per host process and protect its data directory with the host's normal filesystem access controls.
+The JSONL journal's lock is per instance only. It is not safe for concurrent journal instances or processes sharing the same path, and it does not provide distributed locking or cross-host coordination. Keep exactly one journal instance for each path in the host process and protect its data directory with the host's normal filesystem access controls.
 
 ## Trust and authority
 

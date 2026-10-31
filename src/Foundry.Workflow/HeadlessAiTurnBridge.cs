@@ -43,14 +43,16 @@ public sealed record FoundryHeadlessAiTurnRequest
         ValidateSha(BaseCommitSha, nameof(BaseCommitSha));
         ValidateSha(CandidateCommitSha, nameof(CandidateCommitSha));
         if (string.IsNullOrWhiteSpace(AuthorizedBranch) ||
-            AuthorizedBranch is "master" or "development" or "@" ||
-            AuthorizedBranch.StartsWith('/') || AuthorizedBranch.EndsWith('/') ||
-            AuthorizedBranch.EndsWith('.') || AuthorizedBranch.Contains("..", StringComparison.Ordinal) ||
+            string.Equals(AuthorizedBranch, "master", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(AuthorizedBranch, "development", StringComparison.OrdinalIgnoreCase) ||
+            AuthorizedBranch == "@" || AuthorizedBranch.StartsWith('/') || AuthorizedBranch.EndsWith('/') ||
+            AuthorizedBranch.Contains("..", StringComparison.Ordinal) ||
             AuthorizedBranch.Contains('\\') || AuthorizedBranch.Contains("@{", StringComparison.Ordinal) ||
             AuthorizedBranch.Any(c => char.IsControl(c) || char.IsWhiteSpace(c) ||
                 c is '~' or '^' or ':' or '?' or '*' or '[' or ']') ||
             AuthorizedBranch.Split('/').Any(segment => segment.Length == 0 ||
-                segment.StartsWith('.') || segment.EndsWith(".lock", StringComparison.OrdinalIgnoreCase)))
+                segment.StartsWith('.') || segment.EndsWith('.') ||
+                segment.EndsWith(".lock", StringComparison.OrdinalIgnoreCase)))
             throw new ArgumentException("HeadlessAi turns must target an isolated Git-valid feature branch.", nameof(AuthorizedBranch));
         if (string.IsNullOrWhiteSpace(IssueUrl) || IssueUrl.Length > 512 ||
             !Uri.TryCreate(IssueUrl, UriKind.Absolute, out var issueUri) ||
@@ -215,10 +217,25 @@ public sealed record FoundryHeadlessAiTurnResult
 }
 
 /// <summary>One provider invocation. Implementations adapt this port to HeadlessAi's executor.</summary>
+/// <summary>
+/// Opaque host-prepared snapshot of the exact HeadlessAi request that will be executed.
+/// Its fingerprint is the SHA-256 of HeadlessAiAgentTurnRequest.CanonicalPayload.
+/// </summary>
+public interface IFoundryHeadlessAiPreparedTurn
+{
+    string RequestFingerprint { get; }
+}
+
+/// <summary>
+/// Host adapter for HeadlessAi. Prepare must be local and side-effect-free: it creates the
+/// immutable HeadlessAi request snapshot once, then ExecuteAsync must execute that same snapshot.
+/// </summary>
 public interface IHeadlessAiAgentTurnClient
 {
+    IFoundryHeadlessAiPreparedTurn Prepare(FoundryHeadlessAiTurnRequest request, DateTimeOffset now);
     Task<FoundryHeadlessAiTurnResult> ExecuteAsync(
-        FoundryHeadlessAiTurnRequest request, CancellationToken cancellationToken = default);
+        FoundryHeadlessAiTurnRequest request, IFoundryHeadlessAiPreparedTurn prepared,
+        CancellationToken cancellationToken = default);
 }
 
 /// <summary>
@@ -285,6 +302,9 @@ public sealed class FoundryHeadlessAiTurnCoordinator
         };
         request.Validate(now);
         cancellationToken.ThrowIfCancellationRequested();
+        var prepared = _client.Prepare(request, now)
+            ?? throw new InvalidOperationException("The HeadlessAi host adapter returned no prepared request.");
+        ValidateRequestFingerprint(prepared.RequestFingerprint);
         var invocationFingerprint = CreateInvocationFingerprint(request);
         var completed = _journal.BeginOrGet(request.TaskId, request.IdempotencyKey, invocationFingerprint);
         if (completed is not null)
@@ -296,10 +316,33 @@ public sealed class FoundryHeadlessAiTurnCoordinator
         // A durable pending entry is written before this single provider call. If the call
         // fails or the process stops before completion is journaled, a later invocation is
         // blocked as indeterminate rather than risking an automatic duplicate provider call.
-        var result = await _client.ExecuteAsync(request, cancellationToken).ConfigureAwait(false);
+        // The adapter executes the exact immutable snapshot returned by Prepare.
+        var result = await _client.ExecuteAsync(request, prepared, cancellationToken).ConfigureAwait(false);
         result.ValidateAgainst(request);
+        if (!string.Equals(result.RequestFingerprint, prepared.RequestFingerprint,
+                StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException(
+                "HeadlessAi returned a result for a different canonical request snapshot.");
         _journal.Complete(request.TaskId, request.IdempotencyKey, invocationFingerprint, result);
+
+        // Preserve a validated provider response before checking the lease again. If the lease
+        // expired or was superseded during the provider call, the durable result remains available
+        // for host reconciliation, but this stale invocation must not hand it to its caller.
+        var current = _tasks.GetSnapshot(taskId);
+        var completedAt = _timeProvider.GetUtcNow();
+        if (current.Status != WorkTaskStatus.Investigating ||
+            current.Lease is not { } currentLease || currentLease.LeaseId != leaseId ||
+            currentLease.ExpiresAt <= completedAt)
+            throw new UnauthorizedAccessException(
+                "The HeadlessAi result was durably recorded, but the task lease or investigation state became stale during the provider call.");
         return result;
+    }
+
+    private static void ValidateRequestFingerprint(string fingerprint)
+    {
+        if (fingerprint is not { Length: 64 } || !fingerprint.All(Uri.IsHexDigit))
+            throw new InvalidOperationException(
+                "The prepared HeadlessAi request must expose a full SHA-256 canonical request fingerprint.");
     }
 
     private static string CreateInvocationFingerprint(FoundryHeadlessAiTurnRequest request)

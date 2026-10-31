@@ -153,6 +153,70 @@ public sealed class HeadlessAiTurnBridgeTests
     }
 
     [Fact]
+    public async Task InvokeAsync_RejectsResultWithMismatchedCanonicalHeadlessAiFingerprint()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"foundry-headlessai-{Guid.NewGuid():N}.jsonl");
+        try
+        {
+            var tasks = new PersistentWorkTaskCoordinator(new JsonlWorkTaskStore(path));
+            tasks.Submit(new WorkTaskRequest(1, "task-fingerprint", "corr-fingerprint", "TrentBest/MyVR",
+                50, "https://github.com/TrentBest/MyVR/issues/50", Sha,
+                new[] { "src/MyVR.Core" }, 3));
+            var claimed = tasks.Claim("task-fingerprint", "agent-1", TimeSpan.FromMinutes(30), Now);
+            tasks.Transition("task-fingerprint", claimed.Lease!.LeaseId,
+                WorkTaskStatus.Investigating, Now.AddSeconds(1), "Begin investigation.");
+            var client = new RecordingClient { WrongFingerprint = true };
+            var coordinator = new FoundryHeadlessAiTurnCoordinator(tasks, client,
+                new JsonlHeadlessAiTurnJournal(path + ".turns.jsonl"), new FixedTimeProvider(Now.AddMinutes(1)));
+
+            await Assert.ThrowsAsync<InvalidOperationException>(() => coordinator.InvokeAsync(
+                "task-fingerprint", claimed.Lease.LeaseId, "feature/myvr-agent-work", Sha,
+                "software-engineer", "instructions", "prompt", "schema"));
+            Assert.Equal(1, client.CallCount);
+        }
+        finally
+        {
+            if (File.Exists(path)) File.Delete(path);
+            if (File.Exists(path + ".turns.jsonl")) File.Delete(path + ".turns.jsonl");
+        }
+    }
+
+    [Fact]
+    public async Task InvokeAsync_PersistsProviderResultButRejectsCallerWhenLeaseExpiresDuringCall()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"foundry-headlessai-{Guid.NewGuid():N}.jsonl");
+        try
+        {
+            var tasks = new PersistentWorkTaskCoordinator(new JsonlWorkTaskStore(path));
+            tasks.Submit(new WorkTaskRequest(1, "task-lease-race", "corr-lease-race", "TrentBest/MyVR",
+                51, "https://github.com/TrentBest/MyVR/issues/51", Sha,
+                new[] { "src/MyVR.Core" }, 3));
+            var claimed = tasks.Claim("task-lease-race", "agent-1", TimeSpan.FromMinutes(1), Now);
+            tasks.Transition("task-lease-race", claimed.Lease!.LeaseId,
+                WorkTaskStatus.Investigating, Now.AddSeconds(1), "Begin investigation.");
+            var clock = new MutableTimeProvider(Now.AddSeconds(30));
+            var client = new RecordingClient { BeforeReturn = () => clock.Set(Now.AddMinutes(2)) };
+            var journalPath = path + ".turns.jsonl";
+            var coordinator = new FoundryHeadlessAiTurnCoordinator(tasks, client,
+                new JsonlHeadlessAiTurnJournal(journalPath), clock);
+
+            await Assert.ThrowsAsync<UnauthorizedAccessException>(() => coordinator.InvokeAsync(
+                "task-lease-race", claimed.Lease.LeaseId, "feature/myvr-agent-work", Sha,
+                "software-engineer", "instructions", "prompt", "schema"));
+
+            Assert.Equal(1, client.CallCount);
+            var records = File.ReadAllLines(journalPath);
+            Assert.Equal(2, records.Length);
+            Assert.Contains("\"result\":", records[1]);
+        }
+        finally
+        {
+            if (File.Exists(path)) File.Delete(path);
+            if (File.Exists(path + ".turns.jsonl")) File.Delete(path + ".turns.jsonl");
+        }
+    }
+
+    [Fact]
     public async Task InvokeAsync_DoesNotReserveTurnWhenAlreadyCancelled()
     {
         var path = Path.Combine(Path.GetTempPath(), $"foundry-headlessai-{Guid.NewGuid():N}.jsonl");
@@ -296,6 +360,8 @@ public sealed class HeadlessAiTurnBridgeTests
         Assert.Throws<ArgumentException>(() => request.Validate(Now));
         var validBranchWithBadEvidence = request with { AuthorizedBranch = "feature/valid-branch" };
         Assert.Throws<ArgumentException>(() => validBranchWithBadEvidence.Validate(Now));
+        var segmentTrailingDot = request with { AuthorizedBranch = "feature/segment." };
+        Assert.Throws<ArgumentException>(() => segmentTrailingDot.Validate(Now));
         var incompletePriorTurn = request with
         {
             AuthorizedBranch = "feature/valid-branch",
@@ -310,16 +376,23 @@ public sealed class HeadlessAiTurnBridgeTests
         public FoundryHeadlessAiTurnRequest? Request { get; private set; }
         public bool WrongCandidate { get; init; }
         public bool WrongPriorCandidate { get; init; }
+        public bool WrongFingerprint { get; init; }
         public bool ThrowOnCall { get; init; }
+        public Action? BeforeReturn { get; init; }
         public int CallCount { get; private set; }
 
+        public IFoundryHeadlessAiPreparedTurn Prepare(FoundryHeadlessAiTurnRequest request, DateTimeOffset now) =>
+            new PreparedTurn(new string('a', 64));
+
         public Task<FoundryHeadlessAiTurnResult> ExecuteAsync(
-            FoundryHeadlessAiTurnRequest request, CancellationToken cancellationToken = default)
+            FoundryHeadlessAiTurnRequest request, IFoundryHeadlessAiPreparedTurn prepared,
+            CancellationToken cancellationToken = default)
         {
             CallCount++;
             Request = request;
             if (ThrowOnCall)
                 throw new InvalidOperationException("Simulated provider outcome interruption.");
+            BeforeReturn?.Invoke();
             return Task.FromResult(new FoundryHeadlessAiTurnResult
             {
                 TurnId = "turn-1",
@@ -329,7 +402,7 @@ public sealed class HeadlessAiTurnBridgeTests
                 AuthorizedBranch = request.AuthorizedBranch,
                 BaseCommitSha = request.BaseCommitSha,
                 CandidateCommitSha = WrongCandidate ? "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" : request.CandidateCommitSha,
-                RequestFingerprint = new string('a', 64),
+                RequestFingerprint = new string(WrongFingerprint ? 'b' : 'a', 64),
                 ProviderId = "fake-provider",
                 ModelId = "fake-model",
                 StartedAt = Now,
@@ -342,8 +415,17 @@ public sealed class HeadlessAiTurnBridgeTests
         }
     }
 
+    private sealed record PreparedTurn(string RequestFingerprint) : IFoundryHeadlessAiPreparedTurn;
+
     private sealed class FixedTimeProvider(DateTimeOffset value) : TimeProvider
     {
         public override DateTimeOffset GetUtcNow() => value;
+    }
+
+    private sealed class MutableTimeProvider(DateTimeOffset value) : TimeProvider
+    {
+        private DateTimeOffset _value = value;
+        public override DateTimeOffset GetUtcNow() => _value;
+        public void Set(DateTimeOffset value) => _value = value;
     }
 }
