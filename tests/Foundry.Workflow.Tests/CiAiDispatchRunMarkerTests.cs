@@ -35,9 +35,9 @@ public sealed class CiAiDispatchRunMarkerTests
         Assert.Equal(2, marker.RunAttempt);
 
         var observation = marker.Bind(Binding());
-        Assert.Equal("request-1", observation.RequestId);
-        Assert.Equal("operation-1", observation.OperationId);
-        Assert.Equal("idempotency-1", observation.IdempotencyKey);
+        Assert.Equal("request-1", observation.Marker.RequestId);
+        Assert.Equal("operation-1", observation.Marker.OperationId);
+        Assert.Equal("idempotency-1", observation.Marker.IdempotencyKey);
         Assert.Equal(12345, observation.Binding.RunId);
         Assert.Equal(2, observation.Binding.RunAttempt);
     }
