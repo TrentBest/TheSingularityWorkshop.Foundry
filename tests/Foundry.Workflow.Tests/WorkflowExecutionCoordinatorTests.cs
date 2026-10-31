@@ -142,6 +142,37 @@ public sealed class WorkflowExecutionCoordinatorTests
     }
 
     [Fact]
+    public async Task StartRejectsInvalidTimeoutWithoutChangingAcceptedRun()
+    {
+        var registry = new WorkflowHandlerRegistry();
+        await using var coordinator = new WorkflowExecutionCoordinator(registry);
+        var accepted = coordinator.Submit(Definition(new WorkflowStep("step-1", "missing")));
+
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(
+            () => coordinator.StartAsync(accepted.RunId, TimeSpan.Zero));
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(
+            () => coordinator.StartAsync(accepted.RunId, TimeSpan.MaxValue));
+
+        Assert.Equal(WorkflowRunStatus.Accepted,
+            coordinator.GetSnapshot(accepted.RunId).Status);
+    }
+
+    [Fact]
+    public async Task InfiniteTimeoutAllowsWorkflowToCompleteNormally()
+    {
+        var registry = new WorkflowHandlerRegistry();
+        registry.Register("work", _ => ValueTask.CompletedTask);
+        await using var coordinator = new WorkflowExecutionCoordinator(registry);
+        var accepted = coordinator.Submit(Definition(new WorkflowStep("step-1", "work")));
+
+        var result = await coordinator.StartAsync(accepted.RunId, Timeout.InfiniteTimeSpan);
+
+        Assert.Equal(WorkflowStatus.Succeeded, result.Status);
+        Assert.Equal(WorkflowRunStatus.Succeeded,
+            coordinator.GetSnapshot(accepted.RunId).Status);
+    }
+
+    [Fact]
     public async Task AcceptedRunCanBeCancelledWithoutInvokingHandlers()
     {
         var calls = 0;
