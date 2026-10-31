@@ -181,15 +181,18 @@ public sealed class JsonlWorkTaskStoreTests
     public void PersistentCoordinatorRestoresAndPersistsEveryAcceptedMutation()
     {
         var path = Path.Combine(Path.GetTempPath(), $"foundry-{Guid.NewGuid():N}.jsonl");
+        var attemptsPath = Path.Combine(Path.GetTempPath(), $"foundry-attempts-{Guid.NewGuid():N}.jsonl");
         try
         {
-            var coordinator = new PersistentWorkTaskCoordinator(new JsonlWorkTaskStore(path));
+            var attemptJournal = new JsonlWorkTaskRepairAttemptJournal(attemptsPath);
+            var coordinator = new PersistentWorkTaskCoordinator(new JsonlWorkTaskStore(path), attemptJournal);
             coordinator.Submit(Request());
             var claimed = coordinator.Claim("task-1", "agent-a", TimeSpan.FromMinutes(5), Now);
             var investigating = coordinator.Transition("task-1", claimed.Lease!.LeaseId,
                 WorkTaskStatus.Investigating, Now.AddSeconds(1), "inspect task");
 
-            var restarted = new PersistentWorkTaskCoordinator(new JsonlWorkTaskStore(path));
+            var restarted = new PersistentWorkTaskCoordinator(new JsonlWorkTaskStore(path),
+                new JsonlWorkTaskRepairAttemptJournal(attemptsPath));
             var recovered = restarted.GetSnapshot("task-1");
             Assert.Equal(WorkTaskStatus.Investigating, recovered.Status);
             Assert.Equal(2, recovered.Events.Count);
@@ -222,8 +225,8 @@ public sealed class JsonlWorkTaskStoreTests
             var expectation = new WorkTaskRepairEvidenceExpectation("task-1", "correlation-1",
                 "TrentBest/TheSingularityWorkshop.Foundry", "work/task-1",
                 ".github/workflows/build.yml", new string('a', 40), Now);
-            var ready = coordinator.ApplyRepairDecision("task-1", lease,
-                Array.Empty<WorkTaskRepairAttempt>(), attempt, expectation,
+            Assert.Equal(WorkTaskRepairAttemptAppendOutcome.Appended, attemptJournal.Append(attempt));
+            var ready = coordinator.ApplyRepairDecision("task-1", lease, attempt, expectation,
                 TimeSpan.FromMinutes(30), Now.AddMinutes(3));
 
             Assert.Equal(WorkTaskStatus.ReviewReady, ready.Status);
@@ -239,6 +242,51 @@ public sealed class JsonlWorkTaskStoreTests
         finally
         {
             if (File.Exists(path)) File.Delete(path);
+            if (File.Exists(attemptsPath)) File.Delete(attemptsPath);
+        }
+    }
+
+    [Fact]
+    public void PersistentRepairDecisionRequiresDurableExactCurrentAttempt()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"foundry-{Guid.NewGuid():N}.jsonl");
+        var attemptsPath = Path.Combine(Path.GetTempPath(), $"foundry-attempts-{Guid.NewGuid():N}.jsonl");
+        try
+        {
+            var journal = new JsonlWorkTaskRepairAttemptJournal(attemptsPath);
+            var coordinator = new PersistentWorkTaskCoordinator(new JsonlWorkTaskStore(path), journal);
+            coordinator.Submit(Request());
+            var claimed = coordinator.Claim("task-1", "agent-a", TimeSpan.FromMinutes(10), Now);
+            var lease = claimed.Lease!.LeaseId;
+            coordinator.Transition("task-1", lease, WorkTaskStatus.Investigating, Now, "inspect");
+            coordinator.Transition("task-1", lease, WorkTaskStatus.Implementing, Now, "implement");
+            coordinator.Transition("task-1", lease, WorkTaskStatus.Validating, Now, "validate");
+            var attempt = new WorkTaskRepairAttempt(1, "task-1", "correlation-1",
+                "TrentBest/TheSingularityWorkshop.Foundry", "work/task-1",
+                ".github/workflows/build.yml", Now, 1, new string('a', 40), 1001, 1,
+                new string('f', 64), true, true, false, null,
+                Now.AddMinutes(1), Now.AddMinutes(2));
+            var expectation = new WorkTaskRepairEvidenceExpectation("task-1", "correlation-1",
+                "TrentBest/TheSingularityWorkshop.Foundry", "work/task-1",
+                ".github/workflows/build.yml", new string('a', 40), Now);
+
+            Assert.Throws<InvalidOperationException>(() => coordinator.ApplyRepairDecision(
+                "task-1", lease, attempt, expectation, TimeSpan.FromMinutes(30), Now.AddMinutes(3)));
+            Assert.Equal(WorkTaskStatus.Validating, coordinator.GetSnapshot("task-1").Status);
+
+            Assert.Equal(WorkTaskRepairAttemptAppendOutcome.Appended, journal.Append(attempt));
+            var altered = attempt with { EvidencePayloadSha256 = new string('e', 64) };
+            Assert.Throws<InvalidOperationException>(() => coordinator.ApplyRepairDecision(
+                "task-1", lease, altered, expectation, TimeSpan.FromMinutes(30), Now.AddMinutes(3)));
+
+            var ready = coordinator.ApplyRepairDecision("task-1", lease, attempt, expectation,
+                TimeSpan.FromMinutes(30), Now.AddMinutes(3));
+            Assert.Equal(WorkTaskStatus.ReviewReady, ready.Status);
+        }
+        finally
+        {
+            if (File.Exists(path)) File.Delete(path);
+            if (File.Exists(attemptsPath)) File.Delete(attemptsPath);
         }
     }
 
