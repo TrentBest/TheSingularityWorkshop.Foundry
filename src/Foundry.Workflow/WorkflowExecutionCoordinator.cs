@@ -21,7 +21,10 @@ public sealed class WorkflowExecutionCoordinator : IAsyncDisposable
     public WorkflowRunSnapshot Submit(WorkflowDefinition definition) =>
         Submit(definition, new WorkflowExecutionContext());
 
-    /// <summary>Accepts a workflow and its bounded per-run data without executing it.</summary>
+    /// <summary>
+    /// Accepts a workflow and transfers ownership of its bounded context to this coordinator.
+    /// The caller may continue reading outputs, but cannot mutate or submit the context again.
+    /// </summary>
     public WorkflowRunSnapshot Submit(
         WorkflowDefinition definition, WorkflowExecutionContext context)
     {
@@ -30,6 +33,7 @@ public sealed class WorkflowExecutionCoordinator : IAsyncDisposable
         lock (_gate)
         {
             ThrowIfDisposed();
+            context.FreezeForExecution();
             var state = new RunState(Guid.NewGuid(), definition, context, DateTimeOffset.UtcNow);
             _runs.Add(state.RunId, state);
             return state.ToSnapshot();
