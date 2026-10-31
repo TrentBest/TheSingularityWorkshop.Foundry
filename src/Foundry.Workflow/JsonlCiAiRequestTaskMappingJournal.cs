@@ -103,7 +103,7 @@ public sealed record CiAiDispatchRunBinding(
             !string.Equals(WorkflowSha, mapping.TrustedWorkflowSha, StringComparison.OrdinalIgnoreCase) ||
             CandidateRef != mapping.CandidateRef ||
             !string.Equals(CandidateSha, mapping.CandidateSha, StringComparison.OrdinalIgnoreCase) ||
-            Event != "workflow_dispatch")
+            Event != "workflow_dispatch" || BoundAt < mapping.CreatedAt || BoundAt > mapping.ExpiresAt)
             throw new InvalidOperationException("GitHub run metadata does not match the persisted dispatch intent.");
         return this;
     }
