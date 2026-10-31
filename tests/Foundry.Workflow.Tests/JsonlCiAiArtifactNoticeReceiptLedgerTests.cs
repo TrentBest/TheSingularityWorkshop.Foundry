@@ -77,6 +77,38 @@ public sealed class JsonlCiAiArtifactNoticeReceiptLedgerTests
     }
 
     [Fact]
+    public void RejectsNonStringNoticeIdentityPropertiesWithoutLeakingJsonApiExceptions()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"foundry-ciai-receipts-{Guid.NewGuid():N}.jsonl");
+        try
+        {
+            var ledger = new JsonlCiAiArtifactNoticeReceiptLedger(path);
+            var acceptedAt = DateTimeOffset.UtcNow;
+            var numericNoticeId = Notice() with
+            {
+                PayloadUtf8 = """{"noticeId":7,"manifest":{"idempotencyKey":"request-artifact-1"}}"""
+            };
+            var numericIdempotencyKey = Notice() with
+            {
+                PayloadUtf8 = """{"noticeId":"notice-1","manifest":{"idempotencyKey":7}}"""
+            };
+            var nullNoticeId = Notice() with
+            {
+                PayloadUtf8 = """{"noticeId":null,"manifest":{"idempotencyKey":"request-artifact-1"}}"""
+            };
+
+            Assert.Throws<ArgumentException>(() => ledger.Accept(numericNoticeId, acceptedAt));
+            Assert.Throws<ArgumentException>(() => ledger.Accept(numericIdempotencyKey, acceptedAt));
+            Assert.Throws<ArgumentException>(() => ledger.Accept(nullNoticeId, acceptedAt));
+            Assert.Empty(ledger.GetAll());
+        }
+        finally
+        {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
     public void RejectsTornJournalOnReplay()
     {
         var path = Path.Combine(Path.GetTempPath(), $"foundry-ciai-receipts-{Guid.NewGuid():N}.jsonl");
