@@ -69,6 +69,7 @@ public sealed record CiAiArtifactReadyNotice(
         {
             using var document = JsonDocument.Parse(PayloadUtf8);
             var root = document.RootElement;
+            RejectDuplicateProperties(root);
             if (root.ValueKind != JsonValueKind.Object ||
                 !root.TryGetProperty("noticeId", out var noticeId) ||
                 noticeId.ValueKind != JsonValueKind.String ||
@@ -84,6 +85,26 @@ public sealed record CiAiArtifactReadyNotice(
             throw new ArgumentException("The exact notice body must be valid UTF-8 JSON.", nameof(PayloadUtf8), exception);
         }
         return this;
+    }
+
+    private static void RejectDuplicateProperties(JsonElement element)
+    {
+        switch (element.ValueKind)
+        {
+            case JsonValueKind.Object:
+                var names = new HashSet<string>(StringComparer.Ordinal);
+                foreach (var property in element.EnumerateObject())
+                {
+                    if (!names.Add(property.Name))
+                        throw new ArgumentException("The exact notice body must not contain duplicate JSON property names.", nameof(PayloadUtf8));
+                    RejectDuplicateProperties(property.Value);
+                }
+                break;
+            case JsonValueKind.Array:
+                foreach (var item in element.EnumerateArray())
+                    RejectDuplicateProperties(item);
+                break;
+        }
     }
 
     private static void ValidateText(string value, int maximumLength, string name)
