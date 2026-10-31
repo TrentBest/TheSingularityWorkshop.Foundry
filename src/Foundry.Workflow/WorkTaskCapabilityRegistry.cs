@@ -23,6 +23,7 @@ public sealed record WorkTaskCapability(
     string CandidateSha,
     IReadOnlyList<string> AllowedPaths,
     IReadOnlyList<WorkTaskAction> AllowedActions,
+    long TaskEventSequence,
     DateTimeOffset IssuedAt,
     DateTimeOffset ExpiresAt);
 
@@ -43,6 +44,7 @@ public sealed class WorkTaskCapabilityRegistry
     {
         ArgumentNullException.ThrowIfNull(task);
         ArgumentNullException.ThrowIfNull(task.Request);
+        ArgumentNullException.ThrowIfNull(task.Events);
         var request = task.Request.Validate();
         if (task.Lease is not { } lease || lease.ExpiresAt <= now ||
             task.Status is WorkTaskStatus.Queued or WorkTaskStatus.Blocked or WorkTaskStatus.ReviewReady or
@@ -65,10 +67,15 @@ public sealed class WorkTaskCapabilityRegistry
             throw new ArgumentException("Capability paths must be contained within the task's authorized path scope.", nameof(allowedPaths));
         if (allowedActions.Count == 0 || allowedActions.Any(action => !Enum.IsDefined(action)))
             throw new ArgumentException("At least one recognized action is required.", nameof(allowedActions));
+        var normalizedActions = allowedActions.Distinct().Order().ToArray();
+        if (task.Status == WorkTaskStatus.CodeRed &&
+            normalizedActions.Any(action => action != WorkTaskAction.ReadRepository))
+            throw new UnauthorizedAccessException("CODE RED permits read-only repository access; mutating capabilities are suspended.");
 
         var capability = new WorkTaskCapability(Guid.NewGuid(), request.TaskId, request.Repository,
             lease.AgentId, lease.LeaseId, branch, request.BaseSha, candidateSha,
-            Array.AsReadOnly(normalizedPaths), Array.AsReadOnly(allowedActions.Distinct().Order().ToArray()),
+            Array.AsReadOnly(normalizedPaths), Array.AsReadOnly(normalizedActions),
+            task.Events.Count == 0 ? 0 : task.Events[^1].Sequence,
             now, now.Add(lifetime) < lease.ExpiresAt ? now.Add(lifetime) : lease.ExpiresAt);
         lock (_gate)
             _capabilities.Add(capability.CapabilityId, capability);
@@ -80,6 +87,7 @@ public sealed class WorkTaskCapabilityRegistry
         string candidateSha, WorkTaskAction action, string? path, DateTimeOffset now)
     {
         ArgumentNullException.ThrowIfNull(currentTask);
+        ArgumentNullException.ThrowIfNull(currentTask.Events);
         lock (_gate)
         {
             if (!_capabilities.TryGetValue(capabilityId, out var capability))
@@ -91,6 +99,11 @@ public sealed class WorkTaskCapabilityRegistry
                 currentTask.Status is WorkTaskStatus.Queued or WorkTaskStatus.Blocked or WorkTaskStatus.ReviewReady or
                     WorkTaskStatus.HandedOff or WorkTaskStatus.Stopped or WorkTaskStatus.Failed)
                 throw new UnauthorizedAccessException("The task no longer has an active agent lease.");
+            if (currentTask.Events.Any(item => item.Sequence > capability.TaskEventSequence &&
+                item.Current == WorkTaskStatus.CodeRed))
+                throw new UnauthorizedAccessException("Capability was invalidated by a CODE RED transition; host-approved recovery requires a fresh grant.");
+            if (currentTask.Status == WorkTaskStatus.CodeRed && action != WorkTaskAction.ReadRepository)
+                throw new UnauthorizedAccessException("CODE RED permits read-only repository access; mutating operations are suspended.");
             if (!string.Equals(currentTask.Request.TaskId, capability.TaskId, StringComparison.Ordinal) ||
                 !string.Equals(currentTask.Request.Repository, capability.Repository, StringComparison.OrdinalIgnoreCase) ||
                 !string.Equals(currentLease.AgentId, capability.AgentId, StringComparison.Ordinal) ||
