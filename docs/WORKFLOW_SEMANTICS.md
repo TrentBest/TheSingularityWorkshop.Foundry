@@ -56,6 +56,21 @@ Lifecycle statuses are `Accepted`, `Running`, `Succeeded`, `Failed`, `Cancelled`
 
 This is an in-process coordinator, not a durable queue or cross-process service. Run snapshots are retained only for the coordinator's lifetime.
 
+## Bounded per-run execution context
+
+The existing runner accepts an optional `WorkflowExecutionContext`; the coordinator accepts the same context when a host submits a run. When supplied, the same run-scoped context is passed to each registered handler in declared order. Existing cancellation-token-only handlers remain supported through the legacy registration overload.
+
+The context carries JSON data only:
+
+- Inputs are cloned when the context is constructed and can be read through `GetInput<T>` / `TryGetInput<T>`.
+- Handlers can write outputs once with `SetOutput<T>`; later handlers read them through `GetOutput<T>` / `TryGetOutput<T>`.
+- Inputs cannot be replaced by outputs, and duplicate output keys are rejected.
+- The combined context is limited to 128 entries, 64 KiB per serialized JSON value, 1 MiB aggregate serialized value bytes, and JSON depth 32. Keys are non-empty, control-free, and at most 128 characters.
+- A context is intended for one accepted run. Hosts should create a fresh context for each run; outputs are mutable run state.
+- Context values do not select handlers or grant filesystem, network, process, GitHub, CI, or publishing authority. The host-owned registry remains the allowlist of operations.
+
+Context is in-memory only and is not part of durable task or workflow journals. It is not restored after process loss and does not change sequential execution, retries, compensation, or lifecycle semantics. See the [Workflow Execution Context guide](WORKFLOW_EXECUTION_CONTEXT.md) for the API and examples.
+
 ## Outcome vocabulary
 
 | Workflow status | Meaning |
@@ -88,6 +103,8 @@ This is an in-process coordinator, not a durable queue or cross-process service.
 - [Definition contract](../src/Foundry.Workflow/WorkflowDefinition.cs)
 - [Validation rules](../src/Foundry.Workflow/WorkflowValidator.cs)
 - [Host capability registry](../src/Foundry.Workflow/WorkflowHandlerRegistry.cs)
+- [Bounded execution context](../src/Foundry.Workflow/WorkflowExecutionContext.cs)
+- [Context bounds and cloning tests](../tests/Foundry.Workflow.Tests/WorkflowExecutionContextTests.cs)
 - [Sequential runner and outcome mapping](../src/Foundry.Workflow/WorkflowRunner.cs)
 - [Retained lifecycle coordinator](../src/Foundry.Workflow/WorkflowExecutionCoordinator.cs)
 - [Runner tests](../tests/Foundry.Workflow.Tests/WorkflowRunnerTests.cs)
