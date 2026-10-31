@@ -1,3 +1,6 @@
+<!-- The Singularity Workshop moniker -->
+<p align="center"><a href="https://github.com/TrentBest"><img src="https://raw.githubusercontent.com/TrentBest/TheSingularityWorkshop.Visualize/development/docs/assets/moniker.svg" alt="The Singularity Workshop animated moniker" width="720" /></a></p>
+
 # Foundry Architecture UML
 
 > **Diagram status: CONCEPTUAL TARGET — not a diagram of implemented classes or a verified runtime.** No source types are inferred from this drawing.
@@ -43,3 +46,8 @@ These are intended goals for the first experiment. Validate and refine them as r
 - Which pieces belong in a host, a reusable package, and the CI workflow?
 
 Do not add class diagrams until actual source types exist. Once they do, create a separate `[TypeName]UML.md` neighborhood page for each significant type and companion documentation for source files according to the Workshop standard.
+
+---
+
+<!-- THE SINGULARITY WORKSHOP FOOTER -->
+<p align="center"><img src="https://raw.githubusercontent.com/TrentBest/FSM_API/master/Documentation/Branding/TheSingularityWorkshop.png" alt="The Singularity Workshop avatar" width="200" /></p>

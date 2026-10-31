@@ -3,7 +3,7 @@
 
 # Workflow Semantics — Version 1
 
-**Status:** implementation-backed theory for the first Foundry runtime slice. The sequential runner and retained run lifecycle coordinator passed the current [development CI run #84](https://github.com/TrentBest/TheSingularityWorkshop.Foundry/actions/runs/40546957980). This does not describe persisted manifests, distributed execution, or a general automation engine.
+**Status:** implementation-backed theory for the first Foundry runtime slice. The sequential runner and retained run lifecycle passed development CI run #84; the optional timeout extension and its cancellation-precedence tests passed feature-branch [Foundry CI run #276](https://github.com/TrentBest/TheSingularityWorkshop.Foundry/actions/runs/41170698768). This feature-branch extension is not yet part of `development`. This does not describe persisted manifests, distributed execution, or a general automation engine.
 
 ## The execution model
 
@@ -46,12 +46,13 @@ flowchart TD
 `WorkflowExecutionCoordinator` exposes a host-neutral lifecycle without moving step execution out of `WorkflowRunner`:
 
 - `Submit(definition)` accepts a definition but does not execute it. The returned snapshot starts in `Accepted`.
-- `StartAsync(runId)` starts an accepted run exactly once and returns its eventual `WorkflowResult`.
+- `StartAsync(runId)` starts an accepted run exactly once without a workflow-level timeout.
+- `StartAsync(runId, timeout)` starts an accepted run with an optional positive finite timeout or `Timeout.InfiniteTimeSpan`. A finite timeout requests cooperative cancellation and produces a distinct `TimedOut` result.
 - `GetSnapshot(runId)` returns an immutable snapshot with run identity, workflow identity/name, lifecycle status, timestamps, and the latest structured result when available.
 - `Cancel(runId)` requests cooperative cancellation for a running run, or marks an accepted-but-not-started run cancelled. It returns false for an already terminal run.
 - `DisposeAsync()` cancels accepted/running work and waits for running handlers to finish. Handlers must honor cancellation for disposal to finish promptly.
 
-Lifecycle statuses are `Accepted`, `Running`, `Succeeded`, `Failed`, `Cancelled`, and `Invalid`. The final workflow status remains the existing `WorkflowStatus`; the lifecycle enum does not replace or reinterpret step/workflow outcomes. Snapshots are observations, not mutable control objects. A presentation layer may display snapshots and send commands, but it does not own the authoritative state.
+Lifecycle statuses are `Accepted`, `Running`, `Succeeded`, `Failed`, `Cancelled`, `TimedOut`, and `Invalid`. The final workflow status remains the existing `WorkflowStatus`; the lifecycle enum does not replace or reinterpret step/workflow outcomes. Snapshots are observations, not mutable control objects. A presentation layer may display snapshots and send commands, but it does not own the authoritative state.
 
 This is an in-process coordinator, not a durable queue or cross-process service. Run snapshots are retained only for the coordinator's lifetime.
 
@@ -61,7 +62,8 @@ This is an in-process coordinator, not a durable queue or cross-process service.
 |---|---|
 | Succeeded | All declared steps completed successfully. |
 | Failed | A handler failed; later steps were skipped. |
-| Cancelled | Cancellation was requested; the current/remaining execution did not complete. |
+| Cancelled | Caller cancellation was requested; the current/remaining execution did not complete. |
+| TimedOut | The workflow timeout elapsed and cooperative cancellation ended execution. |
 | Invalid | Definition validation failed before execution. |
 
 | Step status | Meaning |
@@ -75,9 +77,10 @@ This is an in-process coordinator, not a durable queue or cross-process service.
 
 - The definition is currently a typed in-memory object; there is no JSON/YAML or other persisted schema.
 - The coordinator retains runs in memory only. It has no durable history, recovery after process loss, or cross-process query/command transport.
-- The runtime has no retry, compensation, recovery, parallelism, timeout enforcement, or cross-process orchestration.
+- The runtime has no retry, compensation, recovery, parallelism, or cross-process orchestration. Workflow timeouts are cooperative cancellation requests, not hard execution limits.
 - A handler may perform external side effects. Validation prevents invocation for an invalid workflow but cannot make successful prior side effects transactional.
-- Cancellation is cooperative: a handler must observe and honor its cancellation token. Foundry cannot forcibly stop a handler that ignores it.
+- Cancellation and timeout are cooperative: a handler must observe and honor its cancellation token. Foundry cannot forcibly stop a handler that ignores it. A timed-out run therefore remains Running until that handler returns.
+- When caller cancellation and timeout are both requested before the coordinator commits the terminal state, caller cancellation takes precedence.
 - Determinism is limited to the runner's declared order and outcome mapping; handler behavior and external systems may be nondeterministic.
 
 ## Source and verification
@@ -90,7 +93,7 @@ This is an in-process coordinator, not a durable queue or cross-process service.
 - [Runner tests](../tests/Foundry.Workflow.Tests/WorkflowRunnerTests.cs)
 - [Lifecycle tests](../tests/Foundry.Workflow.Tests/WorkflowExecutionCoordinatorTests.cs)
 
-The current [Foundry CI run #84](https://github.com/TrentBest/TheSingularityWorkshop.Foundry/actions/runs/40546957980) passed the runner and lifecycle tests, builds, and deterministic state-evidence checks. This document must be revised if the contract or tests change.
+Development CI run #84 passed the original runner/lifecycle tests. Feature-branch [CI run #276](https://github.com/TrentBest/TheSingularityWorkshop.Foundry/actions/runs/41170698768) passed the timeout/cancellation tests, full workflow test suite, build, separate-process FSM_API probe, repeatable fox/sheepdog scenario, and evidence artifact upload. This document must be revised if the contract or tests change.
 
 ---
 

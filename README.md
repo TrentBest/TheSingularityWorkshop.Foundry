@@ -8,7 +8,7 @@
 
 **Foundry is the host-neutral execution pipeline for The Singularity Workshop Hub.** It accepts explicit work, validates it before side effects, coordinates execution, and reports authoritative lifecycle state and structured outcomes. GUI may present that state when the Hub chooses to appear; GUI is not the executor.
 
-> **Implementation status:** the sequential workflow runner, preflight validation, structured outcomes, and an in-process retained lifecycle coordinator are implemented on `development`. The retained lifecycle slice is verified by [development CI run #84](https://github.com/TrentBest/TheSingularityWorkshop.Foundry/actions/runs/40546957980). No package publication or deployment is part of this work.
+> **Implementation status:** the version-1 sequential workflow runner and retained workflow lifecycle are implemented on `development` and were verified by [development CI run #84](https://github.com/TrentBest/TheSingularityWorkshop.Foundry/actions/runs/40546957980). The current governed-work PR adds versioned task envelopes, fenced leases, append-only local journals, host-issued scoped capabilities, CODE RED incident notices with signed, single-use recovery approval receipts, bounded exact-CI repair decisions, and an optional cooperative workflow timeout with a distinct `TimedOut` outcome. The combined workflow-timeout and governed-work implementation passed [feature-branch CI run #276](https://github.com/TrentBest/TheSingularityWorkshop.Foundry/actions/runs/41170698768) on code/test commit `230907aad4a7a75aed589d61f4c43aa9ea2a1eb4`. The CODE RED mutation-suspension/recovery hardening passed [feature-branch CI run #286](https://github.com/TrentBest/TheSingularityWorkshop.Foundry/actions/runs/41170937860) on exact code/test commit cab0102230cdb689324f40379305656197cd242d; the README/roadmap follow-up passed [feature-branch CI run #287](https://github.com/TrentBest/TheSingularityWorkshop.Foundry/actions/runs/41171004313) on exact head 025580cf27b8f9d94c7cfbe496cc706091ae851f. The host-issued CODE RED recovery receipt implementation passed [feature-branch CI run #294](https://github.com/TrentBest/TheSingularityWorkshop.Foundry/actions/runs/41172622514) on exact head 0ef31369daa115fb652e46b79d208ea66ab8fc83, including all 112 workflow tests, build, separate-process FSM_API probe, repeatable fox/sheepdog scenario, and evidence artifact upload. These components remain local and are not yet connected to live GitHub, HeadlessAi, or CiAi operations. No package publication or deployment is part of this work.
 
 ## 01 — Why Foundry exists
 
@@ -34,29 +34,37 @@ A host can:
 2. Submit a typed workflow definition and receive an `Accepted` run snapshot.
 3. Start that run once and observe its lifecycle through `GetSnapshot`.
 4. Request cancellation through `Cancel`.
-5. Read the terminal `WorkflowResult` and per-step outcomes.
+5. Read the terminal `WorkflowResult` and per-step outcomes; an optional workflow timeout reports `TimedOut` separately from caller-requested `Cancelled`.
 
-The first version executes named handlers sequentially. It validates the complete definition before invoking any handler, stops after failure, distinguishes cancellation from failure, and records remaining steps as skipped. The coordinator retains snapshots only in memory.
+The first version executes named handlers sequentially. It validates the complete definition before invoking any handler, stops after failure, distinguishes cancellation from failure and timeout, and records remaining steps as skipped. Cancellation and timeout are cooperative: a handler that ignores its token cannot be forcibly stopped. The coordinator retains snapshots only in memory.
 
 The separate [FSM_API probe](src/Foundry.FsmApiProbe/Program.cs) and [fox/sheepdog scenario](src/Foundry.FoxSheepdog/Program.cs) remain deterministic state-execution demonstrations. They exercise real FSM_API behavior and generate reproducible evidence; they are not automatically treated as Hub workflows.
 
 ## 04 — Contracts, tests, and boundaries
 
 - [Workflow semantics](docs/WORKFLOW_SEMANTICS.md) — validation, execution, lifecycle, cancellation, and outcome rules.
+- [Governed work task lifecycle](docs/WORK_TASK_LIFECYCLE.md) — versioned task envelope, fenced leases, validated transitions, audit events, and current limitations.
+- [CiAi artifact callback contract](docs/CIAI_ARTIFACT_CALLBACK_CONTRACT.md) — versioned HTTPS ready-notice receiver, authenticated sender, immutable artifact pull, durable receipts, and retry semantics.
 - [Domain and ownership](docs/DOMAIN.md) — what Foundry owns and what it does not.
 - [Architecture](docs/ARCHITECTURE.md) — subsystem boundaries and integration decisions.
 - [Contract inspection ledger](docs/CONTRACT_INSPECTION.md) — source-backed findings and unresolved questions.
 - [Roadmap and readiness](docs/ROADMAP.md) — milestones and verification gates.
 - [Documentation index](DOCUMENTATION_INDEX.md) — documentation entry points.
+- [Agent onboarding and contribution policy](AGENTS.md) — ownership boundaries, branch/release guardrails, safety invariants, and documentation/evidence rules.
 - [UML documentation](docs/UML/README.md) — source-grounded diagram policy and inventory.
 
-The focused xUnit suite covers ordering, invalid definitions, failure, cancellation, and retained run lifecycle. The [Foundry CI workflow](.github/workflows/foundry-fsm-api-probe.yml) runs those tests alongside the FSM_API and fox/sheepdog evidence checks.
+The focused xUnit suite covers ordering, invalid definitions, failure, cancellation, finite/infinite timeouts, cancellation precedence, non-cooperative handlers, CODE RED capability suspension/recovery, and retained run lifecycle. The [Foundry CI workflow](.github/workflows/foundry-fsm-api-probe.yml) runs those tests alongside the FSM_API and fox/sheepdog evidence checks.
 
 ## 05 — Limits and next steps
 
-The current contract is in-memory and sequential. It does not provide durable run history, persisted JSON/YAML manifests, retries, compensation, parallel/distributed execution, enforced handler timeouts, or recovery after process loss. Cancellation is cooperative: handlers must honor their token.
+Foundry now has two deliberately separate lifecycle boundaries:
 
-The next gate is to verify the current coordinator and runner tests, then implement and test the smallest concrete Foundry-facing execution handoff. AnyApp currently composes `RuntimeAssembly` through FSM_COS and owns host startup; WebApp still has a transitional `WebAppExperienceRuntime` with a private heartbeat; The is the Hub/workshop surface; and WebPage has legacy process-group contracts. These are not interchangeable inputs: `RuntimeAssembly`, `WorkflowDefinition`, and WebPage `WorkDescriptor` have distinct semantics until a tested adapter proves a mapping. Migrate one host at a time and verify status, cancellation, terminal outcomes, and cleanup before describing it as a Foundry consumer. Keep browser/server and separate-process boundaries explicit; the current coordinator is in-process and in-memory. GUI presentation work, generated UML, and optional article workflows follow evidence rather than precede it.
+- **Workflow execution:** `WorkflowDefinition`, `WorkflowRunner`, and `WorkflowExecutionCoordinator` remain a sequential, in-process execution path. Workflow run snapshots are retained in memory; cancellation and optional timeouts are cooperative; retries, compensation, parallel execution, hard handler termination, and recovery of workflow runs after process loss are not provided.
+- **Governed repository work:** `WorkTaskCoordinator` and its persistent adapter record issue/task provenance, bounded attempts, expiring agent leases, audit events, CODE RED incidents, and exact-CI repair decisions. JSONL journals survive a process restart on the same host, but claims and writes are single-process only. They are not a GitHub-backed or distributed store.
+
+The governed-work components do not yet select or claim live GitHub issues, create branches or commits, invoke HeadlessAi, consume CiAi evidence packets, dispatch authenticated CI reruns, receive remote callbacks, send external CODE RED notifications, or complete a draft-PR handoff. The [CiAi artifact callback contract](docs/CIAI_ARTIFACT_CALLBACK_CONTRACT.md) now fixes the intended notice/pull/receipt wire boundary, but its HTTPS receiver and transport adapters are not yet implemented. Host-issued capabilities are an authorization boundary, not a sandbox or a live GitHub adapter.
+
+The next integration gate is to connect the existing task lifecycle to the verified HeadlessAi resumable-turn and CiAi exact-run evidence contracts without introducing another workflow runner. AnyApp currently composes `RuntimeAssembly` through FSM_COS and owns host startup; WebApp still has a transitional `WebAppExperienceRuntime` with a private heartbeat; The is the Hub/workshop surface; and WebPage has legacy process-group contracts. These are not interchangeable inputs: `RuntimeAssembly`, `WorkflowDefinition`, and WebPage `WorkDescriptor` have distinct semantics until a tested adapter proves a mapping. Migrate one host at a time and verify status, cancellation, terminal outcomes, and cleanup before describing it as a Foundry consumer. Keep browser/server and separate-process boundaries explicit. GUI presentation work, generated UML, and optional article workflows follow evidence rather than precede it.
 
 Publication, release, and deployment remain separate actions and require Trent's explicit approval.
 

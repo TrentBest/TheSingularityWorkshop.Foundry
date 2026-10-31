@@ -1,3 +1,6 @@
+<!-- The Singularity Workshop moniker -->
+<p align="center"><a href="https://github.com/TrentBest"><img src="https://raw.githubusercontent.com/TrentBest/TheSingularityWorkshop.Visualize/development/docs/assets/moniker.svg" alt="The Singularity Workshop animated moniker" width="720" /></a></p>
+
 # Program.cs — Fox/sheepdog CI execution
 
 **Author:** Trent Best  
@@ -29,3 +32,8 @@ dotnet run --project src/Foundry.FoxSheepdog/Foundry.FoxSheepdog.csproj -- artif
 ```
 
 The CI workflow runs this scenario twice in separate processes, compares the TSV and SVG outputs byte-for-byte, and uploads the first run's evidence.
+
+---
+
+<!-- THE SINGULARITY WORKSHOP FOOTER -->
+<p align="center"><img src="https://raw.githubusercontent.com/TrentBest/FSM_API/master/Documentation/Branding/TheSingularityWorkshop.png" alt="The Singularity Workshop avatar" width="200" /></p>

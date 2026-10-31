@@ -30,9 +30,21 @@ public sealed class WorkflowExecutionCoordinator : IAsyncDisposable
         }
     }
 
-    /// <summary>Starts an accepted run once and returns its eventual structured result.</summary>
-    public Task<WorkflowResult> StartAsync(Guid runId)
+    /// <summary>Starts an accepted run once, without a workflow-level timeout.</summary>
+    public Task<WorkflowResult> StartAsync(Guid runId) => StartAsync(runId, timeout: null);
+
+    /// <summary>
+    /// Starts an accepted run once. A finite timeout requests cooperative cancellation and
+    /// produces a TimedOut outcome, distinct from caller-requested cancellation.
+    /// </summary>
+    /// <remarks>A timeout cannot forcibly stop a handler that ignores its cancellation token.</remarks>
+    public Task<WorkflowResult> StartAsync(Guid runId, TimeSpan? timeout)
     {
+        if (timeout is { } duration &&
+            ((duration <= TimeSpan.Zero && duration != Timeout.InfiniteTimeSpan) ||
+             duration > TimeSpan.FromMilliseconds(uint.MaxValue - 1d)))
+            throw new ArgumentOutOfRangeException(nameof(timeout), "Timeout must be positive or infinite.");
+
         RunState state;
         lock (_gate)
         {
@@ -43,6 +55,11 @@ public sealed class WorkflowExecutionCoordinator : IAsyncDisposable
                     $"Run '{runId}' cannot start from status '{state.Status}'.");
             state.Status = WorkflowRunStatus.Running;
             state.StartedAt = DateTimeOffset.UtcNow;
+            state.Timeout = timeout is { } limit
+                ? new CancellationTokenSource(limit)
+                : new CancellationTokenSource();
+            state.ExecutionCancellation = CancellationTokenSource.CreateLinkedTokenSource(
+                state.Cancellation.Token, state.Timeout.Token);
         }
 
         _ = ExecuteAsync(state);
@@ -139,7 +156,7 @@ public sealed class WorkflowExecutionCoordinator : IAsyncDisposable
         WorkflowResult result;
         try
         {
-            result = await _runner.RunAsync(state.Definition, state.Cancellation.Token)
+            result = await _runner.RunAsync(state.Definition, state.ExecutionCancellation!.Token)
                 .ConfigureAwait(false);
         }
         catch (Exception exception)
@@ -153,18 +170,35 @@ public sealed class WorkflowExecutionCoordinator : IAsyncDisposable
 
         lock (_gate)
         {
+            // Evaluate both signals at the terminal-state boundary. If the caller has
+            // requested cancellation by this point, it wins even when timeout also fired.
+            if (result.Status != WorkflowStatus.Invalid &&
+                state.Timeout!.IsCancellationRequested &&
+                !state.Cancellation.IsCancellationRequested)
+            {
+                result = new WorkflowResult(result.WorkflowId, WorkflowStatus.TimedOut,
+                    result.Steps, result.Diagnostics);
+            }
+
             state.Result = result;
             state.Status = result.Status switch
             {
                 WorkflowStatus.Succeeded => WorkflowRunStatus.Succeeded,
                 WorkflowStatus.Failed => WorkflowRunStatus.Failed,
                 WorkflowStatus.Cancelled => WorkflowRunStatus.Cancelled,
+                WorkflowStatus.TimedOut => WorkflowRunStatus.TimedOut,
                 WorkflowStatus.Invalid => WorkflowRunStatus.Invalid,
                 _ => throw new ArgumentOutOfRangeException(nameof(result.Status))
             };
             state.CompletedAt = DateTimeOffset.UtcNow;
             state.Completion.TrySetResult(result);
         }
+
+        // These sources are no longer observed after the handler has completed. Keep the
+        // caller-cancellation source until coordinator disposal, where cancellation races
+        // with DisposeAsync are serialized under _gate.
+        state.ExecutionCancellation?.Dispose();
+        state.Timeout?.Dispose();
     }
 
     private RunState GetRun(Guid runId) =>
@@ -185,6 +219,8 @@ public sealed class WorkflowExecutionCoordinator : IAsyncDisposable
         public WorkflowRunStatus Status { get; set; } = WorkflowRunStatus.Accepted;
         public WorkflowResult? Result { get; set; }
         public CancellationTokenSource Cancellation { get; } = new();
+        public CancellationTokenSource? Timeout { get; set; }
+        public CancellationTokenSource? ExecutionCancellation { get; set; }
         public TaskCompletionSource<WorkflowResult> Completion { get; } =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
 
@@ -201,6 +237,7 @@ public enum WorkflowRunStatus
     Succeeded,
     Failed,
     Cancelled,
+    TimedOut,
     Invalid
 }
 

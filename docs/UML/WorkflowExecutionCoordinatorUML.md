@@ -3,7 +3,7 @@
 
 # WorkflowExecutionCoordinator — UML Neighborhood
 
-**Status:** source-grounded view of the current `development` implementation. The lifecycle coordinator and its tests passed [development CI run #84](https://github.com/TrentBest/TheSingularityWorkshop.Foundry/actions/runs/40546957980).
+**Status:** source-grounded view of the PR #10 feature-branch implementation; the timeout extension is not yet part of `development`. The combined lifecycle and timeout tests passed [feature-branch CI run #276](https://github.com/TrentBest/TheSingularityWorkshop.Foundry/actions/runs/41170698768).
 
 ## Neighborhood
 
@@ -13,6 +13,7 @@ classDiagram
     class WorkflowExecutionCoordinator {
         +Submit(WorkflowDefinition) WorkflowRunSnapshot
         +StartAsync(Guid) Task~WorkflowResult~
+        +StartAsync(Guid, TimeSpan?) Task~WorkflowResult~
         +Cancel(Guid) bool
         +GetSnapshot(Guid) WorkflowRunSnapshot
         +DisposeAsync() ValueTask
@@ -33,6 +34,22 @@ classDiagram
     class WorkflowDefinition
     class WorkflowHandlerRegistry
     class WorkflowResult
+    class WorkflowStatus {
+        Succeeded
+        Failed
+        Cancelled
+        TimedOut
+        Invalid
+    }
+    class WorkflowRunStatus {
+        Accepted
+        Running
+        Succeeded
+        Failed
+        Cancelled
+        TimedOut
+        Invalid
+    }
     WorkflowExecutionCoordinator --> WorkflowRunner : delegates execution
     WorkflowExecutionCoordinator --> WorkflowHandlerRegistry : through runner
     WorkflowExecutionCoordinator --> WorkflowDefinition : retains accepted definition
@@ -50,7 +67,7 @@ sequenceDiagram
     participant Handler as Registered handler
     Host->>Coordinator: Submit(definition)
     Coordinator-->>Host: Accepted snapshot + run ID
-    Host->>Coordinator: StartAsync(run ID)
+    Host->>Coordinator: StartAsync(run ID, optional timeout)
     Coordinator->>Runner: RunAsync(definition, cancellation token)
     Runner->>Runner: Validate complete definition
     alt Invalid definition
@@ -64,7 +81,12 @@ sequenceDiagram
     end
     Host->>Coordinator: GetSnapshot(run ID)
     Coordinator-->>Host: Current status and result when available
+    opt Workflow timeout elapses
+        Coordinator->>Runner: Request linked-token cancellation
+        Note over Coordinator,Handler: Cooperative only; a non-cooperative handler can continue running
+    end
     Host->>Coordinator: Cancel(run ID) [optional]
+    Note over Coordinator: Caller cancellation wins if both signals are requested before terminal commit
 ```
 
 ## Responsibility rules

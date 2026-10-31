@@ -1,3 +1,6 @@
+<!-- The Singularity Workshop moniker -->
+<p align="center"><a href="https://github.com/TrentBest"><img src="https://raw.githubusercontent.com/TrentBest/TheSingularityWorkshop.Visualize/development/docs/assets/moniker.svg" alt="The Singularity Workshop animated moniker" width="720" /></a></p>
+
 # Program.cs — FSM_API CI probe
 
 **Author moniker:** Trent Best
@@ -30,3 +33,8 @@ See [FoundryFsmApiProbeUML.md](../../docs/UML/FoundryFsmApiProbeUML.md) for the 
 - [Successful run](https://github.com/TrentBest/TheSingularityWorkshop.Foundry/actions/runs/40021885286)
 
 This is an API probe, not a manifest-driven workflow engine. It does not prove failure/recovery semantics, manifest validation, or cross-repository orchestration.
+
+---
+
+<!-- THE SINGULARITY WORKSHOP FOOTER -->
+<p align="center"><img src="https://raw.githubusercontent.com/TrentBest/FSM_API/master/Documentation/Branding/TheSingularityWorkshop.png" alt="The Singularity Workshop avatar" width="200" /></p>

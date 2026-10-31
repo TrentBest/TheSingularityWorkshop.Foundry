@@ -1,3 +1,6 @@
+<!-- The Singularity Workshop moniker -->
+<p align="center"><a href="https://github.com/TrentBest"><img src="https://raw.githubusercontent.com/TrentBest/TheSingularityWorkshop.Visualize/development/docs/assets/moniker.svg" alt="The Singularity Workshop animated moniker" width="720" /></a></p>
+
 # UML and Source Documentation Inventory
 
 **Inventory date:** 2026-10-23  
@@ -33,3 +36,8 @@ The first executable source file is a thin CI probe, not the Foundry workflow en
 ## Exit criteria
 
 Update this inventory whenever source changes. Every generated view should identify its source revision and evidence. The probe neighborhood is manual and source-grounded; it must not be described as generated. A conceptual diagram must never be counted as source-derived coverage.
+
+---
+
+<!-- THE SINGULARITY WORKSHOP FOOTER -->
+<p align="center"><img src="https://raw.githubusercontent.com/TrentBest/FSM_API/master/Documentation/Branding/TheSingularityWorkshop.png" alt="The Singularity Workshop avatar" width="200" /></p>
