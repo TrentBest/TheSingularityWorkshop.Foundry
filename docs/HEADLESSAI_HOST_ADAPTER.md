@@ -62,7 +62,7 @@ A successful run prints the normalized, provenance-bound result. It does not mea
 
 ## Current limit
 
-This closes the compile-time Foundry-to-HeadlessAi adapter gap. It does not yet prove a live provider invocation or the complete software-development loop. A host composition root and host-managed provider credential must be configured to run a real turn. Trusted GitHub candidate operations, exact-candidate CiAi evidence delivery, bounded repair, and draft-PR handoff remain separate gates.
+This closes the compile-time Foundry-to-HeadlessAi adapter gap and adds a manual host composition root in `Foundry.HeadlessAiHost.Console`; the console project is built by CI. It does not yet prove a live provider invocation. Provision `OPENAI_API_KEY`, `OPENAI_MODEL`, and the bounded prompt in the host environment, then run the documented smoke command to verify one real turn. Trusted GitHub candidate operations, exact-candidate CiAi evidence delivery, bounded repair, and draft-PR handoff remain separate gates.
 
 <!-- THE SINGULARITY WORKSHOP FOOTER -->
 <p align="center"><img src="https://raw.githubusercontent.com/TrentBest/FSM_API/master/Documentation/Branding/TheSingularityWorkshop.png" alt="The Singularity Workshop" width="200" /></p>
