@@ -10,11 +10,14 @@ public sealed class PersistentWorkTaskCoordinator
     private readonly object _gate = new();
     private readonly WorkTaskCoordinator _coordinator;
     private readonly JsonlWorkTaskStore _store;
+    private readonly JsonlWorkTaskRepairAttemptJournal? _repairAttemptJournal;
     private Exception? _persistenceFailure;
 
-    public PersistentWorkTaskCoordinator(JsonlWorkTaskStore store)
+    public PersistentWorkTaskCoordinator(JsonlWorkTaskStore store,
+        JsonlWorkTaskRepairAttemptJournal? repairAttemptJournal = null)
     {
         _store = store ?? throw new ArgumentNullException(nameof(store));
+        _repairAttemptJournal = repairAttemptJournal;
         _coordinator = new WorkTaskCoordinator();
         foreach (var snapshot in _store.GetAll())
             _coordinator.Restore(snapshot);
@@ -51,13 +54,26 @@ public sealed class PersistentWorkTaskCoordinator
         }
     }
 
+    /// <summary>
+    /// Applies a repair decision using only the exact attempt history recovered from the
+    /// durable append-only attempt journal. Caller-supplied history is deliberately not accepted.
+    /// </summary>
     public WorkTaskSnapshot ApplyRepairDecision(string taskId, Guid leaseId,
-        IReadOnlyList<WorkTaskRepairAttempt> previousAttempts, WorkTaskRepairAttempt currentAttempt,
-        WorkTaskRepairEvidenceExpectation expectation, TimeSpan maximumDuration, DateTimeOffset now)
+        WorkTaskRepairAttempt currentAttempt, WorkTaskRepairEvidenceExpectation expectation,
+        TimeSpan maximumDuration, DateTimeOffset now)
     {
+        ArgumentNullException.ThrowIfNull(currentAttempt);
         lock (_gate)
         {
             EnsureHealthy();
+            var journal = _repairAttemptJournal ?? throw new InvalidOperationException(
+                "A durable repair-attempt journal is required before applying a persistent repair decision.");
+            var history = journal.GetAttempts(taskId);
+            if (history.Count == 0 || history[^1] != currentAttempt ||
+                currentAttempt.TaskId != taskId)
+                throw new InvalidOperationException(
+                    "The current CI attempt must exactly match the latest durable attempt-journal record for this task.");
+            var previousAttempts = history.Take(history.Count - 1).ToArray();
             var snapshot = _coordinator.ApplyRepairDecision(taskId, leaseId, previousAttempts,
                 currentAttempt, expectation, maximumDuration, now);
             return Persist(snapshot);
