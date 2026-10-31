@@ -111,7 +111,7 @@ public sealed class JsonlHeadlessAiTurnJournal
                 return new FileStream(_lockPath, FileMode.OpenOrCreate,
                     FileAccess.ReadWrite, FileShare.None);
             }
-            catch (IOException exception) when (timer.Elapsed < LockTimeout)
+            catch (IOException) when (timer.Elapsed < LockTimeout)
             {
                 Thread.Sleep(25);
             }
