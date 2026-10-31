@@ -282,7 +282,7 @@ public static class CiAiArtifactReadyNoticeValidator
     {
         var value = ReadText(element, name, 64);
         if (!DateTimeOffset.TryParse(value, CultureInfo.InvariantCulture,
-                DateTimeStyles.RoundtripKind, out var timestamp))
+                DateTimeStyles.None, out var timestamp))
             throw new FormatException($"CiAi notice property '{name}' must be an ISO-8601 timestamp.");
         return timestamp;
     }
