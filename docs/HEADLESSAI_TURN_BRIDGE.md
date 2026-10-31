@@ -37,7 +37,7 @@ var result = await turnCoordinator.InvokeAsync(
     cancellationToken: cancellationToken);
 ```
 
-The task must already be in `Investigating`. The branch must be an isolated Git-valid feature branch; `master` and `development` are rejected. The candidate SHA must be a full commit SHA. CI evidence must identify the same repository and current or prior candidate SHA.
+The task must already be in `Investigating`. The branch must be an isolated Git-valid feature branch; `master` and `development` are rejected. The candidate SHA must be a full commit SHA. CI evidence must identify the same repository and current or prior candidate SHA. Resumable turns must provide both `PriorTurnId` and `PriorCandidateCommitSha`, matching HeadlessAi envelope validation.
 
 ## Implement the host adapter
 
@@ -45,16 +45,16 @@ Foundry intentionally has no compile-time dependency on the HeadlessAi assembly.
 
 | Foundry request | HeadlessAi envelope |
 |---|---|
-| `TaskId`, `CorrelationId` | Same identities |
+| `TaskId`, `CorrelationId` | Same identities; the host may use `TaskId` as the stable `ConversationId` and `foundry.work-task.v1` as `TaskVersion` |
 | `Repository`, `AuthorizedBranch` | Same repository and authorized branch |
 | `BaseCommitSha`, `CandidateCommitSha` | Same commit provenance |
 | `IssueUrl` | `IssueUrl` |
 | `Role`, `Instructions`, `CanonicalPrompt` | Same role and prompt fields |
 | `ResponseSchema`, `ExpiresAt` | Same response schema and expiry |
-| `PriorTurnId`, `PriorCandidateCommitSha`, `IdempotencyKey` | Same resumable-turn fields |
-| `Evidence` | Map each item to a `HeadlessAiEvidenceReference` |
+| `PriorTurnId`, `PriorCandidateCommitSha`, `IdempotencyKey` | Same resumable-turn fields; prior turn ID and prior candidate SHA must be supplied together |
+| `Evidence` | Map each item to a `HeadlessAiEvidenceReference` |\n| (No Foundry field) | Use default `HeadlessAiAgentTurnLimits` and an empty `ContextReferences` collection unless the host has separately bounded context references |
 
-The adapter creates a `HeadlessAiAgentTurnRequest` from the envelope, invokes the configured `HeadlessAiAgentTurnExecutor` once, validates the returned result, and maps its task/candidate provenance, turn identity, request fingerprint, provider/model identity, timestamps, error, and normalized proposal into `FoundryHeadlessAiTurnResult`.
+The adapter creates a `HeadlessAiAgentTurnEnvelope`, maps the evidence list, and invokes the configured `HeadlessAiAgentTurnExecutor.ExecuteAsync(envelope, cancellationToken)` once. The executor creates the immutable `HeadlessAiAgentTurnRequest` snapshot and returns a `HeadlessAiAgentTurnResult`. Validate the returned result, then map its task/candidate provenance, turn identity, request fingerprint, provider/model identity, timestamps, error/diagnostic, and normalized proposal fields—including `OperationalStatus`—into `FoundryHeadlessAiTurnResult`. Do not copy `RawResponse` into Foundry task state.
 
 Use the host's configured `HeadlessAiAgentTemplate` and shared `HttpClient`. Provider credentials are resolved out of band by the host's request-header provider. Never put provider credentials, GitHub credentials, capability IDs, or authorization grants in the prompt, envelope, model response, or evidence summary.
 
