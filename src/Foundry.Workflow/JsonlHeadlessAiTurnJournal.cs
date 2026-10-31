@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
 
@@ -6,14 +7,15 @@ namespace TheSingularityWorkshop.Foundry;
 /// <summary>
 /// Durable, append-only invocation ledger for Foundry's HeadlessAi bridge.
 /// A pending entry is never automatically replayed after a crash because the provider may
-/// already have received the request. Such entries require explicit host reconciliation.
-/// Synchronization is per instance only: callers must use exactly one journal instance per
-/// path and process. This is not a cross-process or distributed ledger.
+/// already have received the request. Cooperating instances coordinate through an exclusive
+/// sidecar file handle and reload the journal while holding that lock. This is intended for
+/// a local filesystem; it is not a distributed ledger or a guarantee for network filesystems.
 /// </summary>
 public sealed class JsonlHeadlessAiTurnJournal
 {
     private const int CurrentSchemaVersion = 1;
     private const int MaximumRecordCharacters = 2_000_000;
+    private static readonly TimeSpan LockTimeout = TimeSpan.FromSeconds(30);
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
     {
         MaxDepth = 32
@@ -21,6 +23,7 @@ public sealed class JsonlHeadlessAiTurnJournal
 
     private readonly object _gate = new();
     private readonly string _path;
+    private readonly string _lockPath;
     private readonly Dictionary<string, EntryState> _entries = new(StringComparer.Ordinal);
     private long _sequence;
     private Exception? _persistenceFailure;
@@ -30,9 +33,10 @@ public sealed class JsonlHeadlessAiTurnJournal
         if (string.IsNullOrWhiteSpace(path))
             throw new ArgumentException("A turn journal path is required.", nameof(path));
         _path = Path.GetFullPath(path);
+        _lockPath = _path + ".lock";
         Directory.CreateDirectory(Path.GetDirectoryName(_path)!);
-        if (File.Exists(_path))
-            Replay();
+        using var fileLock = AcquireFileLock();
+        Replay();
     }
 
     /// <summary>
@@ -48,6 +52,8 @@ public sealed class JsonlHeadlessAiTurnJournal
         lock (_gate)
         {
             EnsureHealthy();
+            using var fileLock = AcquireFileLock();
+            Replay();
             if (_entries.TryGetValue(key, out var existing))
             {
                 if (!string.Equals(existing.InvocationFingerprint, invocationFingerprint,
@@ -79,6 +85,8 @@ public sealed class JsonlHeadlessAiTurnJournal
         lock (_gate)
         {
             EnsureHealthy();
+            using var fileLock = AcquireFileLock();
+            Replay();
             if (!_entries.TryGetValue(key, out var existing) ||
                 !string.Equals(existing.InvocationFingerprint, invocationFingerprint, StringComparison.Ordinal) ||
                 existing.Result is not null)
@@ -91,8 +99,37 @@ public sealed class JsonlHeadlessAiTurnJournal
         }
     }
 
+    private FileStream AcquireFileLock()
+    {
+        var timer = Stopwatch.StartNew();
+        while (true)
+        {
+            try
+            {
+                // The OS releases this exclusive handle when the owning process exits.
+                // Keep the sidecar file itself: deleting it can split lock ownership.
+                return new FileStream(_lockPath, FileMode.OpenOrCreate,
+                    FileAccess.ReadWrite, FileShare.None);
+            }
+            catch (IOException exception) when (timer.Elapsed < LockTimeout)
+            {
+                Thread.Sleep(25);
+            }
+            catch (IOException exception)
+            {
+                throw new TimeoutException(
+                    "Timed out waiting for the HeadlessAi turn journal file lock.", exception);
+            }
+        }
+    }
+
     private void Replay()
     {
+        _entries.Clear();
+        _sequence = 0;
+        if (!File.Exists(_path))
+            return;
+
         using var stream = new FileStream(_path, FileMode.Open, FileAccess.Read, FileShare.Read);
         using var reader = new StreamReader(stream, new UTF8Encoding(false, true),
             detectEncodingFromByteOrderMarks: false);
