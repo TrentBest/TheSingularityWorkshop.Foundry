@@ -48,7 +48,8 @@ public sealed class CiAiArtifactReadyNoticeValidatorTests
         string? clientIdentity = null,
         string? digest = null,
         long sizeBytes = 1024,
-        string? additionalProperty = null)
+        string? additionalProperty = null,
+        string? notifiedAt = null)
     {
         var manifest = new Dictionary<string, object?>
         {
@@ -78,7 +79,7 @@ public sealed class CiAiArtifactReadyNoticeValidatorTests
             contractVersion = 1,
             noticeId = "notice-1",
             recipientIdentity = recipientIdentity ?? "foundry-production",
-            notifiedAt = Created.AddMinutes(2),
+            notifiedAt = notifiedAt ?? "2026-10-31T00:02:00Z",
             manifest
         });
     }
@@ -158,6 +159,21 @@ public sealed class CiAiArtifactReadyNoticeValidatorTests
                 CiAiArtifactReadyNoticeValidator.Validate(
                     Notice(Payload(additionalProperty: "unexpected")),
                     journal, Policy(), now));
+        }
+        finally { if (File.Exists(path)) File.Delete(path); }
+    }
+
+    [Fact]
+    public void RejectsTimestampsWithoutAnExplicitUtcOffset()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"foundry-ciai-validator-{Guid.NewGuid():N}.jsonl");
+        try
+        {
+            var journal = CreateJournal(path);
+            Assert.Throws<FormatException>(() =>
+                CiAiArtifactReadyNoticeValidator.Validate(
+                    Notice(Payload(notifiedAt: "2026-10-31T00:02:00")),
+                    journal, Policy(), Created.AddMinutes(3)));
         }
         finally { if (File.Exists(path)) File.Delete(path); }
     }
