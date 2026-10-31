@@ -92,7 +92,7 @@ public sealed class CiAiDispatchRunMarker
         ArgumentNullException.ThrowIfNull(binding);
         if (binding.RunId != RunId || binding.RunAttempt != RunAttempt)
             throw new InvalidOperationException("Dispatch marker run identity does not match the independently observed GitHub run.");
-        return new CiAiDispatchRunObservation(binding, RequestId, OperationId, IdempotencyKey);
+        return new CiAiDispatchRunObservation(binding, this);
     }
 
     private static string ReadIdentity(IReadOnlyDictionary<string, JsonElement> values, string name)
