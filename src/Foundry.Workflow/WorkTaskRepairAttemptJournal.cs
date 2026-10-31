@@ -143,15 +143,27 @@ public sealed class JsonlWorkTaskRepairAttemptJournal
         }
     }
 
-    public IReadOnlyList<WorkTaskRepairAttempt> GetAttempts(string taskId)
+    /// <summary>
+    /// Executes a decision callback while holding the journal lock, preventing an append
+    /// from changing the attempt history between validation and the caller's durable decision.
+    /// The callback receives an immutable snapshot and must not call back into this journal.
+    /// </summary>
+    public TResult ExecuteWithAttempts<TResult>(string taskId,
+        Func<IReadOnlyList<WorkTaskRepairAttempt>, TResult> action)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(taskId);
+        ArgumentNullException.ThrowIfNull(action);
         lock (_gate)
         {
-            if (!_attempts.TryGetValue(taskId, out var history))
-                return Array.Empty<WorkTaskRepairAttempt>();
-            return Array.AsReadOnly(history.ToArray());
+            var history = _attempts.TryGetValue(taskId, out var attempts)
+                ? Array.AsReadOnly(attempts.ToArray())
+                : Array.Empty<WorkTaskRepairAttempt>();
+            return action(history);
         }
     }
+
+    public IReadOnlyList<WorkTaskRepairAttempt> GetAttempts(string taskId) =>
+        ExecuteWithAttempts(taskId, history => history);
 
     public IReadOnlyList<WorkTaskRepairAttempt> GetAll()
     {
