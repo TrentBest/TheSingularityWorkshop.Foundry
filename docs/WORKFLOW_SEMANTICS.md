@@ -3,7 +3,7 @@
 
 # Workflow Semantics — Version 1
 
-**Status:** implementation-backed theory for the first Foundry runtime slice. The sequential runner and retained run lifecycle coordinator passed the current [development CI run #84](https://github.com/TrentBest/TheSingularityWorkshop.Foundry/actions/runs/40546957980). This does not describe persisted manifests, distributed execution, or a general automation engine.
+**Status:** implementation-backed theory for the first Foundry runtime slice. The sequential runner and retained run lifecycle passed development CI run #84; the optional timeout extension and its cancellation-precedence tests passed feature-branch [Foundry CI run #276](https://github.com/TrentBest/TheSingularityWorkshop.Foundry/actions/runs/41170698768). This feature-branch extension is not yet part of `development`. This does not describe persisted manifests, distributed execution, or a general automation engine.
 
 ## The execution model
 
@@ -93,7 +93,7 @@ This is an in-process coordinator, not a durable queue or cross-process service.
 - [Runner tests](../tests/Foundry.Workflow.Tests/WorkflowRunnerTests.cs)
 - [Lifecycle tests](../tests/Foundry.Workflow.Tests/WorkflowExecutionCoordinatorTests.cs)
 
-The current [Foundry CI run #84](https://github.com/TrentBest/TheSingularityWorkshop.Foundry/actions/runs/40546957980) passed the runner and lifecycle tests, builds, and deterministic state-evidence checks. This document must be revised if the contract or tests change.
+Development CI run #84 passed the original runner/lifecycle tests. Feature-branch [CI run #276](https://github.com/TrentBest/TheSingularityWorkshop.Foundry/actions/runs/41170698768) passed the timeout/cancellation tests, full workflow test suite, build, separate-process FSM_API probe, repeatable fox/sheepdog scenario, and evidence artifact upload. This document must be revised if the contract or tests change.
 
 ---
 
