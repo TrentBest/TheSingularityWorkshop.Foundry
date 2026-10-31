@@ -92,6 +92,7 @@ public sealed record CiAiArtifactReadyNotice(
         switch (element.ValueKind)
         {
             case JsonValueKind.Object:
+            {
                 var names = new HashSet<string>(StringComparer.Ordinal);
                 foreach (var property in element.EnumerateObject())
                 {
@@ -100,6 +101,7 @@ public sealed record CiAiArtifactReadyNotice(
                     RejectDuplicateProperties(property.Value);
                 }
                 break;
+            }
             case JsonValueKind.Array:
                 foreach (var item in element.EnumerateArray())
                     RejectDuplicateProperties(item);
