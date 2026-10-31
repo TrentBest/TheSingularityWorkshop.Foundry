@@ -71,6 +71,24 @@ public sealed class JsonlCodeRedIncidentStore
             return GetExisting(incidentId);
     }
 
+    /// <summary>
+    /// Runs an operation against the latest active incident while excluding local update/clear
+    /// operations. The callback must not attempt to mutate this store.
+    /// </summary>
+    internal T ExecuteWithActiveIncident<T>(string incidentId, Func<CodeRedIncident, T> operation)
+    {
+        if (string.IsNullOrWhiteSpace(incidentId))
+            throw new ArgumentException("An incident ID is required.", nameof(incidentId));
+        ArgumentNullException.ThrowIfNull(operation);
+        lock (_gate)
+        {
+            var incident = GetExisting(incidentId);
+            if (incident.Status != CodeRedIncidentStatus.Active)
+                throw new InvalidOperationException("Only the latest active incident can authorize CODE RED recovery.");
+            return operation(incident);
+        }
+    }
+
     public IReadOnlyList<CodeRedIncident> GetAll()
     {
         lock (_gate)

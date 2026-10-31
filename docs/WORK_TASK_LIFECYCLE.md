@@ -54,6 +54,8 @@ Updates preserve the incident start time, increment a monotonic incident sequenc
 
 This is the incident data contract with a local append-only journal and a host notification boundary, not a GitHub-backed or distributed incident service. No credential/token field exists in the record.
 
+`PersistentCodeRedRecoveryCoordinator` is the safe local composition for recovery: it reads the latest active incident from `JsonlCodeRedIncidentStore` and holds that store's in-process gate while the persistent task coordinator verifies and durably appends the recovery event. Local incident update/clear operations therefore cannot advance the incident sequence between snapshot selection and receipt consumption. The host must authenticate the approver and issue the signed receipt before calling this coordinator. This serialization is limited to one store instance in one process; it does not provide cross-process locking or atomicity across the incident and task journals.
+
 
 
 ## Exact CI repair-attempt history and bounded decisions

@@ -1,4 +1,6 @@
 using System.Security.Cryptography;
+using System.Threading;
+using System.Threading.Tasks;
 using TheSingularityWorkshop.Foundry;
 using Xunit;
 
@@ -78,6 +80,77 @@ public sealed class CodeRedRecoveryAuthorizationTests
     }
 
     [Fact]
+    public void PersistentRecoveryReadsTheLatestDurableIncidentAndRejectsStaleApproval()
+    {
+        var taskPath = Path.Combine(Path.GetTempPath(), $"foundry-recovery-task-{Guid.NewGuid():N}.jsonl");
+        var incidentPath = Path.Combine(Path.GetTempPath(), $"foundry-recovery-incident-{Guid.NewGuid():N}.jsonl");
+        try
+        {
+            var verifier = new TestVerifier();
+            var tasks = new PersistentWorkTaskCoordinator(new JsonlWorkTaskStore(taskPath),
+                recoveryReceiptVerifier: verifier);
+            var (lease, incident, receipt) = CreateCodeRedTask(tasks);
+            var incidents = new JsonlCodeRedIncidentStore(incidentPath);
+            incidents.Create(incident);
+            incidents.Update(incident.Update("Rechecking evidence", "A newer CI attempt arrived",
+                new string('b', 40), 1235, 2, Now.AddSeconds(30)));
+            var recovery = new PersistentCodeRedRecoveryCoordinator(incidents, tasks);
+
+            Assert.Throws<UnauthorizedAccessException>(() => recovery.RecoverFromCodeRed(
+                "task-recovery", lease, incident.IncidentId, receipt,
+                Now.AddMinutes(1), "stale approval must not recover newer incident"));
+            Assert.Equal(WorkTaskStatus.CodeRed, tasks.GetSnapshot("task-recovery").Status);
+        }
+        finally
+        {
+            if (File.Exists(taskPath)) File.Delete(taskPath);
+            if (File.Exists(incidentPath)) File.Delete(incidentPath);
+        }
+    }
+
+    [Fact]
+    public void IncidentUpdatesAreSerializedUntilPersistentRecoveryCommits()
+    {
+        var taskPath = Path.Combine(Path.GetTempPath(), $"foundry-recovery-task-{Guid.NewGuid():N}.jsonl");
+        var incidentPath = Path.Combine(Path.GetTempPath(), $"foundry-recovery-incident-{Guid.NewGuid():N}.jsonl");
+        using var verifier = new BlockingTestVerifier();
+        try
+        {
+            var tasks = new PersistentWorkTaskCoordinator(new JsonlWorkTaskStore(taskPath),
+                recoveryReceiptVerifier: verifier);
+            var (lease, incident, receipt) = CreateCodeRedTask(tasks);
+            var incidents = new JsonlCodeRedIncidentStore(incidentPath);
+            incidents.Create(incident);
+            var recovery = new PersistentCodeRedRecoveryCoordinator(incidents, tasks);
+            var recoveryTask = Task.Run(() => recovery.RecoverFromCodeRed(
+                "task-recovery", lease, incident.IncidentId, receipt,
+                Now.AddMinutes(1), "approved recovery"));
+
+            Assert.True(verifier.VerificationEntered.Wait(TimeSpan.FromSeconds(5)));
+            using var updateStarted = new ManualResetEventSlim();
+            var updated = incident.Update("Rechecking evidence", "A newer CI attempt arrived",
+                new string('b', 40), 1235, 2, Now.AddSeconds(30));
+            var updateTask = Task.Run(() =>
+            {
+                updateStarted.Set();
+                return incidents.Update(updated);
+            });
+            Assert.True(updateStarted.Wait(TimeSpan.FromSeconds(5)));
+            Assert.False(updateTask.Wait(TimeSpan.FromMilliseconds(100)));
+
+            verifier.AllowVerification.Set();
+            Assert.Equal(WorkTaskStatus.Investigating, recoveryTask.GetAwaiter().GetResult().Status);
+            Assert.Equal(2, updateTask.GetAwaiter().GetResult().Sequence);
+        }
+        finally
+        {
+            verifier.AllowVerification.Set();
+            if (File.Exists(taskPath)) File.Delete(taskPath);
+            if (File.Exists(incidentPath)) File.Delete(incidentPath);
+        }
+    }
+
+    [Fact]
     public void IncidentSequenceAdvancesOnEveryDurableUpdateAndClear()
     {
         var incident = CreateIncident();
@@ -140,6 +213,30 @@ public sealed class CodeRedRecoveryAuthorizationTests
         "TrentBest/TheSingularityWorkshop.Foundry", 8,
         "https://github.com/TrentBest/TheSingularityWorkshop.Foundry/issues/8",
         new string('a', 40), new[] { "src/Foundry.Workflow" }, 3);
+
+    private sealed class BlockingTestVerifier : ICodeRedRecoveryReceiptVerifier, IDisposable
+    {
+        public ManualResetEventSlim VerificationEntered { get; } = new();
+        public ManualResetEventSlim AllowVerification { get; } = new();
+
+        public bool IsTrustedIssuer(string issuer) => issuer == "trusted-host";
+
+        public bool VerifySignature(string issuer, ReadOnlyMemory<byte> signingPayload, string signature)
+        {
+            VerificationEntered.Set();
+            if (!AllowVerification.Wait(TimeSpan.FromSeconds(10)))
+                return false;
+            return issuer == "trusted-host" &&
+                signature == Convert.ToHexString(SHA256.HashData(signingPayload.Span)) &&
+                !signingPayload.IsEmpty;
+        }
+
+        public void Dispose()
+        {
+            VerificationEntered.Dispose();
+            AllowVerification.Dispose();
+        }
+    }
 
     private sealed class TestVerifier(bool acceptSignature = true) : ICodeRedRecoveryReceiptVerifier
     {
