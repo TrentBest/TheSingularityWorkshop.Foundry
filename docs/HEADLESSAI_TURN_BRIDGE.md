@@ -81,7 +81,7 @@ The bridge performs no repository reads or writes, branch creation, commit creat
 The bridge contract, lease gate, provenance validation, durable completed-result replay, and indeterminate-call stop are covered by Foundry workflow tests. The concrete `Foundry.HeadlessAiHost` adapter is separately integration-tested with a fake HTTP transport and is built in CI against pinned HeadlessAi source. This verifies request/result mapping and adapter composition at build/test time; it does not prove a live provider call.
 
 The remaining live integration requires:
-1. Host composition, host-side provider credential provisioning, and a real provider invocation.
+1. Run the `Foundry.HeadlessAiHost.Console` composition root with host-side provider credential provisioning and verify one real provider invocation.
 2. Trusted, isolated GitHub candidate-branch operations with capability checks.
 3. Exact-candidate CiAi evidence retrieval, validation, and delivery into Foundry.
 4. A bounded red-to-green repair cycle and a safe draft-PR handoff.
