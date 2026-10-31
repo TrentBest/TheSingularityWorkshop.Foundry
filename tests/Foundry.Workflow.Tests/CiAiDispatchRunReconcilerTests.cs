@@ -1,3 +1,4 @@
+using System.Text;
 using TheSingularityWorkshop.Foundry;
 using Xunit;
 
@@ -21,8 +22,20 @@ public sealed class CiAiDispatchRunReconcilerTests
             ".github/workflows/build.yml", "refs/heads/development", new string('b', 40),
             "refs/heads/work/task-1", new string('a', 40), "workflow_dispatch", Created.AddMinutes(1));
 
-    private static CiAiDispatchRunObservation Observation(long runId = 12345) =>
-        new(Binding(runId), "request-1", "operation-1", "idempotency-1");
+    private static CiAiDispatchRunObservation Observation(long runId = 12345)
+    {
+        var payload = $"""
+            {
+              "contract": "foundry.ciai-dispatch-marker.v1",
+              "requestId": "request-1",
+              "operationId": "operation-1",
+              "idempotencyKey": "idempotency-1",
+              "runId": {{runId}},
+              "runAttempt": 1
+            }
+            """;
+        return CiAiDispatchRunMarker.Parse(Encoding.UTF8.GetBytes(payload)).Bind(Binding(runId));
+    }
 
     [Fact]
     public void ReconcilesOnlyOneExactRunWithTrustedRequestIdentity()
