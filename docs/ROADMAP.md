@@ -68,7 +68,9 @@ The completed items below are implemented on PR #10's feature branch and are not
 - [x] Add credential-free CODE RED incident records and validated active/cleared notice projections.
 - [x] Require a short-lived, signed host approval receipt for CODE RED recovery, bound to the active incident sequence and exact task-event sequence; persist the complete signed receipt in the task audit.
 - [x] Add exact-CI-attempt provenance checks and bounded deterministic repair decisions.
-- [ ] Connect the task lifecycle to HeadlessAi's resumable-turn request/executor without moving lifecycle or authorization into HeadlessAi.
+- [x] Add a concrete `Foundry.HeadlessAiHost` adapter that maps Foundry turns to HeadlessAi's immutable request/executor without moving lifecycle or authorization into HeadlessAi; build it against pinned HeadlessAi source in CI run #337.
+- [x] Add `Foundry.HeadlessAiHost.Console` as a manual host composition root and compile it in CI run #352.
+- [ ] Provision host-managed provider credentials and execute one real provider turn through the manual smoke runner.
 - [ ] Connect CiAi's exact-run evidence packet/outbox and bounded rerun request/ledger through trusted host adapters.
 - [ ] Bridge the task lifecycle into the existing WorkflowExecutionCoordinator/WorkflowRunner; do not create a competing runner.
 - [ ] Prove the red → evidence → bounded repair → green → draft-PR path with deterministic fake-provider/fake-GitHub tests.
@@ -85,7 +87,7 @@ The completed items below are implemented on PR #10's feature branch and are not
 | Demonstration and reproducibility | 15% | Successful basic probe plus fox/dog state assertions, cross-FSM transition, repeatable trace/SVG, and uploaded artifact |
 | Documentation/UML completeness | 10% | Bootstrap docs, lifecycle UML, and Hub integration boundary; source-derived UML and complete reader journey remain |
 
-**No release recommendation yet.** Readiness rises when gates are supported by verifiable implementation and test evidence, not merely by adding documents. CI run #294 verifies PR #10 head commit `0ef31369daa115fb652e46b79d208ea66ab8fc83`; it does not prove the unimplemented live GitHub/HeadlessAi/CiAi integration or the MyVR pilot.
+**No release recommendation yet.** Readiness rises when gates are supported by verifiable implementation and test evidence, not merely by adding documents. CI run #294 verifies PR #10 head commit `0ef31369daa115fb652e46b79d208ea66ab8fc83`. PR #11's source-pinned HeadlessAi adapter build passed run #337 on exact head `d410afd4e23aaf459bdf2ce526faf964d3d36274`; this does not prove a live provider call, GitHub/CiAi integration, or the MyVR pilot.
 
 ---
 

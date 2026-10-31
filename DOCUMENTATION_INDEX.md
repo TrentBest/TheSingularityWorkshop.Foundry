@@ -15,6 +15,8 @@
 - [Workflow semantics](docs/WORKFLOW_SEMANTICS.md) — version-1 execution model, validation, outcomes, and explicit limitations.
 - [Governed work task lifecycle](docs/WORK_TASK_LIFECYCLE.md) — task envelopes, fenced leases, local journals, capabilities, CODE RED notices, and exact-CI repair decisions.
 - [CiAi artifact callback contract](docs/CIAI_ARTIFACT_CALLBACK_CONTRACT.md) — Foundry-owned v1 HTTPS ingress, authentication, durable idempotency receipts, immutable artifact pull, and provider acknowledgement.
+- [Foundry–HeadlessAi turn bridge](docs/HEADLESSAI_TURN_BRIDGE.md) — task-lease-gated invocation, durable at-most-once journal, host adapter mapping, and remaining live-integration gates.
+- [Concrete HeadlessAi host adapter](docs/HEADLESSAI_HOST_ADAPTER.md) — pinned source integration, immutable request mapping, normalized result mapping, credential boundaries, and manual provider smoke runner.
 - [Architecture](docs/ARCHITECTURE.md) — system boundaries and evidence labels.
 - [Contract inspection ledger](docs/CONTRACT_INSPECTION.md) — source-backed findings from the Workshop stack and unresolved decisions.
 - [Roadmap and readiness](docs/ROADMAP.md) — milestones and verification gates.
@@ -30,13 +32,14 @@
 | FSM_API integration | Basic real-package probe passes; expanded state scenario added | [Probe source](src/Foundry.FsmApiProbe/Program.cs), [fox/sheepdog scenario](src/Foundry.FoxSheepdog/Program.cs), [CI workflow](.github/workflows/foundry-fsm-api-probe.yml), and [successful expanded CI run](https://github.com/TrentBest/TheSingularityWorkshop.Foundry/actions/runs/40025709384) |
 | FSM_COS integration | Boundary inspected; Foundry integration not implemented | Only use for composition if a concrete workflow requires it |
 | FSM_Serialization integration | Responsibility inspected; format not selected | Keep domain semantics in the owning contract; do not assume arbitrary-object serialization |
-| Governed work lifecycle | Implemented on PR #10 feature branch; not yet merged or connected to live services | [Work-task lifecycle](docs/WORK_TASK_LIFECYCLE.md); local journals are single-process, not GitHub-backed or distributed |
+| Governed work lifecycle | Implemented on PR #10 feature branch; not yet merged or connected to live services | [Work-task lifecycle](docs/WORK_TASK_LIFECYCLE.md); local task/incident/repair journals are single-process, not GitHub-backed or distributed |
+| HeadlessAi turn bridge and host adapter | Foundry bridge, concrete source adapter, and manual console composition root implemented on PR #11; pinned source and console project compile in CI | [Turn bridge](docs/HEADLESSAI_TURN_BRIDGE.md), [host adapter](docs/HEADLESSAI_HOST_ADAPTER.md); host credential provisioning and a real provider invocation remain |
 | CiAi artifact ingress | Host-owned v1 callback contract documented; no live receiver or remote transport yet | [CiAi artifact callback contract](docs/CIAI_ARTIFACT_CALLBACK_CONTRACT.md); ready notice + immutable pull + durable receipt boundary |
-| CI execution | PR #10 head passed workflow-runtime tests, builds, FSM_API probe, repeatable fox/sheepdog evidence, and documentation checks | [Run #196](https://github.com/TrentBest/TheSingularityWorkshop.Foundry/actions/runs/41146291917) on commit `e85fd23fd5f897faaf1f28ab6d2141baeed657dd`; reverify after later commits |
+| CI execution | PR #10 latest governed-work head and PR #11 combined stack both passed the full proof workflow, including the durable turn journal | [PR #10 run #304](https://github.com/TrentBest/TheSingularityWorkshop.Foundry/actions/runs/41172981012) and [combined-stack PR #11 run #319](https://github.com/TrentBest/TheSingularityWorkshop.Foundry/actions/runs/41174088415); verified exact HeadlessAi host-adapter head `d410afd4e23aaf459bdf2ce526faf964d3d36274` in [run #337](https://github.com/TrentBest/TheSingularityWorkshop.Foundry/actions/runs/41221916732), then console composition build in [run #352](https://github.com/TrentBest/TheSingularityWorkshop.Foundry/actions/runs/41222737607) |
 | Source-derived UML | Not implemented | Add diagrams after domain types exist |
 | Living Gallery | Basic probe and trace-derived SVG scenario verified | [Gallery](Gallery.md) and [successful expanded CI run](https://github.com/TrentBest/TheSingularityWorkshop.Foundry/actions/runs/40025709384) |
 | Optional article publishing | Design documented; not implemented | Build source-grounded article preview and excerpt images; keep external publishing opt-in |
-| Tests and abuse cases | Workflow and governed-task tests cover ordering, invalid input, failure, cancellation, bounded task/lease/audit metadata, strict journal replay, lease fencing, and repair-policy provenance | CI run #186 passed the current PR head; add timeout semantics and deterministic cross-service integration tests next |
+| Tests and abuse cases | Workflow and governed-task tests cover ordering, invalid input, failure, cancellation, bounded task/lease/audit metadata, strict journal replay, lease fencing, and repair-policy provenance | CI run #337 passed the current PR #11 head; add real provider and trusted cross-service integration tests next |
 | Release/publication | Not in scope | Requires explicit approval |
 
 ## Update rule
