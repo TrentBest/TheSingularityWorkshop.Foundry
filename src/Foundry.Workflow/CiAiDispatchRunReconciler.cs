@@ -1,16 +1,13 @@
 namespace TheSingularityWorkshop.Foundry;
 
 /// <summary>
-/// A run candidate assembled by a host adapter from GitHub run metadata and a
-/// request-identity marker emitted by the registered trusted workflow.
-/// The marker values must be read from the exact run/attempt, never from the
-/// callback notice or a caller-supplied search query.
+/// A run candidate assembled by a host adapter from independently observed
+/// GitHub metadata and a parsed marker retrieved from that exact run/attempt.
+/// The marker must never come from the callback notice or a search query.
 /// </summary>
 public sealed record CiAiDispatchRunObservation(
     CiAiDispatchRunBinding Binding,
-    string RequestId,
-    string OperationId,
-    string IdempotencyKey);
+    CiAiDispatchRunMarker Marker);
 
 public enum CiAiDispatchReconciliationOutcome
 {
@@ -52,10 +49,12 @@ public static class CiAiDispatchRunReconciler
         var matches = new List<CiAiDispatchRunBinding>();
         foreach (var observation in observations)
         {
-            if (observation is null || observation.Binding is null ||
-                observation.RequestId != mapping.RequestId ||
-                observation.OperationId != mapping.OperationId ||
-                observation.IdempotencyKey != mapping.IdempotencyKey)
+            if (observation is null || observation.Binding is null || observation.Marker is null ||
+                observation.Marker.RequestId != mapping.RequestId ||
+                observation.Marker.OperationId != mapping.OperationId ||
+                observation.Marker.IdempotencyKey != mapping.IdempotencyKey ||
+                observation.Marker.RunId != observation.Binding.RunId ||
+                observation.Marker.RunAttempt != observation.Binding.RunAttempt)
                 continue;
 
             try
