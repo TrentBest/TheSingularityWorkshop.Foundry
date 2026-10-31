@@ -15,14 +15,55 @@ public sealed record CiAiArtifactReadyNotice(
     string IdempotencyKey,
     string PayloadUtf8)
 {
-    public string PayloadSha256 => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(PayloadUtf8 ?? string.Empty))).ToLowerInvariant();
+    private static readonly UTF8Encoding StrictUtf8 = new(false, true);
+
+    /// <summary>
+    /// Decodes the exact received request bytes without replacement fallback. HTTP
+    /// adapters should use this factory so invalid UTF-8 is rejected before receipt.
+    /// </summary>
+    public static CiAiArtifactReadyNotice FromUtf8Bytes(
+        string senderIdentity,
+        string noticeId,
+        string idempotencyKey,
+        ReadOnlySpan<byte> payloadBytes)
+    {
+        if (payloadBytes.IsEmpty || payloadBytes.Length > 64 * 1024)
+            throw new ArgumentException("The exact UTF-8 notice body must be non-empty and no larger than 64 KiB.", nameof(payloadBytes));
+
+        string payload;
+        try
+        {
+            payload = StrictUtf8.GetString(payloadBytes);
+        }
+        catch (DecoderFallbackException exception)
+        {
+            throw new ArgumentException("The exact notice body must contain valid UTF-8.", nameof(payloadBytes), exception);
+        }
+
+        return new CiAiArtifactReadyNotice(senderIdentity, noticeId, idempotencyKey, payload);
+    }
+
+    public string PayloadSha256 => Convert.ToHexString(SHA256.HashData(StrictUtf8.GetBytes(PayloadUtf8 ?? string.Empty))).ToLowerInvariant();
 
     public CiAiArtifactReadyNotice Validate()
     {
         ValidateText(SenderIdentity, 128, nameof(SenderIdentity));
         ValidateText(NoticeId, 128, nameof(NoticeId));
         ValidateText(IdempotencyKey, 128, nameof(IdempotencyKey));
-        if (string.IsNullOrEmpty(PayloadUtf8) || Encoding.UTF8.GetByteCount(PayloadUtf8) > 64 * 1024)
+        if (string.IsNullOrEmpty(PayloadUtf8))
+            throw new ArgumentException("The exact UTF-8 notice body must be non-empty and no larger than 64 KiB.", nameof(PayloadUtf8));
+
+        int payloadByteCount;
+        try
+        {
+            payloadByteCount = StrictUtf8.GetByteCount(PayloadUtf8);
+        }
+        catch (EncoderFallbackException exception)
+        {
+            throw new ArgumentException("The exact notice body must be representable as valid UTF-8.", nameof(PayloadUtf8), exception);
+        }
+
+        if (payloadByteCount > 64 * 1024)
             throw new ArgumentException("The exact UTF-8 notice body must be non-empty and no larger than 64 KiB.", nameof(PayloadUtf8));
         try
         {
