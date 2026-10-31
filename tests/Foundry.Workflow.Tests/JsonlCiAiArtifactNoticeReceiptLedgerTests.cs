@@ -7,7 +7,7 @@ public sealed class JsonlCiAiArtifactNoticeReceiptLedgerTests
 {
     private static CiAiArtifactReadyNotice Notice(string id = "notice-1", string key = "request-artifact-1") =>
         new("ciai-sender", id, key,
-            $$"""{"noticeId":"{{id}}","manifest":{"idempotencyKey":"{{key}}"}}""");
+            System.Text.Json.JsonSerializer.Serialize(new { noticeId = id, manifest = new { idempotencyKey = key } }));
 
     [Fact]
     public void AcceptsOnceAndReturnsTheSameDurableReceiptForAnExactRetryAfterRestart()
