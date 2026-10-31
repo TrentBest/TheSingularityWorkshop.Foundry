@@ -167,6 +167,7 @@ public sealed record FoundryHeadlessAiTurnResult
     public required DateTimeOffset StartedAt { get; init; }
     public required DateTimeOffset CompletedAt { get; init; }
     public string? PriorTurnId { get; init; }
+    public string? PriorCandidateCommitSha { get; init; }
     public string? IdempotencyKey { get; init; }
     public string? ErrorCode { get; init; }
     public string? Diagnosis { get; init; }
@@ -191,7 +192,9 @@ public sealed record FoundryHeadlessAiTurnResult
             AuthorizedBranch != request.AuthorizedBranch ||
             !string.Equals(BaseCommitSha, request.BaseCommitSha, StringComparison.OrdinalIgnoreCase) ||
             !string.Equals(CandidateCommitSha, request.CandidateCommitSha, StringComparison.OrdinalIgnoreCase) ||
-            PriorTurnId != request.PriorTurnId || IdempotencyKey != request.IdempotencyKey)
+            PriorTurnId != request.PriorTurnId ||
+            !string.Equals(PriorCandidateCommitSha, request.PriorCandidateCommitSha, StringComparison.OrdinalIgnoreCase) ||
+            IdempotencyKey != request.IdempotencyKey)
             throw new InvalidOperationException("HeadlessAi returned a result for different task or candidate provenance.");
         if (string.IsNullOrWhiteSpace(TurnId) || TurnId.Length > 128 ||
             string.IsNullOrWhiteSpace(ProviderId) || ProviderId.Length > 128 ||
