@@ -69,6 +69,8 @@ public sealed record FoundryHeadlessAiTurnRequest
         if (string.IsNullOrWhiteSpace(IdempotencyKey) || IdempotencyKey.Length > 128 ||
             IdempotencyKey.Any(char.IsControl))
             throw new ArgumentException("A bounded host-generated idempotency key is required.", nameof(IdempotencyKey));
+        if ((PriorTurnId is null) != (PriorCandidateCommitSha is null))
+            throw new ArgumentException("Resumable turns must provide both the prior turn ID and prior candidate SHA.");
         if (PriorTurnId is not null && (string.IsNullOrWhiteSpace(PriorTurnId) || PriorTurnId.Length > 128 || PriorTurnId.Any(char.IsControl)))
             throw new ArgumentException("Prior turn identity must be non-empty, control-free, and at most 128 characters.", nameof(PriorTurnId));
         if (PriorCandidateCommitSha is not null)
@@ -172,6 +174,9 @@ public sealed record FoundryHeadlessAiTurnResult
     public IReadOnlyList<string> Questions { get; init; } = Array.Empty<string>();
     public double? Confidence { get; init; }
     public string? Uncertainty { get; init; }
+    public string? OperationalStatus { get; init; }
+    public string? Diagnostic { get; init; }
+    public string? FinishReason { get; init; }
     public string? CurrentAction { get; init; }
     public string? Blocker { get; init; }
     public string? NextExpectedUpdate { get; init; }
@@ -197,7 +202,9 @@ public sealed record FoundryHeadlessAiTurnResult
             Confidence is < 0 or > 1 || (Confidence.HasValue && double.IsNaN(Confidence.Value)))
             throw new InvalidOperationException("HeadlessAi returned a malformed or unbounded result.");
         if (Diagnosis?.Length > 16_384 || PatchIntent?.Length > 16_384 ||
-            Uncertainty?.Length > 4_096 || CurrentAction?.Length > 2_048 ||
+            Uncertainty?.Length > 4_096 || OperationalStatus?.Length > 2_048 ||
+            Diagnostic?.Length > 4_096 || FinishReason?.Length > 128 || ErrorCode?.Length > 128 ||
+            CurrentAction?.Length > 2_048 ||
             Blocker?.Length > 4_096 || NextExpectedUpdate?.Length > 2_048 ||
             StopOrEscalateReason?.Length > 4_096 || HumanDecisionRequired?.Length > 4_096)
             throw new InvalidOperationException("HeadlessAi returned proposal text beyond the accepted bounds.");
