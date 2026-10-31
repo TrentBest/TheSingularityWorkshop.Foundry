@@ -16,7 +16,7 @@ Create the context from JSON values and pass it to the existing runner or coordi
 ```csharp
 using System.Text.Json;
 
-using var document = JsonDocument.Parse("\\\"task-42\\\"");
+using var document = JsonDocument.Parse("\"task-42\"");
 var context = new WorkflowExecutionContext(
     new Dictionary<string, JsonElement>
     {
