@@ -53,7 +53,7 @@ public sealed record WorkTaskEvent(long Sequence, WorkTaskStatus Previous, WorkT
     long? CiRunId = null, int? CiRunAttempt = null, string? EvidencePayloadSha256 = null,
     string? ApprovalReceiptId = null, string? ApprovalIssuer = null, string? ApprovalPrincipal = null,
     string? ApprovalIncidentId = null, long? ApprovalIncidentSequence = null,
-    long? ApprovalTaskEventSequence = null);
+    long? ApprovalTaskEventSequence = null, CodeRedRecoveryApprovalReceipt? ApprovalReceipt = null);
 public sealed record WorkTaskSnapshot(WorkTaskRequest Request, WorkTaskStatus Status,
     WorkTaskLease? Lease, int Attempt, IReadOnlyList<WorkTaskEvent> Events);
 
@@ -201,7 +201,8 @@ public sealed class WorkTaskCoordinator
                 approvalIssuer: receipt.Issuer, approvalPrincipal: receipt.Principal,
                 approvalIncidentId: receipt.IncidentId,
                 approvalIncidentSequence: receipt.IncidentSequence,
-                approvalTaskEventSequence: receipt.TaskEventSequence);
+                approvalTaskEventSequence: receipt.TaskEventSequence,
+                approvalReceipt: receipt);
             return state.Snapshot();
         }
     }
@@ -286,7 +287,8 @@ public sealed class WorkTaskCoordinator
     internal static bool HasApprovalMetadata(WorkTaskEvent item) =>
         item.ApprovalReceiptId is not null || item.ApprovalIssuer is not null ||
         item.ApprovalPrincipal is not null || item.ApprovalIncidentId is not null ||
-        item.ApprovalIncidentSequence.HasValue || item.ApprovalTaskEventSequence.HasValue;
+        item.ApprovalIncidentSequence.HasValue || item.ApprovalTaskEventSequence.HasValue ||
+        item.ApprovalReceipt is not null;
 
     internal static bool IsValidApprovedRecoveryEvent(WorkTaskEvent item) =>
         item.Previous == WorkTaskStatus.CodeRed &&
@@ -300,7 +302,13 @@ public sealed class WorkTaskCoordinator
         !string.IsNullOrWhiteSpace(item.ApprovalIncidentId) && item.ApprovalIncidentId.Length <= 128 &&
         !item.ApprovalIncidentId.Any(char.IsControl) &&
         item.ApprovalIncidentSequence is > 0 &&
-        item.ApprovalTaskEventSequence == item.Sequence - 1;
+        item.ApprovalTaskEventSequence == item.Sequence - 1 &&
+        item.ApprovalReceipt is { } receipt && receipt.Validate() == receipt &&
+        receipt.ReceiptId == item.ApprovalReceiptId && receipt.Issuer == item.ApprovalIssuer &&
+        receipt.Principal == item.ApprovalPrincipal && receipt.IncidentId == item.ApprovalIncidentId &&
+        receipt.IncidentSequence == item.ApprovalIncidentSequence &&
+        receipt.TaskEventSequence == item.ApprovalTaskEventSequence &&
+        receipt.TaskId.Length > 0 && receipt.Action == CodeRedRecoveryAction.ResumeInvestigation;
 
     private static bool Allowed(WorkTaskStatus current, WorkTaskStatus next) => (current, next) switch
     {
@@ -336,11 +344,11 @@ public sealed class WorkTaskCoordinator
             string? evidencePayloadSha256 = null, string? approvalReceiptId = null,
             string? approvalIssuer = null, string? approvalPrincipal = null,
             string? approvalIncidentId = null, long? approvalIncidentSequence = null,
-            long? approvalTaskEventSequence = null) =>
+            long? approvalTaskEventSequence = null, CodeRedRecoveryApprovalReceipt? approvalReceipt = null) =>
             _events.Add(new WorkTaskEvent(_events.Count + 1, previous, current, agent, lease, at,
                 reason, ciRunId, ciRunAttempt, evidencePayloadSha256, approvalReceiptId,
                 approvalIssuer, approvalPrincipal, approvalIncidentId, approvalIncidentSequence,
-                approvalTaskEventSequence));
+                approvalTaskEventSequence, approvalReceipt));
         public WorkTaskSnapshot Snapshot() =>
             new(Request, Status, Lease, Attempt, Array.AsReadOnly(_events.ToArray()));
     }
