@@ -62,7 +62,7 @@ public sealed class CodeRedIncidentTests
     public void IncidentTextAndBranchFieldsAreBoundedAndControlFree()
     {
         Assert.Throws<ArgumentException>(() => (Incident() with { AgentId = new string('x', 129) }).Validate());
-        Assert.Throws<ArgumentException>(() => (Incident() with { Reason = "failure\\nforged notice" }).Validate());
+        Assert.Throws<ArgumentException>(() => (Incident() with { Reason = "failure\nforged notice" }).Validate());
         Assert.Throws<ArgumentException>(() => (Incident() with { Branch = "work/../master" }).Validate());
         Assert.Throws<ArgumentException>(() => (Incident() with { CurrentAction = new string('x', 2049) }).Validate());
     }
