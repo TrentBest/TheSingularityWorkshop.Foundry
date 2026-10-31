@@ -129,6 +129,17 @@ public sealed class WorkTaskCapabilityRegistryTests
         Assert.Throws<ArgumentException>(() => registry.Grant(task, "development", CandidateSha,
             new[] { "src/Foundry.Workflow" }, new[] { WorkTaskAction.WriteFiles },
             Now, TimeSpan.FromMinutes(5)));
+        foreach (var invalidBranch in new[]
+        {
+            "work/feature name", "work/feature?", "work/feature*", "work/feature.lock",
+            "work/.hidden", "work/feature.", "work/feature@{1}", "work//feature",
+            "work/feature~1", "work/feature^1", "work/feature:name"
+        })
+        {
+            Assert.Throws<ArgumentException>(() => registry.Grant(task, invalidBranch, CandidateSha,
+                new[] { "src/Foundry.Workflow" }, new[] { WorkTaskAction.WriteFiles },
+                Now, TimeSpan.FromMinutes(5)));
+        }
         Assert.Throws<ArgumentException>(() => registry.Grant(task, "work/task-8", CandidateSha,
             new[] { "src/Foundry.Workflow" }, new[] { (WorkTaskAction)99 },
             Now, TimeSpan.FromMinutes(5)));
