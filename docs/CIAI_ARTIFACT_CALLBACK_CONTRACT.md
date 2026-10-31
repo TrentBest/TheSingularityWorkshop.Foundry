@@ -72,7 +72,7 @@ Foundry creates and persists the request mapping before it asks CiAi to produce 
 
 The callback does not get to select or create a task. An unknown request, wrong operation, mismatched idempotency key, expired request, wrong recipient, or provider mismatch is rejected. Foundry obtains task/correlation identity from its own persisted request mapping, not from model output or an untrusted callback field.
 
-For this evidence artifact, the manifest's `providerRepository`, `sourceSha`, and `providerRunId` must reconcile with the packet's `repository`, `headSha`, and `runId`. The packet's `workflowPath`, `headRef`, `runAttempt`, and run identity must then match the Foundry request mapping. A missing expected run identity is not permission to accept an arbitrary run; the host must apply the explicit request policy for that stage.
+For this evidence artifact, the manifest's `providerRepository` and optional `providerRunId` identify the trusted CiAi producer and its own execution provenance; they must match the registered provider identity and provider policy, not be confused with the target repository's CI run. The manifest's `sourceSha` must match the packet's `headSha`. The packet's `repository`, `workflowPath`, `headRef`, `runId`, and `runAttempt` must match the Foundry request mapping. A missing expected target-run identity is not permission to accept an arbitrary run; the host must apply the explicit request policy for that stage.
 
 ## 4. Durable callback receipt and idempotency
 
