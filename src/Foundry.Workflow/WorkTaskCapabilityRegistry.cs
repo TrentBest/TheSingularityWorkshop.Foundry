@@ -147,14 +147,16 @@ public sealed class WorkTaskCapabilityRegistry
 
     private static void ValidateBranch(string branch)
     {
-        if (string.IsNullOrWhiteSpace(branch) || branch is "@" or "master" or "development" ||
-            branch.StartsWith('/') || branch.EndsWith('/') || branch.EndsWith('.') ||
+        if (string.IsNullOrWhiteSpace(branch) ||
+            string.Equals(branch, "master", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(branch, "development", StringComparison.OrdinalIgnoreCase) || branch == "@" ||
+            branch.StartsWith('/') || branch.EndsWith('/') ||
             branch.Contains('\\') || branch.Contains("..", StringComparison.Ordinal) ||
             branch.Contains("@{", StringComparison.Ordinal) ||
             branch.Any(character => char.IsControl(character) || char.IsWhiteSpace(character) ||
                 character is '~' or '^' or ':' or '?' or '*' or '[' or ']') ||
             branch.Split('/').Any(segment => segment.Length == 0 ||
-                segment.StartsWith('.') || segment is "." or ".." ||
+                segment.StartsWith('.') || segment is "." or ".." || segment.EndsWith('.') ||
                 segment.EndsWith(".lock", StringComparison.OrdinalIgnoreCase)))
             throw new ArgumentException("Capability must target a Git-valid isolated feature branch.", nameof(branch));
     }

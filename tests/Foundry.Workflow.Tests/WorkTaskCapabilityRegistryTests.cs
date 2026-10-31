@@ -187,7 +187,8 @@ public sealed class WorkTaskCapabilityRegistryTests
         {
             "work/feature name", "work/feature?", "work/feature*", "work/feature.lock",
             "work/.hidden", "work/feature.", "work/feature@{1}", "work//feature",
-            "work/feature~1", "work/feature^1", "work/feature:name", "work/bad\\u0001branch"
+            "work/feature~1", "work/feature^1", "work/feature:name",
+            "work/segment./feature", "work/bad\\u0001branch"
         })
         {
             Assert.Throws<ArgumentException>(() => registry.Grant(task, invalidBranch, CandidateSha,
