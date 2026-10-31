@@ -281,9 +281,13 @@ public static class CiAiArtifactReadyNoticeValidator
     private static DateTimeOffset ReadTimestamp(JsonElement element, string name)
     {
         var value = ReadText(element, name, 64);
-        if (!DateTimeOffset.TryParse(value, CultureInfo.InvariantCulture,
+        var timeSeparator = value.IndexOf('T');
+        var hasExplicitZone = value.EndsWith("Z", StringComparison.OrdinalIgnoreCase) ||
+            (timeSeparator >= 0 &&
+             (value.IndexOf('+', timeSeparator) >= 0 || value.IndexOf('-', timeSeparator) >= 0));
+        if (!hasExplicitZone || !DateTimeOffset.TryParse(value, CultureInfo.InvariantCulture,
                 DateTimeStyles.None, out var timestamp))
-            throw new FormatException($"CiAi notice property '{name}' must be an ISO-8601 timestamp.");
+            throw new FormatException($"CiAi notice property '{name}' must be an ISO-8601 timestamp with an explicit UTC offset.");
         return timestamp;
     }
 
