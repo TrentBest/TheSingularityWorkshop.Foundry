@@ -10,14 +10,9 @@ public sealed class HeadlessAiAgentTurnClient : IHeadlessAiAgentTurnClient
 {
     private const string TaskVersion = "foundry.work-task.v1";
     private readonly HeadlessAiAgentTurnExecutor _executor;
-    private readonly TimeProvider _timeProvider;
-
-    public HeadlessAiAgentTurnClient(
-        HeadlessAiAgentTurnExecutor executor,
-        TimeProvider? timeProvider = null)
+    public HeadlessAiAgentTurnClient(HeadlessAiAgentTurnExecutor executor)
     {
         _executor = executor ?? throw new ArgumentNullException(nameof(executor));
-        _timeProvider = timeProvider ?? TimeProvider.System;
     }
 
     /// <summary>
