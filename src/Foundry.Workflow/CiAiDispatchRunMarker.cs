@@ -7,15 +7,25 @@ namespace TheSingularityWorkshop.Foundry;
 /// artifact. Parsing validates the wire shape; the host must still retrieve it
 /// from the exact GitHub run/attempt after independently validating run metadata.
 /// </summary>
-public sealed record CiAiDispatchRunMarker(
-    string RequestId,
-    string OperationId,
-    string IdempotencyKey,
-    long RunId,
-    int RunAttempt)
+public sealed class CiAiDispatchRunMarker
 {
+    private CiAiDispatchRunMarker(string requestId, string operationId, string idempotencyKey, long runId, int runAttempt)
+    {
+        RequestId = requestId;
+        OperationId = operationId;
+        IdempotencyKey = idempotencyKey;
+        RunId = runId;
+        RunAttempt = runAttempt;
+    }
+
     public const string Contract = "foundry.ciai-dispatch-marker.v1";
     public const int MaximumPayloadBytes = 4 * 1024;
+
+    public string RequestId { get; }
+    public string OperationId { get; }
+    public string IdempotencyKey { get; }
+    public long RunId { get; }
+    public int RunAttempt { get; }
 
     private static readonly HashSet<string> PropertyNames = new(StringComparer.Ordinal)
     {
