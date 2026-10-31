@@ -12,9 +12,11 @@
 - [Agent onboarding](AGENTS.md) — repository-specific contribution, safety, branch, release, and documentation rules.
 - [Gallery](Gallery.md) — demonstrations and recipes.
 - [Domain and ownership](docs/DOMAIN.md) — proposed Foundry domain, ownership boundaries, safety invariants, and first release slice.
-- [Workflow semantics](docs/WORKFLOW_SEMANTICS.md) — version-1 execution model, validation, outcomes, and explicit limitations.
+- [Workflow semantics](docs/WORKFLOW_SEMANTICS.md) — version-1 execution model, bounded per-run context, validation, outcomes, and explicit limitations.
+- [Workflow execution context](docs/WORKFLOW_EXECUTION_CONTEXT.md) — typed JSON inputs/outputs, enforced size limits, host ownership, and data-only safety boundary.
 - [Governed work task lifecycle](docs/WORK_TASK_LIFECYCLE.md) — task envelopes, fenced leases, local journals, capabilities, CODE RED notices, and exact-CI repair decisions.
-- [CiAi artifact callback contract](docs/CIAI_ARTIFACT_CALLBACK_CONTRACT.md) — Foundry-owned v1 HTTPS ingress, authentication, durable idempotency receipts, immutable artifact pull, and provider acknowledgement.\n- [Foundry–HeadlessAi turn bridge](docs/HEADLESSAI_TURN_BRIDGE.md) — task-lease-gated invocation, durable at-most-once journal, host adapter mapping, and remaining live-integration gates.
+- [CiAi artifact callback contract](docs/CIAI_ARTIFACT_CALLBACK_CONTRACT.md) — Foundry-owned v1 HTTPS ingress, authentication, durable idempotency receipts, immutable artifact pull, and provider acknowledgement.
+- [Foundry–HeadlessAi turn bridge](docs/HEADLESSAI_TURN_BRIDGE.md) — task-lease-gated invocation, durable at-most-once journal, host adapter mapping, and remaining live-integration gates.
 - [Architecture](docs/ARCHITECTURE.md) — system boundaries and evidence labels.
 - [Contract inspection ledger](docs/CONTRACT_INSPECTION.md) — source-backed findings from the Workshop stack and unresolved decisions.
 - [Roadmap and readiness](docs/ROADMAP.md) — milestones and verification gates.
@@ -26,11 +28,12 @@
 |---|---|---|
 | Product vision and boundaries | Domain and ownership documented against the implemented version-1 runtime | [Domain and ownership](docs/DOMAIN.md); validate proposed concepts against a working contract and tests |
 | Source contract exploration | First pass recorded | [Contract inspection ledger](docs/CONTRACT_INSPECTION.md); deeper tests and WebApp source remain |
-| Runnable workflow definition | Version-1 in-memory sequential contract implemented and covered by CI | [Definition](src/Foundry.Workflow/WorkflowDefinition.cs), [validator](src/Foundry.Workflow/WorkflowValidator.cs), [runner](src/Foundry.Workflow/WorkflowRunner.cs); persisted workflow-definition format remains open |
+| Runnable workflow definition | Version-1 in-memory sequential contract with bounded per-run JSON context implemented and covered by CI | [Definition](src/Foundry.Workflow/WorkflowDefinition.cs), [validator](src/Foundry.Workflow/WorkflowValidator.cs), [runner](src/Foundry.Workflow/WorkflowRunner.cs); persisted workflow-definition format remains open |
 | FSM_API integration | Basic real-package probe passes; expanded state scenario added | [Probe source](src/Foundry.FsmApiProbe/Program.cs), [fox/sheepdog scenario](src/Foundry.FoxSheepdog/Program.cs), [CI workflow](.github/workflows/foundry-fsm-api-probe.yml), and [successful expanded CI run](https://github.com/TrentBest/TheSingularityWorkshop.Foundry/actions/runs/40025709384) |
 | FSM_COS integration | Boundary inspected; Foundry integration not implemented | Only use for composition if a concrete workflow requires it |
 | FSM_Serialization integration | Responsibility inspected; format not selected | Keep domain semantics in the owning contract; do not assume arbitrary-object serialization |
-| Governed work lifecycle | Implemented on PR #10 feature branch; not yet merged or connected to live services | [Work-task lifecycle](docs/WORK_TASK_LIFECYCLE.md); local task/incident/repair journals are single-process, not GitHub-backed or distributed |\n| HeadlessAi turn bridge | Implemented on PR #11 feature branch with durable at-most-once invocation journal; fake-client tests cover provenance, duplicate replay, and indeterminate-call stop | [Turn bridge guide](docs/HEADLESSAI_TURN_BRIDGE.md); concrete host adapter and live provider invocation remain |
+| Governed work lifecycle | Implemented on PR #10 feature branch; not yet merged or connected to live services | [Work-task lifecycle](docs/WORK_TASK_LIFECYCLE.md); local task/incident/repair journals are single-process, not GitHub-backed or distributed |
+| HeadlessAi turn bridge | Implemented on PR #11 feature branch with durable at-most-once invocation journal; fake-client tests cover provenance, duplicate replay, and indeterminate-call stop | [Turn bridge guide](docs/HEADLESSAI_TURN_BRIDGE.md); concrete host adapter and live provider invocation remain |
 | CiAi artifact ingress | Host-owned v1 callback contract documented; no live receiver or remote transport yet | [CiAi artifact callback contract](docs/CIAI_ARTIFACT_CALLBACK_CONTRACT.md); ready notice + immutable pull + durable receipt boundary |
 | CI execution | PR #10 latest governed-work head and PR #11 combined stack both passed the full proof workflow, including the durable turn journal | [PR #10 run #304](https://github.com/TrentBest/TheSingularityWorkshop.Foundry/actions/runs/41172981012) and [combined-stack PR #11 run #319](https://github.com/TrentBest/TheSingularityWorkshop.Foundry/actions/runs/41174088415); verified exact bridge head `667d759e319fe3c2785b92687a7ae4f842c43a0b` |
 | Source-derived UML | Not implemented | Add diagrams after domain types exist |
