@@ -107,8 +107,8 @@ public sealed class JsonlCodeRedIncidentStore
 
             if (!_latest.TryGetValue(incident.IncidentId, out var previous))
             {
-                if (incident.ClearedAt.HasValue || incident.UpdatedAt != incident.StartedAt)
-                    throw new InvalidDataException($"Incident '{incident.IncidentId}' does not begin with an active snapshot.");
+                if (incident.Sequence != 1 || incident.ClearedAt.HasValue || incident.UpdatedAt != incident.StartedAt)
+                    throw new InvalidDataException($"Incident '{incident.IncidentId}' does not begin with an active sequence-one snapshot.");
             }
             else
             {

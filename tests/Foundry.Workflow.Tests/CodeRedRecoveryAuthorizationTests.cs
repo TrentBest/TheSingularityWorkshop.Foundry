@@ -25,6 +25,7 @@ public sealed class CodeRedRecoveryAuthorizationTests
             Assert.Equal(receipt.ReceiptId, audit.ApprovalReceiptId);
             Assert.Equal(receipt.Issuer, audit.ApprovalIssuer);
             Assert.Equal(receipt.Principal, audit.ApprovalPrincipal);
+            Assert.Equal(receipt, audit.ApprovalReceipt);
             Assert.Equal(incident.IncidentId, audit.ApprovalIncidentId);
             Assert.Equal(incident.Sequence, audit.ApprovalIncidentSequence);
             Assert.Equal(receipt.TaskEventSequence, audit.ApprovalTaskEventSequence);
