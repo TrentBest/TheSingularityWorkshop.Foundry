@@ -119,7 +119,7 @@ public sealed class JsonlCiAiArtifactNoticeReceiptLedger
                 return (CiAiArtifactNoticeReceiptOutcome.Conflict, existingByNoticeId);
 
             var receipt = new CiAiArtifactNoticeReceipt(
-                CiAiArtifactNoticeReceipt.SchemaVersion,
+                CiAiArtifactNoticeReceipt.CurrentSchemaVersion,
                 Guid.NewGuid().ToString("N"),
                 notice.SenderIdentity,
                 notice.NoticeId,
@@ -198,7 +198,7 @@ public sealed class JsonlCiAiArtifactNoticeReceiptLedger
 
     private static void ValidateReceipt(CiAiArtifactNoticeReceipt receipt)
     {
-        if (receipt.SchemaVersion != CiAiArtifactNoticeReceipt.SchemaVersion ||
+        if (receipt.SchemaVersion != CiAiArtifactNoticeReceipt.CurrentSchemaVersion ||
             string.IsNullOrWhiteSpace(receipt.ReceiptId) || receipt.ReceiptId.Length != 32 ||
             !Guid.TryParseExact(receipt.ReceiptId, "N", out _) ||
             receipt.AcceptedAt == default)
