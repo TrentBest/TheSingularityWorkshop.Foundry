@@ -124,4 +124,32 @@ public sealed class JsonlCiAiArtifactNoticeReceiptLedgerTests
             if (File.Exists(path)) File.Delete(path);
         }
     }
+
+    [Fact]
+    public void StrictUtf8FactoryPreservesExactBodyDigestAndRejectsInvalidByteSequences()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"foundry-ciai-receipts-{Guid.NewGuid():N}.jsonl");
+        try
+        {
+            var payloadBytes = System.Text.Encoding.UTF8.GetBytes(
+                """{"noticeId":"notice-1","manifest":{"idempotencyKey":"request-artifact-1"},"padding":"  "}""");
+            var notice = CiAiArtifactReadyNotice.FromUtf8Bytes(
+                "ciai-sender", "notice-1", "request-artifact-1", payloadBytes);
+
+            Assert.Equal(
+                Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(payloadBytes)).ToLowerInvariant(),
+                notice.PayloadSha256);
+            Assert.Equal(CiAiArtifactNoticeReceiptOutcome.Accepted,
+                new JsonlCiAiArtifactNoticeReceiptLedger(path).Accept(notice, DateTimeOffset.UtcNow).Outcome);
+
+            var invalidUtf8 = new byte[] { 0xC3, 0x28 };
+            Assert.Throws<ArgumentException>(() =>
+                CiAiArtifactReadyNotice.FromUtf8Bytes(
+                    "ciai-sender", "notice-1", "request-artifact-1", invalidUtf8));
+        }
+        finally
+        {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
 }
