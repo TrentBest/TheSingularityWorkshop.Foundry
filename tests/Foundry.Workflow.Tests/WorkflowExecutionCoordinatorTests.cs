@@ -227,7 +227,7 @@ public sealed class WorkflowExecutionCoordinatorTests
 
 
     [Fact]
-    public async Task SubmitCarriesContextIntoTheAcceptedRun()
+    public async Task SubmitTransfersContextOwnershipAndCarriesItIntoTheAcceptedRun()
     {
         using var document = System.Text.Json.JsonDocument.Parse("\"request-7\"");
         var context = new WorkflowExecutionContext(
@@ -249,6 +249,9 @@ public sealed class WorkflowExecutionCoordinatorTests
 
         Assert.Equal(WorkflowRunStatus.Accepted, accepted.Status);
         Assert.Null(observed);
+        Assert.Throws<InvalidOperationException>(() => context.SetOutput("callerMutation", true));
+        Assert.Throws<InvalidOperationException>(() => coordinator.Submit(
+            Definition(new WorkflowStep("step-1", "capture")), context));
 
         var result = await coordinator.StartAsync(accepted.RunId);
 
