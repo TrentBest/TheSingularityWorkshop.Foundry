@@ -220,7 +220,7 @@ public sealed class WorkTaskCoordinator
         (WorkTaskStatus.Validating, WorkTaskStatus.RepairRequired or WorkTaskStatus.ReviewReady or WorkTaskStatus.Blocked or WorkTaskStatus.CodeRed or WorkTaskStatus.Stopped or WorkTaskStatus.Failed) => true,
         (WorkTaskStatus.RepairRequired, WorkTaskStatus.Implementing or WorkTaskStatus.Blocked or WorkTaskStatus.CodeRed or WorkTaskStatus.Stopped or WorkTaskStatus.Failed) => true,
         (WorkTaskStatus.Blocked, WorkTaskStatus.Claimed or WorkTaskStatus.Stopped or WorkTaskStatus.Failed) => true,
-        (WorkTaskStatus.CodeRed, WorkTaskStatus.Investigating or WorkTaskStatus.Implementing or WorkTaskStatus.Validating or WorkTaskStatus.Blocked or WorkTaskStatus.ReviewReady or WorkTaskStatus.Stopped or WorkTaskStatus.Failed) => true,
+        (WorkTaskStatus.CodeRed, WorkTaskStatus.Investigating or WorkTaskStatus.Blocked or WorkTaskStatus.Stopped or WorkTaskStatus.Failed) => true,
         (WorkTaskStatus.ReviewReady, WorkTaskStatus.HandedOff or WorkTaskStatus.Stopped) => true,
         _ => false
     };
