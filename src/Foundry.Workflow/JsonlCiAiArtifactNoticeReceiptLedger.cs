@@ -6,7 +6,7 @@ namespace TheSingularityWorkshop.Foundry;
 
 /// <summary>
 /// A normalized, already-authenticated artifact-ready notice. The HTTP adapter must
-/// compute PayloadSha256 from the exact received request bytes before constructing it.
+/// pass the exact received UTF-8 request body; the ledger computes and retains its digest.
 /// This record intentionally contains no URL, credential, or artifact bytes.
 /// </summary>
 public sealed record CiAiArtifactReadyNotice(
@@ -27,8 +27,12 @@ public sealed record CiAiArtifactReadyNotice(
         try
         {
             using var document = JsonDocument.Parse(PayloadUtf8);
-            if (document.RootElement.ValueKind != JsonValueKind.Object)
-                throw new ArgumentException("The exact notice body must be a JSON object.", nameof(PayloadUtf8));
+            var root = document.RootElement;
+            if (root.ValueKind != JsonValueKind.Object ||
+                !root.TryGetProperty("noticeId", out var noticeId) || noticeId.GetString() != NoticeId ||
+                !root.TryGetProperty("manifest", out var manifest) || manifest.ValueKind != JsonValueKind.Object ||
+                !manifest.TryGetProperty("idempotencyKey", out var idempotencyKey) || idempotencyKey.GetString() != IdempotencyKey)
+                throw new ArgumentException("The exact notice body must bind noticeId and manifest.idempotencyKey to the normalized receipt identity.", nameof(PayloadUtf8));
         }
         catch (JsonException exception)
         {
@@ -88,7 +92,7 @@ public sealed class JsonlCiAiArtifactNoticeReceiptLedger
             Replay();
     }
 
-    public (CiAiArtifactNoticeReceiptReceiptOutcome Outcome, CiAiArtifactNoticeReceipt Receipt) Accept(
+    public (CiAiArtifactNoticeReceiptOutcome Outcome, CiAiArtifactNoticeReceipt Receipt) Accept(
         CiAiArtifactReadyNotice notice, DateTimeOffset acceptedAt)
     {
         ArgumentNullException.ThrowIfNull(notice);
@@ -104,15 +108,15 @@ public sealed class JsonlCiAiArtifactNoticeReceiptLedger
             if (_bySenderAndKey.TryGetValue(key, out var existingByKey))
             {
                 if (!string.Equals(existingByKey.PayloadSha256, notice.PayloadSha256, StringComparison.OrdinalIgnoreCase))
-                    return (CiAiArtifactNoticeReceiptReceiptOutcome.Conflict, existingByKey);
+                    return (CiAiArtifactNoticeReceiptOutcome.Conflict, existingByKey);
                 if (_bySenderAndNotice.TryGetValue(noticeKey, out var existingByNotice) &&
                     existingByNotice != existingByKey)
-                    return (CiAiArtifactNoticeReceiptReceiptOutcome.Conflict, existingByKey);
-                return (CiAiArtifactNoticeReceiptReceiptOutcome.Duplicate, existingByKey);
+                    return (CiAiArtifactNoticeReceiptOutcome.Conflict, existingByKey);
+                return (CiAiArtifactNoticeReceiptOutcome.Duplicate, existingByKey);
             }
 
             if (_bySenderAndNotice.TryGetValue(noticeKey, out var existingByNoticeId))
-                return (CiAiArtifactNoticeReceiptReceiptOutcome.Conflict, existingByNoticeId);
+                return (CiAiArtifactNoticeReceiptOutcome.Conflict, existingByNoticeId);
 
             var receipt = new CiAiArtifactNoticeReceipt(
                 CiAiArtifactNoticeReceipt.SchemaVersion,
@@ -127,7 +131,7 @@ public sealed class JsonlCiAiArtifactNoticeReceiptLedger
             WriteLine(receipt);
             _bySenderAndKey.Add(key, receipt);
             _bySenderAndNotice.Add(noticeKey, receipt);
-            return (CiAiArtifactNoticeReceiptReceiptOutcome.Accepted, receipt);
+            return (CiAiArtifactNoticeReceiptOutcome.Accepted, receipt);
         }
     }
 
@@ -207,11 +211,4 @@ public sealed class JsonlCiAiArtifactNoticeReceiptLedger
     }
 
     private static string Scope(string sender, string identity) => sender + "\0" + identity;
-}
-
-public enum CiAiArtifactNoticeReceiptReceiptOutcome
-{
-    Accepted,
-    Duplicate,
-    Conflict
 }
