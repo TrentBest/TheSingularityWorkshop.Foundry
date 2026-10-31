@@ -60,6 +60,88 @@ public sealed class WorkflowExecutionCoordinatorTests
     }
 
     [Fact]
+    public async Task WorkflowTimeoutProducesTimedOutOutcomeDistinctFromCallerCancellation()
+    {
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var registry = new WorkflowHandlerRegistry();
+        registry.Register("wait", async token =>
+        {
+            entered.TrySetResult();
+            await Task.Delay(Timeout.InfiniteTimeSpan, token);
+        });
+        await using var coordinator = new WorkflowExecutionCoordinator(registry);
+        var accepted = coordinator.Submit(Definition(new WorkflowStep("step-1", "wait")));
+
+        var completion = coordinator.StartAsync(accepted.RunId, TimeSpan.FromMilliseconds(100));
+        await entered.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        var result = await completion.WaitAsync(TimeSpan.FromSeconds(5));
+
+        Assert.Equal(WorkflowStatus.TimedOut, result.Status);
+        Assert.Equal(StepStatus.Cancelled, Assert.Single(result.Steps).Status);
+        Assert.Equal(WorkflowRunStatus.TimedOut,
+            coordinator.GetSnapshot(accepted.RunId).Status);
+        Assert.False(coordinator.Cancel(accepted.RunId));
+    }
+
+    [Fact]
+    public async Task CallerCancellationWinsWhenBothCancellationSignalsAreRequested()
+    {
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var registry = new WorkflowHandlerRegistry();
+        registry.Register("wait", async token =>
+        {
+            entered.TrySetResult();
+            await release.Task;
+            token.ThrowIfCancellationRequested();
+        });
+        await using var coordinator = new WorkflowExecutionCoordinator(registry);
+        var accepted = coordinator.Submit(Definition(new WorkflowStep("step-1", "wait")));
+
+        var completion = coordinator.StartAsync(accepted.RunId, TimeSpan.FromMilliseconds(100));
+        await entered.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        await Task.Delay(TimeSpan.FromMilliseconds(200)); // Ensure the workflow timeout has fired.
+        Assert.True(coordinator.Cancel(accepted.RunId));
+        release.TrySetResult();
+
+        var result = await completion.WaitAsync(TimeSpan.FromSeconds(5));
+
+        Assert.Equal(WorkflowStatus.Cancelled, result.Status);
+        Assert.Equal(WorkflowRunStatus.Cancelled,
+            coordinator.GetSnapshot(accepted.RunId).Status);
+    }
+
+    [Fact]
+    public async Task TimeoutDoesNotForceStopAHandlerThatIgnoresCancellation()
+    {
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var registry = new WorkflowHandlerRegistry();
+        registry.Register("wait", async _ =>
+        {
+            entered.TrySetResult();
+            await release.Task;
+        });
+        await using var coordinator = new WorkflowExecutionCoordinator(registry);
+        var accepted = coordinator.Submit(Definition(new WorkflowStep("step-1", "wait")));
+
+        var completion = coordinator.StartAsync(accepted.RunId, TimeSpan.FromMilliseconds(100));
+        await entered.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        await Task.Delay(TimeSpan.FromMilliseconds(200)); // Allow the timeout request to fire.
+
+        Assert.False(completion.IsCompleted);
+        Assert.Equal(WorkflowRunStatus.Running,
+            coordinator.GetSnapshot(accepted.RunId).Status);
+
+        release.TrySetResult();
+        var result = await completion.WaitAsync(TimeSpan.FromSeconds(5));
+
+        Assert.Equal(WorkflowStatus.TimedOut, result.Status);
+        Assert.Equal(WorkflowRunStatus.TimedOut,
+            coordinator.GetSnapshot(accepted.RunId).Status);
+    }
+
+    [Fact]
     public async Task AcceptedRunCanBeCancelledWithoutInvokingHandlers()
     {
         var calls = 0;
