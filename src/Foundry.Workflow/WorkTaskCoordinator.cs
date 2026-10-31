@@ -182,7 +182,10 @@ public sealed class WorkTaskCoordinator
                 receipt.TaskEventSequence != snapshot.Events.Count ||
                 receipt.IncidentSequence != incident.Sequence ||
                 receipt.Action != CodeRedRecoveryAction.ResumeInvestigation ||
-                receipt.IssuedAt > now || receipt.ExpiresAt <= now)
+                receipt.IssuedAt > now || receipt.ExpiresAt <= now ||
+                receipt.IssuedAt < incident.StartedAt || receipt.IssuedAt < incident.UpdatedAt ||
+                snapshot.Events.Count == 0 || receipt.IssuedAt < snapshot.Events[^1].OccurredAt ||
+                now < snapshot.Events[^1].OccurredAt)
                 throw new UnauthorizedAccessException("The approval receipt is expired or is not bound to the current task, incident, sequence, or recovery action.");
 
             if (snapshot.Events.Any(item => string.Equals(item.ApprovalReceiptId,
