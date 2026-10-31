@@ -104,6 +104,18 @@ public sealed class WorkflowRunnerTests
 
 
     [Fact]
+    public async Task LegacyRunAsyncDefaultCancellationArgumentRemainsUnambiguous()
+    {
+        var registry = new WorkflowHandlerRegistry();
+        registry.Register("work", _ => ValueTask.CompletedTask);
+
+        var result = await new WorkflowRunner(registry).RunAsync(
+            Definition(new WorkflowStep("step-1", "work")), default);
+
+        Assert.Equal(WorkflowStatus.Succeeded, result.Status);
+    }
+
+    [Fact]
     public async Task ContextAwareHandlersPassBoundedTypedDataBetweenSteps()
     {
         using var inputDocument = System.Text.Json.JsonDocument.Parse("\"task-42\"");
@@ -126,7 +138,7 @@ public sealed class WorkflowRunnerTests
             return ValueTask.CompletedTask;
         });
 
-        var result = await new WorkflowRunner(registry).RunAsync(Definition(
+        var result = await new WorkflowRunner(registry).RunWithContextAsync(Definition(
             new WorkflowStep("step-1", "validate"),
             new WorkflowStep("step-2", "consume")), context);
 
