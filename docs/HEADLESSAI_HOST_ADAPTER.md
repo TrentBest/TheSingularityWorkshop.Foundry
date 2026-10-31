@@ -26,6 +26,30 @@ The host constructs a `HeadlessAiProfile`, the selected provider adapter, an opt
 
 Provider credentials are resolved by the host-side request-header provider at request time. Do not put secrets in profile settings, source control, prompts, evidence, task records, or model context. GitHub credentials are a separate host-side capability and are not part of this adapter.
 
+## Run one real provider turn
+
+The optional `Foundry.HeadlessAiHost.Console` project is a manual smoke runner. It creates a local durable Foundry task, claims it, transitions it to `Investigating`, and invokes one real OpenAI Responses API turn through the concrete adapter. It does not inspect or modify GitHub repositories, create commits, or dispatch CI.
+
+Set these variables in the host process environment; never put the API key in command-line arguments, task data, prompts, or source control:
+
+- `OPENAI_API_KEY` — provider secret, resolved at request time by the host header provider.
+- `OPENAI_MODEL` — the model identifier enabled for the host's provider account.
+- `FOUNDRY_AGENT_PROMPT` — bounded task context to send to the provider.
+- `FOUNDRY_AGENT_INSTRUCTIONS` — optional host instruction override.
+- `FOUNDRY_DATA_DIR` — optional durable journal directory; defaults to `.foundry-host-data` under the current directory.
+
+From the Foundry repository root, with the pinned HeadlessAi checkout at `headlessai/`, run:
+
+```bash
+dotnet run --project src/Foundry.HeadlessAiHost.Console/Foundry.HeadlessAiHost.Console.csproj -- \
+  <task-id> <correlation-id> <owner/repo> <issue-number> \
+  <base-sha> <candidate-sha> <feature-branch> <allowed-path>
+```
+
+Use a new task ID for each new task record in the same data directory. Supply full 40-character base and candidate SHAs and an isolated feature branch. The candidate SHA and allowed path are caller-supplied in this smoke runner; they are not yet independently verified by a trusted GitHub adapter. The prompt is the only task context sent to the model in this first provider smoke path, so include only the material the model is meant to reason about.
+
+A successful run prints the normalized, provenance-bound result. It does not mean a patch was applied, CI passed, or a PR was created. The returned proposal remains untrusted and requires the later trusted-host GitHub and CiAi integrations.
+
 ## Safety properties
 
 - Foundry must already have validated the active lease and `Investigating` lifecycle before it calls the adapter.
