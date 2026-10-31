@@ -45,6 +45,7 @@ jobs:
           dotnet restore src/Foundry.FoxSheepdog/Foundry.FoxSheepdog.csproj
           dotnet restore tests/Foundry.Workflow.Tests/Foundry.Workflow.Tests.csproj
           dotnet restore src/Foundry.HeadlessAiHost/Foundry.HeadlessAiHost.csproj
+          dotnet restore src/Foundry.HeadlessAiHost.Console/Foundry.HeadlessAiHost.Console.csproj
 
       - name: Test workflow runtime
         run: dotnet test tests/Foundry.Workflow.Tests/Foundry.Workflow.Tests.csproj --configuration Release --no-restore
@@ -54,6 +55,7 @@ jobs:
           dotnet build src/Foundry.FsmApiProbe/Foundry.FsmApiProbe.csproj --configuration Release --no-restore
           dotnet build src/Foundry.FoxSheepdog/Foundry.FoxSheepdog.csproj --configuration Release --no-restore
           dotnet build src/Foundry.HeadlessAiHost/Foundry.HeadlessAiHost.csproj --configuration Release --no-restore
+          dotnet build src/Foundry.HeadlessAiHost.Console/Foundry.HeadlessAiHost.Console.csproj --configuration Release --no-restore
 
       - name: Verify basic FSM_API probe in separate processes
         shell: bash
