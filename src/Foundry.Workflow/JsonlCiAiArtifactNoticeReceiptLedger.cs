@@ -29,9 +29,13 @@ public sealed record CiAiArtifactReadyNotice(
             using var document = JsonDocument.Parse(PayloadUtf8);
             var root = document.RootElement;
             if (root.ValueKind != JsonValueKind.Object ||
-                !root.TryGetProperty("noticeId", out var noticeId) || noticeId.GetString() != NoticeId ||
+                !root.TryGetProperty("noticeId", out var noticeId) ||
+                noticeId.ValueKind != JsonValueKind.String ||
+                !string.Equals(noticeId.GetString(), NoticeId, StringComparison.Ordinal) ||
                 !root.TryGetProperty("manifest", out var manifest) || manifest.ValueKind != JsonValueKind.Object ||
-                !manifest.TryGetProperty("idempotencyKey", out var idempotencyKey) || idempotencyKey.GetString() != IdempotencyKey)
+                !manifest.TryGetProperty("idempotencyKey", out var idempotencyKey) ||
+                idempotencyKey.ValueKind != JsonValueKind.String ||
+                !string.Equals(idempotencyKey.GetString(), IdempotencyKey, StringComparison.Ordinal))
                 throw new ArgumentException("The exact notice body must bind noticeId and manifest.idempotencyKey to the normalized receipt identity.", nameof(PayloadUtf8));
         }
         catch (JsonException exception)
