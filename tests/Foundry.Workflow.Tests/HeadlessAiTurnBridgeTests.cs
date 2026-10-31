@@ -123,6 +123,36 @@ public sealed class HeadlessAiTurnBridgeTests
     }
 
     [Fact]
+    public async Task InvokeAsync_RejectsResultWithDifferentPriorCandidateProvenance()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"foundry-headlessai-{Guid.NewGuid():N}.jsonl");
+        try
+        {
+            var tasks = new PersistentWorkTaskCoordinator(new JsonlWorkTaskStore(path));
+            tasks.Submit(new WorkTaskRequest(1, "task-prior", "corr-prior", "TrentBest/MyVR",
+                48, "https://github.com/TrentBest/MyVR/issues/48", Sha,
+                new[] { "src/MyVR.Core" }, 3));
+            var claimed = tasks.Claim("task-prior", "agent-1", TimeSpan.FromMinutes(30), Now);
+            tasks.Transition("task-prior", claimed.Lease!.LeaseId,
+                WorkTaskStatus.Investigating, Now.AddSeconds(1), "Begin investigation.");
+            var client = new RecordingClient { WrongPriorCandidate = true };
+            var coordinator = new FoundryHeadlessAiTurnCoordinator(tasks, client,
+                new JsonlHeadlessAiTurnJournal(path + ".turns.jsonl"), new FixedTimeProvider(Now.AddMinutes(1)));
+
+            await Assert.ThrowsAsync<InvalidOperationException>(() => coordinator.InvokeAsync(
+                "task-prior", claimed.Lease.LeaseId, "feature/myvr-agent-work", Sha,
+                "software-engineer", "instructions", "prompt", "schema",
+                priorTurnId: "prior-turn",
+                priorCandidateCommitSha: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"));
+        }
+        finally
+        {
+            if (File.Exists(path)) File.Delete(path);
+            if (File.Exists(path + ".turns.jsonl")) File.Delete(path + ".turns.jsonl");
+        }
+    }
+
+    [Fact]
     public async Task InvokeAsync_DoesNotReserveTurnWhenAlreadyCancelled()
     {
         var path = Path.Combine(Path.GetTempPath(), $"foundry-headlessai-{Guid.NewGuid():N}.jsonl");
@@ -279,6 +309,7 @@ public sealed class HeadlessAiTurnBridgeTests
     {
         public FoundryHeadlessAiTurnRequest? Request { get; private set; }
         public bool WrongCandidate { get; init; }
+        public bool WrongPriorCandidate { get; init; }
         public bool ThrowOnCall { get; init; }
         public int CallCount { get; private set; }
 
@@ -304,6 +335,7 @@ public sealed class HeadlessAiTurnBridgeTests
                 StartedAt = Now,
                 CompletedAt = Now.AddSeconds(1),
                 PriorTurnId = request.PriorTurnId,
+                PriorCandidateCommitSha = WrongPriorCandidate ? "cccccccccccccccccccccccccccccccccccccccc" : request.PriorCandidateCommitSha,
                 IdempotencyKey = request.IdempotencyKey,
                 Diagnosis = "The task is ready for bounded implementation."
             });
