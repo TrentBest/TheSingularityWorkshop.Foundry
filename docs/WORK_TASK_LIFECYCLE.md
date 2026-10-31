@@ -44,6 +44,8 @@ Claims have an agent identity, unique lease fencing token, and bounded expiry. A
 
 The registry is an in-process host boundary, not a security sandbox. The host must keep the registry and capability IDs out of model context, pass only the minimum capability to the operation adapter, and reissue after restart only after revalidating task and policy. Merge, release, deployment, package publication, and arbitrary shell/process execution are not grantable actions.
 
+**CODE RED is a mutation-suspension boundary.** While a task is in `CodeRed`, the registry permits only explicitly granted `ReadRepository` access; file writes, branch/commit changes, CI requests, and draft-PR creation are denied. Entering `CodeRed` invalidates every capability issued before that transition, including after the task later resumes. A host-approved recovery must issue a fresh capability after the task has left `CodeRed`. Read-only capabilities may be issued during CODE RED for investigation, but cannot authorize mutation.
+
 ## CODE RED incident record
 
 `CodeRedIncident` is a versioned, credential-free operational record containing repository/task/issue/correlation identity, agent and role, current action, isolated branch and exact candidate SHA, latest CI run and attempt, severity/reason, retry budget, timestamps, and human-escalation requirement. `JsonlCodeRedIncidentStore` persists every create/update/clear snapshot in an append-only, fsync-backed journal, validates immutable incident identity and monotonic history on replay, and rejects mutation after clear.
