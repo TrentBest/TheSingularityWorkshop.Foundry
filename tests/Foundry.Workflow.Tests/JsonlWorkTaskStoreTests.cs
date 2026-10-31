@@ -225,6 +225,11 @@ public sealed class JsonlWorkTaskStoreTests
                 "TrentBest/TheSingularityWorkshop.Foundry", "work/task-1",
                 ".github/workflows/build.yml", new string('a', 40), Now);
             Assert.Equal(WorkTaskRepairAttemptAppendOutcome.Appended, attemptJournal.Append(attempt));
+
+            // Simulate a crash after the attempt journal is flushed but before the task
+            // snapshot records its decision. Recovery must consume the durable orphan attempt.
+            coordinator = new PersistentWorkTaskCoordinator(new JsonlWorkTaskStore(path),
+                new JsonlWorkTaskRepairAttemptJournal(attemptsPath));
             var ready = coordinator.ApplyRepairDecision("task-1", lease, attempt, expectation,
                 TimeSpan.FromMinutes(30), Now.AddMinutes(3));
 
