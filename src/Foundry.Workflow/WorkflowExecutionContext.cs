@@ -18,6 +18,7 @@ public sealed class WorkflowExecutionContext
     private readonly Dictionary<string, JsonElement> _inputs = new(StringComparer.Ordinal);
     private readonly Dictionary<string, JsonElement> _outputs = new(StringComparer.Ordinal);
     private int _totalBytes;
+    private bool _frozen;
 
     public WorkflowExecutionContext()
     {
@@ -72,6 +73,8 @@ public sealed class WorkflowExecutionContext
 
         lock (_gate)
         {
+            if (_frozen)
+                throw new InvalidOperationException("Workflow context ownership transferred at submission; outputs can only be written by workflow handlers.");
             if (_inputs.ContainsKey(key) || _outputs.ContainsKey(key))
                 throw new InvalidOperationException($"Workflow context key '{key}' is already defined.");
             if (_inputs.Count + _outputs.Count >= MaximumEntries ||
@@ -103,6 +106,22 @@ public sealed class WorkflowExecutionContext
         TryGetOutput<T>(key, out var value)
             ? value
             : throw new KeyNotFoundException($"Workflow output '{key}' has not been produced.");
+
+    /// <summary>
+    /// Transfers this context to one coordinator submission. Existing outputs are rejected:
+    /// outputs must be produced by handlers after the run has been accepted.
+    /// </summary>
+    internal void FreezeForExecution()
+    {
+        lock (_gate)
+        {
+            if (_frozen)
+                throw new InvalidOperationException("Workflow context has already been submitted.");
+            if (_outputs.Count != 0)
+                throw new InvalidOperationException("Workflow context cannot be submitted with pre-existing outputs.");
+            _frozen = true;
+        }
+    }
 
     private static void ValidateKey(string key)
     {
