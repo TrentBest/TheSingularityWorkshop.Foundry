@@ -78,6 +78,11 @@ public sealed class WorkTaskCoordinatorTests
         coordinator.Transition("foundry-8", lease, WorkTaskStatus.Implementing, Now, "implement");
         coordinator.Transition("foundry-8", lease, WorkTaskStatus.Validating, Now, "validate first attempt");
         coordinator.Transition("foundry-8", lease, WorkTaskStatus.CodeRed, Now, "validation blocked");
+        Assert.Throws<InvalidOperationException>(() =>
+            coordinator.Transition("foundry-8", lease, WorkTaskStatus.Implementing, Now, "skip recovery investigation"));
+        Assert.Throws<InvalidOperationException>(() =>
+            coordinator.Transition("foundry-8", lease, WorkTaskStatus.Validating, Now, "skip recovery investigation"));
+        coordinator.Transition("foundry-8", lease, WorkTaskStatus.Investigating, Now, "resume after host review");
         coordinator.Transition("foundry-8", lease, WorkTaskStatus.Implementing, Now, "resume bounded repair");
         Assert.Throws<InvalidOperationException>(() =>
             coordinator.Transition("foundry-8", lease, WorkTaskStatus.Validating, Now, "attempt beyond budget"));
