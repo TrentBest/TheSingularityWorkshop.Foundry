@@ -225,6 +225,38 @@ public sealed class WorkflowExecutionCoordinatorTests
         Assert.Equal(WorkflowStatus.Succeeded, (await first).Status);
     }
 
+
+    [Fact]
+    public async Task SubmitCarriesContextIntoTheAcceptedRun()
+    {
+        using var document = System.Text.Json.JsonDocument.Parse("\"request-7\"");
+        var context = new WorkflowExecutionContext(
+            new Dictionary<string, System.Text.Json.JsonElement>
+            {
+                ["requestId"] = document.RootElement
+            });
+        string? observed = null;
+        var registry = new WorkflowHandlerRegistry();
+        registry.Register("capture", (execution, _) =>
+        {
+            observed = execution.GetInput<string>("requestId");
+            execution.SetOutput("completed", true);
+            return ValueTask.CompletedTask;
+        });
+        await using var coordinator = new WorkflowExecutionCoordinator(registry);
+        var accepted = coordinator.Submit(
+            Definition(new WorkflowStep("step-1", "capture")), context);
+
+        Assert.Equal(WorkflowRunStatus.Accepted, accepted.Status);
+        Assert.Null(observed);
+
+        var result = await coordinator.StartAsync(accepted.RunId);
+
+        Assert.Equal(WorkflowStatus.Succeeded, result.Status);
+        Assert.Equal("request-7", observed);
+        Assert.True(context.GetOutput<bool>("completed"));
+    }
+
     private static WorkflowDefinition Definition(params WorkflowStep[] steps) =>
         new("test.workflow.v1", "Test workflow", 1, steps);
 }
