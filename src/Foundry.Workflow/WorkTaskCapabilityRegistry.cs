@@ -138,7 +138,7 @@ public sealed class WorkTaskCapabilityRegistry
             branch.StartsWith('/') || branch.EndsWith('/') || branch.EndsWith('.') ||
             branch.Contains('\\') || branch.Contains("..", StringComparison.Ordinal) ||
             branch.Contains("@{", StringComparison.Ordinal) ||
-            branch.Any(character => char.IsWhiteSpace(character) ||
+            branch.Any(character => char.IsControl(character) || char.IsWhiteSpace(character) ||
                 character is '~' or '^' or ':' or '?' or '*' or '[' or ']') ||
             branch.Split('/').Any(segment => segment.Length == 0 ||
                 segment.StartsWith('.') || segment is "." or ".." ||
