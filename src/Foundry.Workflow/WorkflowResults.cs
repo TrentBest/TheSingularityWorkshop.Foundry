@@ -5,6 +5,7 @@ public enum WorkflowStatus
     Succeeded,
     Failed,
     Cancelled,
+    TimedOut,
     Invalid
 }
 
