@@ -50,7 +50,10 @@ public enum WorkTaskStatus
 public sealed record WorkTaskLease(string AgentId, Guid LeaseId, DateTimeOffset ExpiresAt);
 public sealed record WorkTaskEvent(long Sequence, WorkTaskStatus Previous, WorkTaskStatus Current,
     string AgentId, Guid LeaseId, DateTimeOffset OccurredAt, string Reason,
-    long? CiRunId = null, int? CiRunAttempt = null, string? EvidencePayloadSha256 = null);
+    long? CiRunId = null, int? CiRunAttempt = null, string? EvidencePayloadSha256 = null,
+    string? ApprovalReceiptId = null, string? ApprovalIssuer = null, string? ApprovalPrincipal = null,
+    string? ApprovalIncidentId = null, long? ApprovalIncidentSequence = null,
+    long? ApprovalTaskEventSequence = null);
 public sealed record WorkTaskSnapshot(WorkTaskRequest Request, WorkTaskStatus Status,
     WorkTaskLease? Lease, int Attempt, IReadOnlyList<WorkTaskEvent> Events);
 
@@ -62,6 +65,10 @@ public sealed class WorkTaskCoordinator
 {
     private readonly object _gate = new();
     private readonly Dictionary<string, TaskState> _tasks = new(StringComparer.Ordinal);
+    private readonly ICodeRedRecoveryReceiptVerifier? _recoveryReceiptVerifier;
+
+    public WorkTaskCoordinator(ICodeRedRecoveryReceiptVerifier? recoveryReceiptVerifier = null) =>
+        _recoveryReceiptVerifier = recoveryReceiptVerifier;
 
     public WorkTaskSnapshot Submit(WorkTaskRequest request)
     {
@@ -131,6 +138,70 @@ public sealed class WorkTaskCoordinator
             if (next is WorkTaskStatus.HandedOff or WorkTaskStatus.Stopped or WorkTaskStatus.Failed)
                 state.Lease = null;
             state.AddEvent(previous, next, lease.AgentId, lease.LeaseId, now, reason);
+            return state.Snapshot();
+        }
+    }
+
+    /// <summary>
+    /// Recovers a CODE RED task only with a trusted, signed, single-use host approval receipt.
+    /// Human authentication remains in the host; receipt verification and lifecycle consumption
+    /// are serialized under the task lock.
+    /// </summary>
+    public WorkTaskSnapshot RecoverFromCodeRed(string taskId, Guid leaseId,
+        CodeRedIncident incident, CodeRedRecoveryApprovalReceipt receipt,
+        DateTimeOffset now, string reason)
+    {
+        ArgumentNullException.ThrowIfNull(incident);
+        ArgumentNullException.ThrowIfNull(receipt);
+        incident.Validate();
+        receipt.Validate();
+        if (now == default)
+            throw new ArgumentException("Recovery time is required.", nameof(now));
+        if (string.IsNullOrWhiteSpace(reason) || reason.Length > 2048 || reason.Any(char.IsControl))
+            throw new ArgumentException("A recovery reason must be non-empty, control-free, and at most 2048 characters.", nameof(reason));
+
+        lock (_gate)
+        {
+            var state = Get(taskId);
+            var lease = state.Lease;
+            if (state.Status != WorkTaskStatus.CodeRed)
+                throw new InvalidOperationException("Only a task currently in CODE RED can use the recovery receipt.");
+            if (lease is null || lease.LeaseId != leaseId || lease.ExpiresAt <= now)
+                throw new InvalidOperationException("The task lease is missing, expired, or superseded.");
+
+            var snapshot = state.Snapshot();
+            if (incident.Status != CodeRedIncidentStatus.Active ||
+                incident.TaskId != state.Request.TaskId ||
+                !string.Equals(incident.Repository, state.Request.Repository, StringComparison.OrdinalIgnoreCase) ||
+                incident.CorrelationId != state.Request.CorrelationId ||
+                incident.AgentId != lease.AgentId)
+                throw new UnauthorizedAccessException("The active CODE RED incident does not match the task and lease.");
+
+            if (receipt.TaskId != state.Request.TaskId ||
+                receipt.IncidentId != incident.IncidentId ||
+                receipt.TaskEventSequence != snapshot.Events.Count ||
+                receipt.IncidentSequence != incident.Sequence ||
+                receipt.Action != CodeRedRecoveryAction.ResumeInvestigation ||
+                receipt.IssuedAt > now || receipt.ExpiresAt <= now)
+                throw new UnauthorizedAccessException("The approval receipt is expired or is not bound to the current task, incident, sequence, or recovery action.");
+
+            if (snapshot.Events.Any(item => string.Equals(item.ApprovalReceiptId,
+                    receipt.ReceiptId, StringComparison.Ordinal)))
+                throw new UnauthorizedAccessException("The approval receipt has already been consumed.");
+
+            var verifier = _recoveryReceiptVerifier;
+            if (verifier is null || !verifier.IsTrustedIssuer(receipt.Issuer) ||
+                !verifier.VerifySignature(receipt.Issuer, receipt.GetSigningPayload(), receipt.Signature))
+                throw new UnauthorizedAccessException("The CODE RED recovery receipt issuer or signature is not trusted.");
+
+            var previous = state.Status;
+            state.Status = WorkTaskStatus.Investigating;
+            state.AddEvent(previous, WorkTaskStatus.Investigating, lease.AgentId, lease.LeaseId,
+                now, reason, approvalReceiptId: receipt.ReceiptId,
+                approvalIssuer: receipt.Issuer, approvalPrincipal: receipt.Principal,
+                approvalIncidentId: receipt.IncidentId,
+                approvalIncidentSequence: receipt.IncidentSequence,
+                approvalTaskEventSequence: receipt.TaskEventSequence);
             return state.Snapshot();
         }
     }
@@ -212,6 +283,25 @@ public sealed class WorkTaskCoordinator
 
     internal static bool IsAllowedTransition(WorkTaskStatus current, WorkTaskStatus next) => Allowed(current, next);
 
+    internal static bool HasApprovalMetadata(WorkTaskEvent item) =>
+        item.ApprovalReceiptId is not null || item.ApprovalIssuer is not null ||
+        item.ApprovalPrincipal is not null || item.ApprovalIncidentId is not null ||
+        item.ApprovalIncidentSequence.HasValue || item.ApprovalTaskEventSequence.HasValue;
+
+    internal static bool IsValidApprovedRecoveryEvent(WorkTaskEvent item) =>
+        item.Previous == WorkTaskStatus.CodeRed &&
+        item.Current == WorkTaskStatus.Investigating &&
+        !string.IsNullOrWhiteSpace(item.ApprovalReceiptId) && item.ApprovalReceiptId.Length <= 128 &&
+        !item.ApprovalReceiptId.Any(char.IsControl) &&
+        !string.IsNullOrWhiteSpace(item.ApprovalIssuer) && item.ApprovalIssuer.Length <= 128 &&
+        !item.ApprovalIssuer.Any(char.IsControl) &&
+        !string.IsNullOrWhiteSpace(item.ApprovalPrincipal) && item.ApprovalPrincipal.Length <= 128 &&
+        !item.ApprovalPrincipal.Any(char.IsControl) &&
+        !string.IsNullOrWhiteSpace(item.ApprovalIncidentId) && item.ApprovalIncidentId.Length <= 128 &&
+        !item.ApprovalIncidentId.Any(char.IsControl) &&
+        item.ApprovalIncidentSequence is > 0 &&
+        item.ApprovalTaskEventSequence == item.Sequence - 1;
+
     private static bool Allowed(WorkTaskStatus current, WorkTaskStatus next) => (current, next) switch
     {
         (WorkTaskStatus.Claimed, WorkTaskStatus.Investigating or WorkTaskStatus.Blocked or WorkTaskStatus.CodeRed or WorkTaskStatus.HandedOff or WorkTaskStatus.Stopped or WorkTaskStatus.Failed) => true,
@@ -220,7 +310,7 @@ public sealed class WorkTaskCoordinator
         (WorkTaskStatus.Validating, WorkTaskStatus.RepairRequired or WorkTaskStatus.ReviewReady or WorkTaskStatus.Blocked or WorkTaskStatus.CodeRed or WorkTaskStatus.Stopped or WorkTaskStatus.Failed) => true,
         (WorkTaskStatus.RepairRequired, WorkTaskStatus.Implementing or WorkTaskStatus.Blocked or WorkTaskStatus.CodeRed or WorkTaskStatus.Stopped or WorkTaskStatus.Failed) => true,
         (WorkTaskStatus.Blocked, WorkTaskStatus.Claimed or WorkTaskStatus.Stopped or WorkTaskStatus.Failed) => true,
-        (WorkTaskStatus.CodeRed, WorkTaskStatus.Investigating or WorkTaskStatus.Blocked or WorkTaskStatus.Stopped or WorkTaskStatus.Failed) => true,
+        (WorkTaskStatus.CodeRed, WorkTaskStatus.Blocked or WorkTaskStatus.Stopped or WorkTaskStatus.Failed) => true,
         (WorkTaskStatus.ReviewReady, WorkTaskStatus.HandedOff or WorkTaskStatus.Stopped) => true,
         _ => false
     };
@@ -243,9 +333,14 @@ public sealed class WorkTaskCoordinator
         public int Attempt { get; set; }
         public void AddEvent(WorkTaskStatus previous, WorkTaskStatus current, string agent, Guid lease,
             DateTimeOffset at, string reason, long? ciRunId = null, int? ciRunAttempt = null,
-            string? evidencePayloadSha256 = null) =>
+            string? evidencePayloadSha256 = null, string? approvalReceiptId = null,
+            string? approvalIssuer = null, string? approvalPrincipal = null,
+            string? approvalIncidentId = null, long? approvalIncidentSequence = null,
+            long? approvalTaskEventSequence = null) =>
             _events.Add(new WorkTaskEvent(_events.Count + 1, previous, current, agent, lease, at,
-                reason, ciRunId, ciRunAttempt, evidencePayloadSha256));
+                reason, ciRunId, ciRunAttempt, evidencePayloadSha256, approvalReceiptId,
+                approvalIssuer, approvalPrincipal, approvalIncidentId, approvalIncidentSequence,
+                approvalTaskEventSequence));
         public WorkTaskSnapshot Snapshot() =>
             new(Request, Status, Lease, Attempt, Array.AsReadOnly(_events.ToArray()));
     }

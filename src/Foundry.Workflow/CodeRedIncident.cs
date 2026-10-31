@@ -24,7 +24,8 @@ public sealed record CodeRedIncident(
     DateTimeOffset StartedAt,
     DateTimeOffset UpdatedAt,
     DateTimeOffset? ClearedAt,
-    bool HumanEscalationRequired)
+    bool HumanEscalationRequired,
+    long Sequence = 1)
 {
     public const int CurrentSchemaVersion = 1;
 
@@ -39,7 +40,7 @@ public sealed record CodeRedIncident(
         ValidateText(CurrentAction, nameof(CurrentAction), 2048);
         ValidateText(Reason, nameof(Reason), 2048);
         var parts = Repository.Split('/');
-        if (SchemaVersion != CurrentSchemaVersion ||
+        if (SchemaVersion != CurrentSchemaVersion || Sequence <= 0 ||
             !Enum.IsDefined(Severity) ||
             parts.Length != 2 || parts.Any(string.IsNullOrWhiteSpace) ||
             IssueNumber <= 0)
@@ -83,14 +84,16 @@ public sealed record CodeRedIncident(
         if (ClearedAt.HasValue || at < UpdatedAt)
             throw new InvalidOperationException("A cleared incident cannot be updated and timestamps cannot move backwards.");
         return (this with { CurrentAction = action, Reason = reason, CandidateSha = candidateSha,
-            LatestCiRunId = ciRunId, LatestCiAttempt = ciAttempt, UpdatedAt = at }).Validate();
+            LatestCiRunId = ciRunId, LatestCiAttempt = ciAttempt, UpdatedAt = at,
+            Sequence = checked(Sequence + 1) }).Validate();
     }
 
     public CodeRedIncident Clear(DateTimeOffset at)
     {
         if (ClearedAt.HasValue || at < UpdatedAt)
             throw new InvalidOperationException("Incident is already cleared or clear time precedes its latest update.");
-        return (this with { ClearedAt = at, UpdatedAt = at, HumanEscalationRequired = false }).Validate();
+        return (this with { ClearedAt = at, UpdatedAt = at, HumanEscalationRequired = false,
+            Sequence = checked(Sequence + 1) }).Validate();
     }
 
     public CodeRedIncidentStatus Status => ClearedAt.HasValue

@@ -14,11 +14,12 @@ public sealed class PersistentWorkTaskCoordinator
     private Exception? _persistenceFailure;
 
     public PersistentWorkTaskCoordinator(JsonlWorkTaskStore store,
-        JsonlWorkTaskRepairAttemptJournal? repairAttemptJournal = null)
+        JsonlWorkTaskRepairAttemptJournal? repairAttemptJournal = null,
+        ICodeRedRecoveryReceiptVerifier? recoveryReceiptVerifier = null)
     {
         _store = store ?? throw new ArgumentNullException(nameof(store));
         _repairAttemptJournal = repairAttemptJournal;
-        _coordinator = new WorkTaskCoordinator();
+        _coordinator = new WorkTaskCoordinator(recoveryReceiptVerifier);
         foreach (var snapshot in _store.GetAll())
             _coordinator.Restore(snapshot);
     }
@@ -50,6 +51,19 @@ public sealed class PersistentWorkTaskCoordinator
         {
             EnsureHealthy();
             var snapshot = _coordinator.Transition(taskId, leaseId, next, now, reason);
+            return Persist(snapshot);
+        }
+    }
+
+    /// <summary>Verifies and durably records a host-approved CODE RED recovery.</summary>
+    public WorkTaskSnapshot RecoverFromCodeRed(string taskId, Guid leaseId,
+        CodeRedIncident incident, CodeRedRecoveryApprovalReceipt receipt,
+        DateTimeOffset now, string reason)
+    {
+        lock (_gate)
+        {
+            EnsureHealthy();
+            var snapshot = _coordinator.RecoverFromCodeRed(taskId, leaseId, incident, receipt, now, reason);
             return Persist(snapshot);
         }
     }

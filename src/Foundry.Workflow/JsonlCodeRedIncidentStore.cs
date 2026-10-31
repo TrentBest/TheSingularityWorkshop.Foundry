@@ -29,7 +29,7 @@ public sealed class JsonlCodeRedIncidentStore
         {
             if (_latest.ContainsKey(incident.IncidentId))
                 throw new InvalidOperationException($"Incident '{incident.IncidentId}' already exists.");
-            if (incident.ClearedAt.HasValue || incident.UpdatedAt != incident.StartedAt)
+            if (incident.Sequence != 1 || incident.ClearedAt.HasValue || incident.UpdatedAt != incident.StartedAt)
                 throw new ArgumentException("A new incident must be active and have matching start/update timestamps.", nameof(incident));
             WriteLine(incident);
             _latest.Add(incident.IncidentId, incident);
@@ -144,7 +144,7 @@ public sealed class JsonlCodeRedIncidentStore
 
     private static void ValidateUpdate(CodeRedIncident previous, CodeRedIncident next)
     {
-        if (previous.ClearedAt.HasValue || next.ClearedAt.HasValue || next.UpdatedAt <= previous.UpdatedAt ||
+        if (previous.ClearedAt.HasValue || next.ClearedAt.HasValue || next.Sequence != previous.Sequence + 1 || next.UpdatedAt <= previous.UpdatedAt ||
             !SameIdentity(previous, next) ||
             previous.HumanEscalationRequired != next.HumanEscalationRequired ||
             previous.CurrentAction == next.CurrentAction && previous.Reason == next.Reason &&
@@ -155,7 +155,7 @@ public sealed class JsonlCodeRedIncidentStore
 
     private static void ValidateClear(CodeRedIncident previous, CodeRedIncident next)
     {
-        if (previous.ClearedAt.HasValue || !next.ClearedAt.HasValue || next.UpdatedAt <= previous.UpdatedAt ||
+        if (previous.ClearedAt.HasValue || !next.ClearedAt.HasValue || next.Sequence != previous.Sequence + 1 || next.UpdatedAt <= previous.UpdatedAt ||
             next.ClearedAt != next.UpdatedAt || !SameIdentity(previous, next) ||
             next.HumanEscalationRequired || previous.CurrentAction != next.CurrentAction ||
             previous.CandidateSha != next.CandidateSha || previous.LatestCiRunId != next.LatestCiRunId ||
