@@ -106,7 +106,10 @@ public sealed class WorkTaskCapabilityRegistryTests
             recovered, WorkTaskAction.WriteFiles, "src/Foundry.Workflow/file.cs",
             Now.AddMinutes(4)));
 
-        var fresh = Grant(registry, recovered);
+        var fresh = registry.Grant(recovered, "work/task-8", CandidateSha,
+            new[] { "src/Foundry.Workflow" },
+            new[] { WorkTaskAction.ReadRepository, WorkTaskAction.WriteFiles, WorkTaskAction.CreateCommit },
+            Now.AddMinutes(3), TimeSpan.FromMinutes(10));
         Demand(registry, fresh, recovered, WorkTaskAction.WriteFiles,
             "src/Foundry.Workflow/WorkTaskCoordinator.cs", Now.AddMinutes(4));
     }
