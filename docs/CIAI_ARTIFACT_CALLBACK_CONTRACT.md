@@ -37,6 +37,38 @@ The request body is the CiAi `ArtifactReadyNotice` v1 shape, including its neste
 
 The callback body must not contain artifact bytes, credentials, bearer tokens, capability IDs, or executable instructions. The sender must preserve the exact notice payload across delivery retries.
 
+The exact v1 JSON shape accepted by Foundry is:
+
+```json
+{
+  "contractVersion": 1,
+  "noticeId": "stable-sender-notice-id",
+  "recipientIdentity": "registered-foundry-client",
+  "notifiedAt": "2026-10-31T00:00:00Z",
+  "manifest": {
+    "requestId": "foundry-request-id",
+    "operationId": "foundry-operation-id",
+    "idempotencyKey": "stable-request-artifact-key",
+    "providerRepository": "owner/registered-ciai-provider",
+    "capabilityIdentity": "workflow-evidence",
+    "capabilityVersion": "2",
+    "implementationRevision": "immutable-provider-revision",
+    "artifactId": "immutable-artifact-id",
+    "artifactVersion": "immutable-artifact-version",
+    "mediaType": "application/json",
+    "sizeBytes": 12345,
+    "retrievalUri": "https://artifacts.example.com/immutable/evidence.json",
+    "digest": "64-character-sha256-hex-digest",
+    "expiresAt": "2026-10-31T01:00:00Z",
+    "sourceSha": "40-character-candidate-commit-sha",
+    "providerRunId": "provider-run-id",
+    "clientIdentity": "registered-foundry-client"
+  }
+}
+```
+
+`providerRunId` is optional; all other properties shown are required. `contractVersion` is the JSON integer `1`. Unknown properties, duplicate property names at any depth, incorrect JSON types, and missing required properties are rejected. The manifest's `sourceSha` is the candidate commit SHA, not the trusted workflow-definition SHA. `digest` is a 64-character hexadecimal SHA-256 value; `sizeBytes` is an integer from 1 through 16 MiB; `mediaType` is `application/json`. Foundry compares provider repository, capability identity/version, and implementation revision with trusted host registration, and compares request/operation/idempotency identities and candidate SHA with its persisted dispatch mapping. The retrieval URI must be credential-free HTTPS on port 443 and match the exact provider origin captured in that mapping. This schema validation does not authenticate the HTTP sender or retrieve/verify artifact bytes.
+
 ## 2. Authentication and sender authorization
 
 The Foundry host issues or provisions a short-lived credential to the registered CiAi sender through its approved secret/identity channel. The sender presents it only in the HTTP Authorization header. Humans must never paste tokens into prompts, issues, comments, or request bodies.
