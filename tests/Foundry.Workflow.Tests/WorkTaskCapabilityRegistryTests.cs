@@ -71,6 +71,47 @@ public sealed class WorkTaskCapabilityRegistryTests
     }
 
     [Fact]
+    public void CodeRedSuspendsMutationAndRequiresFreshCapabilityAfterRecovery()
+    {
+        var coordinator = new WorkTaskCoordinator();
+        coordinator.Submit(Request());
+        var claimed = coordinator.Claim("task-8", "agent-a", TimeSpan.FromMinutes(20), Now);
+        var registry = new WorkTaskCapabilityRegistry();
+        var beforeCodeRed = Grant(registry, claimed);
+
+        var codeRed = coordinator.Transition("task-8", claimed.Lease!.LeaseId,
+            WorkTaskStatus.CodeRed, Now.AddMinutes(1), "Escalated for human review.");
+
+        Assert.Throws<UnauthorizedAccessException>(() => Demand(registry, beforeCodeRed,
+            codeRed, WorkTaskAction.WriteFiles, "src/Foundry.Workflow/file.cs"));
+        Assert.Throws<UnauthorizedAccessException>(() => Demand(registry, beforeCodeRed,
+            codeRed, WorkTaskAction.CreateCommit));
+
+        Assert.Throws<UnauthorizedAccessException>(() => registry.Grant(codeRed, "work/task-8",
+            CandidateSha, new[] { "src/Foundry.Workflow" },
+            new[] { WorkTaskAction.ReadRepository, WorkTaskAction.WriteFiles },
+            Now.AddMinutes(1), TimeSpan.FromMinutes(5)));
+
+        var readOnly = registry.Grant(codeRed, "work/task-8", CandidateSha,
+            new[] { "src/Foundry.Workflow" }, new[] { WorkTaskAction.ReadRepository },
+            Now.AddMinutes(1), TimeSpan.FromMinutes(5));
+        Demand(registry, readOnly, codeRed, WorkTaskAction.ReadRepository,
+            "src/Foundry.Workflow/WorkTaskCoordinator.cs", Now.AddMinutes(2));
+
+        var recovered = coordinator.Transition("task-8", claimed.Lease.LeaseId,
+            WorkTaskStatus.Investigating, Now.AddMinutes(3), "Host-approved CODE RED recovery.");
+
+        // The pre-CODE RED mutation grant stays invalid even after the task resumes.
+        Assert.Throws<UnauthorizedAccessException>(() => Demand(registry, beforeCodeRed,
+            recovered, WorkTaskAction.WriteFiles, "src/Foundry.Workflow/file.cs",
+            Now.AddMinutes(4)));
+
+        var fresh = Grant(registry, recovered);
+        Demand(registry, fresh, recovered, WorkTaskAction.WriteFiles,
+            "src/Foundry.Workflow/WorkTaskCoordinator.cs", Now.AddMinutes(4));
+    }
+
+    [Fact]
     public void CapabilityRejectsEscapingPathsAndScopeExpansion()
     {
         var registry = new WorkTaskCapabilityRegistry();
