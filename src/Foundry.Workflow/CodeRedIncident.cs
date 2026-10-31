@@ -30,22 +30,27 @@ public sealed record CodeRedIncident(
 
     public CodeRedIncident Validate()
     {
-        if (string.IsNullOrWhiteSpace(Repository))
-            throw new ArgumentException("Incident repository identity is required.", nameof(Repository));
+        ValidateText(IncidentId, nameof(IncidentId), 128);
+        ValidateText(Repository, nameof(Repository), 256);
+        ValidateText(TaskId, nameof(TaskId), 128);
+        ValidateText(CorrelationId, nameof(CorrelationId), 128);
+        ValidateText(AgentId, nameof(AgentId), 128);
+        ValidateText(AgentRole, nameof(AgentRole), 128);
+        ValidateText(CurrentAction, nameof(CurrentAction), 2048);
+        ValidateText(Reason, nameof(Reason), 2048);
         var parts = Repository.Split('/');
         if (SchemaVersion != CurrentSchemaVersion ||
             !Enum.IsDefined(Severity) ||
-            string.IsNullOrWhiteSpace(IncidentId) ||
             parts.Length != 2 || parts.Any(string.IsNullOrWhiteSpace) ||
-            string.IsNullOrWhiteSpace(TaskId) || IssueNumber <= 0 ||
-            string.IsNullOrWhiteSpace(CorrelationId) ||
-            string.IsNullOrWhiteSpace(AgentId) || string.IsNullOrWhiteSpace(AgentRole) ||
-            string.IsNullOrWhiteSpace(CurrentAction) || string.IsNullOrWhiteSpace(Reason))
-            throw new ArgumentException("Incident identity, ownership, action, and reason are required.");
-        if (string.IsNullOrWhiteSpace(Branch) ||
-            Branch is "master" or "development" ||
-            Branch.StartsWith('/') || Branch.Contains('\\') ||
-            Branch.Split('/').Any(segment => segment.Length == 0 || segment is "." or "..") ||
+            IssueNumber <= 0)
+            throw new ArgumentException("Incident schema, repository, issue, or severity is invalid.");
+        ValidateText(Branch, nameof(Branch), 512);
+        if (Branch is "master" or "development" ||
+            Branch.StartsWith('/') || Branch.EndsWith('/') || Branch.EndsWith('.') ||
+            Branch.Contains('\\') || Branch.Contains("..", StringComparison.Ordinal) ||
+            Branch.Contains("@{", StringComparison.Ordinal) ||
+            Branch.Split('/').Any(segment => segment.Length == 0 || segment is "." or ".." ||
+                segment.EndsWith(".lock", StringComparison.OrdinalIgnoreCase)) ||
             string.IsNullOrWhiteSpace(CandidateSha) || CandidateSha.Length != 40 ||
             !CandidateSha.All(Uri.IsHexDigit))
             throw new ArgumentException("Incident must identify an isolated branch and full candidate SHA.");
@@ -58,6 +63,14 @@ public sealed record CodeRedIncident(
         if (ClearedAt.HasValue && HumanEscalationRequired)
             throw new ArgumentException("A cleared incident cannot still require human escalation.");
         return this;
+    }
+
+    private static void ValidateText(string value, string parameterName, int maximumLength)
+    {
+        if (string.IsNullOrWhiteSpace(value) || value.Length > maximumLength ||
+            value.Any(char.IsControl))
+            throw new ArgumentException($"Incident field must contain 1 to {maximumLength} non-control characters.",
+                parameterName);
     }
 
     public CodeRedIncident Update(string action, string reason, string candidateSha,
