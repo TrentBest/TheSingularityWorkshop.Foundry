@@ -1,0 +1,44 @@
+<!-- The Singularity Workshop moniker -->
+<p align="center"><a href="https://github.com/TrentBest"><img src="https://raw.githubusercontent.com/TrentBest/TheSingularityWorkshop.Visualize/development/docs/assets/moniker.svg" alt="The Singularity Workshop animated moniker" width="720" /></a></p>
+
+# Foundry HeadlessAi Host Adapter
+
+## Purpose
+
+`Foundry.HeadlessAiHost` is the first concrete in-process adapter between Foundry's lease-governed turn port and HeadlessAi's provider executor. It deliberately does not become a GitHub client, task scheduler, authorization service, or credential store.
+
+The adapter maps a single Foundry request into a versioned `HeadlessAiAgentTurnEnvelope`, creates one immutable `HeadlessAiAgentTurnRequest` snapshot, executes that exact snapshot once, and maps only the normalized result back to Foundry. The raw provider response is not copied into Foundry state.
+
+## Build the source integration
+
+The project references the HeadlessAi source checkout at `../../headlessai`. From the Foundry repository root, place a checkout of HeadlessAi at `headlessai/` using the pinned commit recorded in the CI workflow, then run:
+
+```bash
+dotnet test tests/Foundry.Workflow.Tests/Foundry.Workflow.Tests.csproj --configuration Release
+dotnet build src/Foundry.HeadlessAiHost/Foundry.HeadlessAiHost.csproj --configuration Release
+```
+
+This source integration keeps the repositories independently versioned and avoids requiring an unpublished NuGet package. The CI workflow checks out the exact HeadlessAi commit used for the adapter build. Updating that pin is an explicit compatibility change and must be verified against both repositories' tests.
+
+## Compose the provider executor
+
+The host constructs a `HeadlessAiProfile`, the selected provider adapter, an optional request-time header provider, and a shared `HttpClient`; it then supplies the resulting `HeadlessAiAgentTurnExecutor` to `HeadlessAiAgentTurnClient`.
+
+Provider credentials are resolved by the host-side request-header provider at request time. Do not put secrets in profile settings, source control, prompts, evidence, task records, or model context. GitHub credentials are a separate host-side capability and are not part of this adapter.
+
+## Safety properties
+
+- Foundry must already have validated the active lease and `Investigating` lifecycle before it calls the adapter.
+- `Prepare` is local and side-effect-free; it validates and snapshots the exact request.
+- `ExecuteAsync` rejects a prepared snapshot created for a different request instance.
+- The executor receives the exact immutable snapshot whose fingerprint Foundry records.
+- HeadlessAi output is validated and mapped as untrusted proposal data; it grants no repository capability and causes no lifecycle transition.
+- The adapter never exposes `RawResponse` to Foundry.
+- The adapter performs no retries, repository writes, branch operations, CI dispatch, PR creation, merge, release, deployment, or package publication.
+
+## Current limit
+
+This closes the compile-time Foundry-to-HeadlessAi adapter gap. It does not yet prove a live provider invocation or the complete software-development loop. A host composition root and host-managed provider credential must be configured to run a real turn. Trusted GitHub candidate operations, exact-candidate CiAi evidence delivery, bounded repair, and draft-PR handoff remain separate gates.
+
+<!-- THE SINGULARITY WORKSHOP FOOTER -->
+<p align="center"><img src="https://raw.githubusercontent.com/TrentBest/FSM_API/master/Documentation/Branding/TheSingularityWorkshop.png" alt="The Singularity Workshop" width="200" /></p>
