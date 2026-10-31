@@ -181,18 +181,15 @@ public sealed class JsonlWorkTaskStoreTests
     public void PersistentCoordinatorRestoresAndPersistsEveryAcceptedMutation()
     {
         var path = Path.Combine(Path.GetTempPath(), $"foundry-{Guid.NewGuid():N}.jsonl");
-        var attemptsPath = Path.Combine(Path.GetTempPath(), $"foundry-attempts-{Guid.NewGuid():N}.jsonl");
         try
         {
-            var attemptJournal = new JsonlWorkTaskRepairAttemptJournal(attemptsPath);
-            var coordinator = new PersistentWorkTaskCoordinator(new JsonlWorkTaskStore(path), attemptJournal);
+            var coordinator = new PersistentWorkTaskCoordinator(new JsonlWorkTaskStore(path));
             coordinator.Submit(Request());
             var claimed = coordinator.Claim("task-1", "agent-a", TimeSpan.FromMinutes(5), Now);
             var investigating = coordinator.Transition("task-1", claimed.Lease!.LeaseId,
                 WorkTaskStatus.Investigating, Now.AddSeconds(1), "inspect task");
 
-            var restarted = new PersistentWorkTaskCoordinator(new JsonlWorkTaskStore(path),
-                new JsonlWorkTaskRepairAttemptJournal(attemptsPath));
+            var restarted = new PersistentWorkTaskCoordinator(new JsonlWorkTaskStore(path));
             var recovered = restarted.GetSnapshot("task-1");
             Assert.Equal(WorkTaskStatus.Investigating, recovered.Status);
             Assert.Equal(2, recovered.Events.Count);
@@ -208,9 +205,11 @@ public sealed class JsonlWorkTaskStoreTests
     public void PersistentCoordinatorPersistsEvidenceGatedReviewDecisionAndCiIdentity()
     {
         var path = Path.Combine(Path.GetTempPath(), $"foundry-{Guid.NewGuid():N}.jsonl");
+        var attemptsPath = Path.Combine(Path.GetTempPath(), $"foundry-attempts-{Guid.NewGuid():N}.jsonl");
         try
         {
-            var coordinator = new PersistentWorkTaskCoordinator(new JsonlWorkTaskStore(path));
+            var attemptJournal = new JsonlWorkTaskRepairAttemptJournal(attemptsPath);
+            var coordinator = new PersistentWorkTaskCoordinator(new JsonlWorkTaskStore(path), attemptJournal);
             coordinator.Submit(Request());
             var claimed = coordinator.Claim("task-1", "agent-a", TimeSpan.FromMinutes(10), Now);
             var lease = claimed.Lease!.LeaseId;
@@ -234,7 +233,8 @@ public sealed class JsonlWorkTaskStoreTests
             Assert.Equal(1, ready.Events[^1].CiRunAttempt);
             Assert.Equal(new string('f', 64), ready.Events[^1].EvidencePayloadSha256);
 
-            var restarted = new PersistentWorkTaskCoordinator(new JsonlWorkTaskStore(path));
+            var restarted = new PersistentWorkTaskCoordinator(new JsonlWorkTaskStore(path),
+                new JsonlWorkTaskRepairAttemptJournal(attemptsPath));
             var recovered = restarted.GetSnapshot("task-1");
             Assert.Equal(WorkTaskStatus.ReviewReady, recovered.Status);
             Assert.Equal(ready.Events[^1], recovered.Events[^1]);
