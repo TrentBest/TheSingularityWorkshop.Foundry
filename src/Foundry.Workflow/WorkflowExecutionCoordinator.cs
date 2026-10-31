@@ -162,7 +162,7 @@ public sealed class WorkflowExecutionCoordinator : IAsyncDisposable
         WorkflowResult result;
         try
         {
-            result = await _runner.RunAsync(state.Definition, state.Context, state.ExecutionCancellation!.Token)
+            result = await _runner.RunWithContextAsync(state.Definition, state.Context, state.ExecutionCancellation!.Token)
                 .ConfigureAwait(false);
         }
         catch (Exception exception)
