@@ -78,14 +78,13 @@ The bridge performs no repository reads or writes, branch creation, commit creat
 
 ## Current verification and remaining work
 
-The bridge contract, lease gate, provenance validation, durable completed-result replay, and indeterminate-call stop are covered by Foundry workflow tests. This proves the Foundry side of the boundary with a fake client; it does not yet prove a live provider call through a concrete host adapter.
+The bridge contract, lease gate, provenance validation, durable completed-result replay, and indeterminate-call stop are covered by Foundry workflow tests. The concrete `Foundry.HeadlessAiHost` adapter is separately integration-tested with a fake HTTP transport and is built in CI against pinned HeadlessAi source. This verifies request/result mapping and adapter composition at build/test time; it does not prove a live provider call.
 
-The first live integration still requires:
-1. A host implementation of `IHeadlessAiAgentTurnClient` using the configured HeadlessAi executor.
-2. Host-side provider credential provisioning and a real provider invocation.
-3. Trusted, isolated GitHub candidate-branch operations with capability checks.
-4. Exact-candidate CiAi evidence retrieval, validation, and delivery into Foundry.
-5. A bounded red-to-green repair cycle and a safe draft-PR handoff.
+The remaining live integration requires:
+1. Host composition, host-side provider credential provisioning, and a real provider invocation.
+2. Trusted, isolated GitHub candidate-branch operations with capability checks.
+3. Exact-candidate CiAi evidence retrieval, validation, and delivery into Foundry.
+4. A bounded red-to-green repair cycle and a safe draft-PR handoff.
 
 <!-- THE SINGULARITY WORKSHOP FOOTER -->
 <p align="center"><img src="https://raw.githubusercontent.com/TrentBest/FSM_API/master/Documentation/Branding/TheSingularityWorkshop.png" alt="The Singularity Workshop" width="200" /></p>
