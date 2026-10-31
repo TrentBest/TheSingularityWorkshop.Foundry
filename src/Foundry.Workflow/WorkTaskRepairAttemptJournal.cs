@@ -155,7 +155,7 @@ public sealed class JsonlWorkTaskRepairAttemptJournal
         ArgumentNullException.ThrowIfNull(action);
         lock (_gate)
         {
-            var history = _attempts.TryGetValue(taskId, out var attempts)
+            IReadOnlyList<WorkTaskRepairAttempt> history = _attempts.TryGetValue(taskId, out var attempts)
                 ? Array.AsReadOnly(attempts.ToArray())
                 : Array.Empty<WorkTaskRepairAttempt>();
             return action(history);
