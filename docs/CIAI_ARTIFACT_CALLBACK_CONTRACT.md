@@ -106,7 +106,7 @@ An exact retry returns HTTP 200 with the same `receiptId` and `outcome: "duplica
 
 After durable notice acceptance, a host-owned worker retrieves the immutable artifact using read-only access. It does not execute, apply, or otherwise act on artifact contents.
 
-The `retrievalUri` is treated as untrusted metadata and must match a provider-specific origin configured when the Foundry request was created. The host must enforce HTTPS, port 443, no user-info or fragment, DNS/IP checks that block loopback/private/link-local/reserved destinations, bounded connection/read timeouts, no redirects by default, and revalidation of any explicitly permitted redirect. Do not forward Foundry credentials to a different origin. Provider read credentials are short-lived and scoped to this artifact; they are supplied by the host, never embedded in the notice URL or model context.
+The `retrievalUri` is treated as untrusted metadata and must match a provider-specific origin configured when the Foundry request was created. The host must enforce HTTPS, port 443, no user-info, query, or fragment (credentials must not be embedded in the URI), DNS/IP checks that block loopback/private/link-local/reserved destinations, bounded connection/read timeouts, no redirects by default, and revalidation of any explicitly permitted redirect. Do not forward Foundry credentials to a different origin. Provider read credentials are short-lived and scoped to this artifact; they are supplied by the host, never embedded in the notice URL or model context.
 
 V1 limits:
 
@@ -158,6 +158,8 @@ If retrieval or verification fails, Foundry records the failure and does not sen
 The sender retains the outbox item until it receives a durable 202/200 receipt. A timeout after the host committed the receipt is safe: retrying the exact payload returns the original receipt. Retry delay starts at one second, doubles to a five-minute ceiling, includes jitter, and stops at notice expiry or the configured delivery budget. Do not create a new idempotency key to escape a failed delivery.
 
 The host returns structured, credential-free error codes and a correlation/receipt reference. It never returns tokens, internal stack traces, secret-bearing URLs, or raw artifact content.
+
+A structured error body uses `contract`, `code`, `message`, `retryable`, and `correlationId`; it may include `receiptId` only when a durable receipt exists. Messages are safe for logs and must not disclose internal exception details.
 
 ## 8. Security and lifecycle boundaries
 
