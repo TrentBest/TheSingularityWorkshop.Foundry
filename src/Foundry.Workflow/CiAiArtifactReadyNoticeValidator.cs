@@ -90,7 +90,7 @@ public static class CiAiArtifactReadyNoticeValidator
 
         notice.Validate();
         if (!string.Equals(notice.SenderIdentity, GetExpectedSender(mappings, notice, now), StringComparison.Ordinal))
-            throw new InvalidOperationException("Authenticated CiAi sender does not match the persisted provider registration.");
+            throw new UnauthorizedAccessException("Authenticated CiAi sender does not match the persisted provider registration.");
 
         using var document = JsonDocument.Parse(notice.PayloadUtf8, new JsonDocumentOptions
         {
