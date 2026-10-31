@@ -24,7 +24,7 @@ The coordinator is in-process and in-memory. It does not provide durable run his
 
 ## Verification
 
-See [WorkflowExecutionCoordinatorTests](../../tests/Foundry.Workflow.Tests/WorkflowExecutionCoordinatorTests.cs) for lifecycle, cancellation, timeout outcomes, caller-cancellation precedence, non-cooperative handlers, invalid workflows, and single-start behavior. The tests passed in [development CI run #84](https://github.com/TrentBest/TheSingularityWorkshop.Foundry/actions/runs/40546957980).
+See [WorkflowExecutionCoordinatorTests](../../tests/Foundry.Workflow.Tests/WorkflowExecutionCoordinatorTests.cs) for lifecycle, cancellation, finite/infinite timeout, invalid timeout values, caller-cancellation precedence, non-cooperative handlers, invalid workflows, and single-start behavior. The feature-branch implementation passed [Foundry CI run #276](https://github.com/TrentBest/TheSingularityWorkshop.Foundry/actions/runs/41170698768), including the workflow test suite and build.
 
 ## UML
 
