@@ -116,4 +116,47 @@ public sealed class JsonlWorkTaskRepairAttemptJournalTests
             if (File.Exists(path)) File.Delete(path);
         }
     }
+    [Fact]
+    public void DecisionCallbackSerializesAgainstConcurrentAttemptAppend()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"foundry-repair-lock-{Guid.NewGuid():N}.jsonl");
+        try
+        {
+            var journal = new JsonlWorkTaskRepairAttemptJournal(path);
+            var first = Attempt();
+            var second = Attempt(2, 'b', 'e');
+            Assert.Equal(WorkTaskRepairAttemptAppendOutcome.Appended, journal.Append(first));
+
+            using var callbackEntered = new ManualResetEventSlim();
+            using var releaseCallback = new ManualResetEventSlim();
+            using var appendStarted = new ManualResetEventSlim();
+
+            var decision = Task.Run(() => journal.ExecuteWithAttempts("task-8", history =>
+            {
+                Assert.Single(history);
+                callbackEntered.Set();
+                Assert.True(releaseCallback.Wait(TimeSpan.FromSeconds(5)));
+                Assert.Single(history);
+                return history[^1];
+            }));
+
+            Assert.True(callbackEntered.Wait(TimeSpan.FromSeconds(5)));
+            var append = Task.Run(() =>
+            {
+                appendStarted.Set();
+                return journal.Append(second);
+            });
+            Assert.True(appendStarted.Wait(TimeSpan.FromSeconds(5)));
+            Assert.False(append.Wait(TimeSpan.FromMilliseconds(100)));
+
+            releaseCallback.Set();
+            Assert.Equal(first, decision.GetAwaiter().GetResult());
+            Assert.Equal(WorkTaskRepairAttemptAppendOutcome.Appended, append.GetAwaiter().GetResult());
+            Assert.Equal(2, journal.GetAttempts("task-8").Count);
+        }
+        finally
+        {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
 }
