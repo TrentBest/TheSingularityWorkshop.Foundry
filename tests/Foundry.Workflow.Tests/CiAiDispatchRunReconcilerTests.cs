@@ -22,20 +22,27 @@ public sealed class CiAiDispatchRunReconcilerTests
             ".github/workflows/build.yml", "refs/heads/development", new string('b', 40),
             "refs/heads/work/task-1", new string('a', 40), "workflow_dispatch", Created.AddMinutes(1));
 
-    private static CiAiDispatchRunObservation Observation(long runId = 12345)
+    private static CiAiDispatchRunMarker Marker(
+        long runId = 12345,
+        string requestId = "request-1",
+        string operationId = "operation-1",
+        string idempotencyKey = "idempotency-1")
     {
-        var payload = $"""
+        var payload = $$"""
             {
               "contract": "foundry.ciai-dispatch-marker.v1",
-              "requestId": "request-1",
-              "operationId": "operation-1",
-              "idempotencyKey": "idempotency-1",
+              "requestId": "{{requestId}}",
+              "operationId": "{{operationId}}",
+              "idempotencyKey": "{{idempotencyKey}}",
               "runId": {{runId}},
               "runAttempt": 1
             }
             """;
-        return CiAiDispatchRunMarker.Parse(Encoding.UTF8.GetBytes(payload)).Bind(Binding(runId));
+        return CiAiDispatchRunMarker.Parse(Encoding.UTF8.GetBytes(payload));
     }
+
+    private static CiAiDispatchRunObservation Observation(long runId = 12345) =>
+        new(Binding(runId), Marker(runId));
 
     [Fact]
     public void ReconcilesOnlyOneExactRunWithTrustedRequestIdentity()
@@ -48,7 +55,7 @@ public sealed class CiAiDispatchRunReconcilerTests
 
             var result = CiAiDispatchRunReconciler.Reconcile(
                 journal, "request-1",
-                new[] { Observation(12344) with { RequestId = "other-request" }, Observation() },
+                new[] { Observation(12344) with { Marker = Marker(12344, requestId: "other-request") }, Observation() },
                 Created.AddMinutes(2));
 
             Assert.Equal(CiAiDispatchReconciliationOutcome.Bound, result.Outcome);
@@ -69,7 +76,7 @@ public sealed class CiAiDispatchRunReconcilerTests
 
             var result = CiAiDispatchRunReconciler.Reconcile(
                 journal, "request-1",
-                new[] { Observation() with { IdempotencyKey = "wrong-key" } },
+                new[] { Observation() with { Marker = Marker(idempotencyKey: "wrong-key") } },
                 Created.AddMinutes(2));
 
             Assert.Equal(CiAiDispatchReconciliationOutcome.NoMatch, result.Outcome);
@@ -113,7 +120,7 @@ public sealed class CiAiDispatchRunReconcilerTests
                 journal, "request-1",
                 new[] { new CiAiDispatchRunObservation(
                     Binding() with { BoundAt = Created.AddMinutes(3) },
-                    "request-1", "operation-1", "idempotency-1") },
+                    Marker()) },
                 Created.AddMinutes(2));
 
             Assert.Equal(CiAiDispatchReconciliationOutcome.NoMatch, result.Outcome);
