@@ -266,6 +266,13 @@ public sealed class HeadlessAiTurnBridgeTests
         Assert.Throws<ArgumentException>(() => request.Validate(Now));
         var validBranchWithBadEvidence = request with { AuthorizedBranch = "feature/valid-branch" };
         Assert.Throws<ArgumentException>(() => validBranchWithBadEvidence.Validate(Now));
+        var incompletePriorTurn = request with
+        {
+            AuthorizedBranch = "feature/valid-branch",
+            Evidence = Array.Empty<FoundryHeadlessAiEvidence>(),
+            PriorTurnId = "prior-turn"
+        };
+        Assert.Throws<ArgumentException>(() => incompletePriorTurn.Validate(Now));
     }
 
     private sealed class RecordingClient : IHeadlessAiAgentTurnClient
