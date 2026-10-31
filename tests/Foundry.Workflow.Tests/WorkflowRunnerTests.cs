@@ -102,6 +102,65 @@ public sealed class WorkflowRunnerTests
             registry.Register("same", _ => ValueTask.CompletedTask));
     }
 
+
+    [Fact]
+    public async Task LegacyRunAsyncDefaultCancellationArgumentRemainsUnambiguous()
+    {
+        var registry = new WorkflowHandlerRegistry();
+        registry.Register("work", _ => ValueTask.CompletedTask);
+
+        var result = await new WorkflowRunner(registry).RunAsync(
+            Definition(new WorkflowStep("step-1", "work")), default);
+
+        Assert.Equal(WorkflowStatus.Succeeded, result.Status);
+    }
+
+    [Fact]
+    public async Task ContextAwareHandlersPassBoundedTypedDataBetweenSteps()
+    {
+        using var inputDocument = System.Text.Json.JsonDocument.Parse("\"task-42\"");
+        var context = new WorkflowExecutionContext(
+            new Dictionary<string, System.Text.Json.JsonElement>
+            {
+                ["taskId"] = inputDocument.RootElement
+            });
+        var observed = string.Empty;
+        var registry = new WorkflowHandlerRegistry();
+        registry.Register("validate", (execution, _) =>
+        {
+            var taskId = execution.GetInput<string>("taskId");
+            execution.SetOutput("validatedTaskId", taskId);
+            return ValueTask.CompletedTask;
+        });
+        registry.Register("consume", (execution, _) =>
+        {
+            observed = execution.GetOutput<string>("validatedTaskId")!;
+            return ValueTask.CompletedTask;
+        });
+
+        var result = await new WorkflowRunner(registry).RunWithContextAsync(Definition(
+            new WorkflowStep("step-1", "validate"),
+            new WorkflowStep("step-2", "consume")), context);
+
+        Assert.Equal(WorkflowStatus.Succeeded, result.Status);
+        Assert.Equal("task-42", observed);
+    }
+
+    [Fact]
+    public void ContextRejectsOversizedAndDuplicateOutputs()
+    {
+        var context = new WorkflowExecutionContext();
+        context.SetOutput("result", "first");
+        Assert.Throws<InvalidOperationException>(() => context.SetOutput("result", "second"));
+        Assert.Throws<ArgumentException>(() =>
+            new WorkflowExecutionContext(new Dictionary<string, System.Text.Json.JsonElement>
+            {
+                ["oversized"] = System.Text.Json.JsonDocument.Parse(
+                    "\"" + new string('x', WorkflowExecutionContext.MaximumValueBytes) + "\"")
+                    .RootElement
+            }));
+    }
+
     private static WorkflowDefinition Definition(params WorkflowStep[] steps) =>
         new("test.workflow.v1", "Test workflow", 1, steps);
 }
