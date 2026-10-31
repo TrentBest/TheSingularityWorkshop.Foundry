@@ -46,7 +46,7 @@ The separate [FSM_API probe](src/Foundry.FsmApiProbe/Program.cs) and [fox/sheepd
 - [Governed work task lifecycle](docs/WORK_TASK_LIFECYCLE.md) — versioned task envelope, fenced leases, validated transitions, audit events, and current limitations.
 - [CiAi artifact callback contract](docs/CIAI_ARTIFACT_CALLBACK_CONTRACT.md) — versioned HTTPS ready-notice receiver, authenticated sender, immutable artifact pull, durable receipts, and retry semantics.
 - [Foundry–HeadlessAi turn bridge](docs/HEADLESSAI_TURN_BRIDGE.md) — lease-gated model invocation, durable duplicate suppression, host adapter mapping, and current integration limits.
-- [Concrete HeadlessAi host adapter](docs/HEADLESSAI_HOST_ADAPTER.md) — source-pinned in-process adapter, immutable request mapping, normalized result mapping, and credential boundaries.
+- [Concrete HeadlessAi host adapter](docs/HEADLESSAI_HOST_ADAPTER.md) — source-pinned in-process adapter, immutable request mapping, normalized result mapping, credential boundaries, and a manual real-provider smoke runner.
 - [Domain and ownership](docs/DOMAIN.md) — what Foundry owns and what it does not.
 - [Architecture](docs/ARCHITECTURE.md) — subsystem boundaries and integration decisions.
 - [Contract inspection ledger](docs/CONTRACT_INSPECTION.md) — source-backed findings and unresolved questions.
