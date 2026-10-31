@@ -45,11 +45,15 @@ public sealed record CodeRedIncident(
             IssueNumber <= 0)
             throw new ArgumentException("Incident schema, repository, issue, or severity is invalid.");
         ValidateText(Branch, nameof(Branch), 512);
-        if (Branch is "master" or "development" ||
+        var branchSegments = Branch.Split('/');
+        if (Branch is "@" or "master" or "development" ||
             Branch.StartsWith('/') || Branch.EndsWith('/') || Branch.EndsWith('.') ||
             Branch.Contains('\\') || Branch.Contains("..", StringComparison.Ordinal) ||
             Branch.Contains("@{", StringComparison.Ordinal) ||
-            Branch.Split('/').Any(segment => segment.Length == 0 || segment is "." or ".." ||
+            Branch.Any(character => char.IsWhiteSpace(character) ||
+                character is '~' or '^' or ':' or '?' or '*' or '[' or ']') ||
+            branchSegments.Any(segment => segment.Length == 0 ||
+                segment.StartsWith('.') || segment is "." or ".." ||
                 segment.EndsWith(".lock", StringComparison.OrdinalIgnoreCase)) ||
             string.IsNullOrWhiteSpace(CandidateSha) || CandidateSha.Length != 40 ||
             !CandidateSha.All(Uri.IsHexDigit))
