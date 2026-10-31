@@ -18,13 +18,19 @@ public sealed class WorkflowExecutionCoordinator : IAsyncDisposable
     }
 
     /// <summary>Accepts a workflow without executing it.</summary>
-    public WorkflowRunSnapshot Submit(WorkflowDefinition definition)
+    public WorkflowRunSnapshot Submit(WorkflowDefinition definition) =>
+        Submit(definition, new WorkflowExecutionContext());
+
+    /// <summary>Accepts a workflow and its bounded per-run data without executing it.</summary>
+    public WorkflowRunSnapshot Submit(
+        WorkflowDefinition definition, WorkflowExecutionContext context)
     {
         ArgumentNullException.ThrowIfNull(definition);
+        ArgumentNullException.ThrowIfNull(context);
         lock (_gate)
         {
             ThrowIfDisposed();
-            var state = new RunState(Guid.NewGuid(), definition, DateTimeOffset.UtcNow);
+            var state = new RunState(Guid.NewGuid(), definition, context, DateTimeOffset.UtcNow);
             _runs.Add(state.RunId, state);
             return state.ToSnapshot();
         }
@@ -156,7 +162,7 @@ public sealed class WorkflowExecutionCoordinator : IAsyncDisposable
         WorkflowResult result;
         try
         {
-            result = await _runner.RunAsync(state.Definition, state.ExecutionCancellation!.Token)
+            result = await _runner.RunAsync(state.Definition, state.Context, state.ExecutionCancellation!.Token)
                 .ConfigureAwait(false);
         }
         catch (Exception exception)
@@ -209,10 +215,13 @@ public sealed class WorkflowExecutionCoordinator : IAsyncDisposable
     private void ThrowIfDisposed() =>
         ObjectDisposedException.ThrowIf(_disposed, this);
 
-    private sealed class RunState(Guid runId, WorkflowDefinition definition, DateTimeOffset submittedAt)
+    private sealed class RunState(
+        Guid runId, WorkflowDefinition definition, WorkflowExecutionContext context,
+        DateTimeOffset submittedAt)
     {
         public Guid RunId { get; } = runId;
         public WorkflowDefinition Definition { get; } = definition;
+        public WorkflowExecutionContext Context { get; } = context;
         public DateTimeOffset SubmittedAt { get; } = submittedAt;
         public DateTimeOffset? StartedAt { get; set; }
         public DateTimeOffset? CompletedAt { get; set; }
