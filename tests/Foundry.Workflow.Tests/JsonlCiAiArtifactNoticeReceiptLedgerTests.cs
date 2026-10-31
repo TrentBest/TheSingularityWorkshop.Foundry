@@ -152,4 +152,36 @@ public sealed class JsonlCiAiArtifactNoticeReceiptLedgerTests
             if (File.Exists(path)) File.Delete(path);
         }
     }
+
+    [Fact]
+    public void RejectsDuplicateJsonPropertiesAtEveryObjectDepth()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"foundry-ciai-receipts-{Guid.NewGuid():N}.jsonl");
+        try
+        {
+            var ledger = new JsonlCiAiArtifactNoticeReceiptLedger(path);
+            var acceptedAt = DateTimeOffset.UtcNow;
+            var duplicateNoticeId = Notice() with
+            {
+                PayloadUtf8 = """{"noticeId":"notice-1","noticeId":"notice-1","manifest":{"idempotencyKey":"request-artifact-1"}}"""
+            };
+            var duplicateIdempotencyKey = Notice() with
+            {
+                PayloadUtf8 = """{"noticeId":"notice-1","manifest":{"idempotencyKey":"request-artifact-1","idempotencyKey":"request-artifact-1"}}"""
+            };
+            var duplicateNestedMetadata = Notice() with
+            {
+                PayloadUtf8 = """{"noticeId":"notice-1","manifest":{"idempotencyKey":"request-artifact-1","metadata":{"revision":"a","revision":"b"}}}"""
+            };
+
+            Assert.Throws<ArgumentException>(() => ledger.Accept(duplicateNoticeId, acceptedAt));
+            Assert.Throws<ArgumentException>(() => ledger.Accept(duplicateIdempotencyKey, acceptedAt));
+            Assert.Throws<ArgumentException>(() => ledger.Accept(duplicateNestedMetadata, acceptedAt));
+            Assert.Empty(ledger.GetAll());
+        }
+        finally
+        {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
 }
