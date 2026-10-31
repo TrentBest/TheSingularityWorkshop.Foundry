@@ -9,6 +9,59 @@ public sealed class HeadlessAiTurnBridgeTests
     private const string Sha = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 
     [Fact]
+    public void Journal_RefreshesAndSerializesAcrossMultipleInstances()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"foundry-headlessai-{Guid.NewGuid():N}.jsonl");
+        const string fingerprint = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+        try
+        {
+            // Both instances load the empty file before either writes. Each operation must
+            // take the shared file lock and refresh the durable sequence before proceeding.
+            var first = new JsonlHeadlessAiTurnJournal(path);
+            var second = new JsonlHeadlessAiTurnJournal(path);
+
+            Assert.Null(first.BeginOrGet("task-1", "turn-1", fingerprint));
+            Assert.Throws<InvalidOperationException>(() =>
+                second.BeginOrGet("task-1", "turn-1", fingerprint));
+
+            Assert.Null(second.BeginOrGet("task-2", "turn-2", fingerprint));
+            Assert.Null(first.BeginOrGet("task-3", "turn-3", fingerprint));
+
+            var result = new FoundryHeadlessAiTurnResult
+            {
+                TurnId = "turn-1",
+                TaskId = "task-1",
+                CorrelationId = "corr-1",
+                Repository = "TrentBest/MyVR",
+                AuthorizedBranch = "feature/myvr-agent-work",
+                BaseCommitSha = Sha,
+                CandidateCommitSha = Sha,
+                RequestFingerprint = fingerprint,
+                ProviderId = "test-provider",
+                ModelId = "test-model",
+                StartedAt = Now,
+                CompletedAt = Now.AddSeconds(1),
+                IdempotencyKey = "turn-1"
+            };
+            first.Complete("task-1", "turn-1", fingerprint, result);
+
+            var replayed = second.BeginOrGet("task-1", "turn-1", fingerprint);
+            Assert.NotNull(replayed);
+            Assert.Equal(result.TurnId, replayed!.TurnId);
+
+            var sequences = File.ReadAllLines(path)
+                .Select(line => System.Text.Json.JsonDocument.Parse(line).RootElement.GetProperty("sequence").GetInt64())
+                .ToArray();
+            Assert.Equal(new long[] { 1, 2, 3, 4 }, sequences);
+        }
+        finally
+        {
+            if (File.Exists(path)) File.Delete(path);
+            if (File.Exists(path + ".lock")) File.Delete(path + ".lock");
+        }
+    }
+
+    [Fact]
     public async Task InvokeAsync_BindsRequestAndResultToCurrentTaskLeaseAndCandidate()
     {
         var path = Path.Combine(Path.GetTempPath(), $"foundry-headlessai-{Guid.NewGuid():N}.jsonl");
