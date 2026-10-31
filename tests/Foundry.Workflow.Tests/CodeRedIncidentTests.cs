@@ -64,6 +64,11 @@ public sealed class CodeRedIncidentTests
         Assert.Throws<ArgumentException>(() => (Incident() with { AgentId = new string('x', 129) }).Validate());
         Assert.Throws<ArgumentException>(() => (Incident() with { Reason = "failure\nforged notice" }).Validate());
         Assert.Throws<ArgumentException>(() => (Incident() with { Branch = "work/../master" }).Validate());
+        Assert.Throws<ArgumentException>(() => (Incident() with { Branch = "work/.hidden" }).Validate());
+        Assert.Throws<ArgumentException>(() => (Incident() with { Branch = "work/name.lock" }).Validate());
+        Assert.Throws<ArgumentException>(() => (Incident() with { Branch = "work/name~1" }).Validate());
+        Assert.Throws<ArgumentException>(() => (Incident() with { Branch = "work/name with space" }).Validate());
+        Assert.Throws<ArgumentException>(() => (Incident() with { Branch = "@" }).Validate());
         Assert.Throws<ArgumentException>(() => (Incident() with { CurrentAction = new string('x', 2049) }).Validate());
     }
 
