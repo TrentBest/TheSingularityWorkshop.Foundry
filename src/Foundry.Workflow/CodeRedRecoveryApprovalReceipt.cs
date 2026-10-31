@@ -66,7 +66,7 @@ public sealed record CodeRedRecoveryApprovalReceipt(
         };
         var payload = new StringBuilder();
         foreach (var field in fields)
-            payload.Append(field.Length.ToString(CultureInfo.InvariantCulture))
+            payload.Append(Encoding.UTF8.GetByteCount(field).ToString(CultureInfo.InvariantCulture))
                 .Append(':').Append(field).Append('\n');
         return Encoding.UTF8.GetBytes(payload.ToString());
     }

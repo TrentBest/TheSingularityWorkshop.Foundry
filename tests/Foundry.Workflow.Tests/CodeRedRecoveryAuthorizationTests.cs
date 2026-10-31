@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using TheSingularityWorkshop.Foundry;
 using Xunit;
 
@@ -98,9 +99,13 @@ public sealed class CodeRedRecoveryAuthorizationTests
         coordinator.Transition("task-recovery", lease, WorkTaskStatus.Validating, Now, "validate");
         coordinator.Transition("task-recovery", lease, WorkTaskStatus.CodeRed, Now, "required check failed");
         var incident = CreateIncident();
-        var receipt = new CodeRedRecoveryApprovalReceipt(1, "receipt-recovery-1", "trusted-host",
+        var unsignedReceipt = new CodeRedRecoveryApprovalReceipt(1, "receipt-recovery-1", "trusted-host",
             "human-reviewer", "task-recovery", incident.IncidentId, 5, incident.Sequence,
-            CodeRedRecoveryAction.ResumeInvestigation, Now, Now.AddMinutes(5), "valid-test-signature");
+            CodeRedRecoveryAction.ResumeInvestigation, Now, Now.AddMinutes(5), "pending-signature");
+        var receipt = unsignedReceipt with
+        {
+            Signature = Convert.ToHexString(SHA256.HashData(unsignedReceipt.GetSigningPayload()))
+        };
         return (lease, incident, receipt);
     }
 
@@ -115,9 +120,13 @@ public sealed class CodeRedRecoveryAuthorizationTests
         coordinator.Transition("task-recovery", lease, WorkTaskStatus.Validating, Now, "validate");
         coordinator.Transition("task-recovery", lease, WorkTaskStatus.CodeRed, Now, "required check failed");
         var incident = CreateIncident();
-        var receipt = new CodeRedRecoveryApprovalReceipt(1, "receipt-recovery-1", "trusted-host",
+        var unsignedReceipt = new CodeRedRecoveryApprovalReceipt(1, "receipt-recovery-1", "trusted-host",
             "human-reviewer", "task-recovery", incident.IncidentId, 5, incident.Sequence,
-            CodeRedRecoveryAction.ResumeInvestigation, Now, Now.AddMinutes(5), "valid-test-signature");
+            CodeRedRecoveryAction.ResumeInvestigation, Now, Now.AddMinutes(5), "pending-signature");
+        var receipt = unsignedReceipt with
+        {
+            Signature = Convert.ToHexString(SHA256.HashData(unsignedReceipt.GetSigningPayload()))
+        };
         return (lease, incident, receipt);
     }
 
@@ -136,7 +145,8 @@ public sealed class CodeRedRecoveryAuthorizationTests
     {
         public bool IsTrustedIssuer(string issuer) => issuer == "trusted-host";
         public bool VerifySignature(string issuer, ReadOnlyMemory<byte> signingPayload, string signature) =>
-            acceptSignature && issuer == "trusted-host" && signature == "valid-test-signature" &&
+            acceptSignature && issuer == "trusted-host" &&
+            signature == Convert.ToHexString(SHA256.HashData(signingPayload.Span)) &&
             !signingPayload.IsEmpty;
     }
 }

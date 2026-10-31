@@ -73,7 +73,7 @@ public sealed class WorkTaskCapabilityRegistryTests
     [Fact]
     public void CodeRedSuspendsMutationAndRequiresFreshCapabilityAfterRecovery()
     {
-        var coordinator = new WorkTaskCoordinator();
+        var coordinator = new WorkTaskCoordinator(new RecoveryReceiptVerifier());
         coordinator.Submit(Request());
         var claimed = coordinator.Claim("task-8", "agent-a", TimeSpan.FromMinutes(20), Now);
         var registry = new WorkTaskCapabilityRegistry();
@@ -98,8 +98,18 @@ public sealed class WorkTaskCapabilityRegistryTests
         Demand(registry, readOnly, codeRed, WorkTaskAction.ReadRepository,
             "src/Foundry.Workflow/WorkTaskCoordinator.cs", Now.AddMinutes(2));
 
-        var recovered = coordinator.Transition("task-8", claimed.Lease.LeaseId,
-            WorkTaskStatus.Investigating, Now.AddMinutes(3), "Host-approved CODE RED recovery.");
+        var incidentTime = Now.AddMinutes(1);
+        var incident = new CodeRedIncident(1, "incident-8",
+            "TrentBest/TheSingularityWorkshop.Foundry", "task-8", 8, "correlation-8",
+            "agent-a", "implementation", "Investigating blocker", "work/task-8", CandidateSha,
+            null, null, CodeRedSeverity.Critical, "Human review required", 3,
+            incidentTime, incidentTime, null, true);
+        var receipt = new CodeRedRecoveryApprovalReceipt(1, "receipt-8", "test-host",
+            "human-reviewer", "task-8", incident.IncidentId, codeRed.Events.Count,
+            incident.Sequence, CodeRedRecoveryAction.ResumeInvestigation,
+            Now.AddMinutes(2), Now.AddMinutes(7), "signed-test-receipt");
+        var recovered = coordinator.RecoverFromCodeRed("task-8", claimed.Lease.LeaseId,
+            incident, receipt, Now.AddMinutes(3), "Host-approved CODE RED recovery.");
 
         // The pre-CODE RED mutation grant stays invalid even after the task resumes.
         Assert.Throws<UnauthorizedAccessException>(() => Demand(registry, beforeCodeRed,
@@ -189,4 +199,11 @@ public sealed class WorkTaskCapabilityRegistryTests
             Now, TimeSpan.FromMinutes(5)));
         Assert.Throws<ArgumentOutOfRangeException>(() => Grant(registry, task, TimeSpan.FromHours(2)));
     }
+    private sealed class RecoveryReceiptVerifier : ICodeRedRecoveryReceiptVerifier
+    {
+        public bool IsTrustedIssuer(string issuer) => issuer == "test-host";
+        public bool VerifySignature(string issuer, ReadOnlyMemory<byte> signingPayload, string signature) =>
+            issuer == "test-host" && signature == "signed-test-receipt" && !signingPayload.IsEmpty;
+    }
+
 }

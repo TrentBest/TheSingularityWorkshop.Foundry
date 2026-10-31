@@ -184,6 +184,8 @@ public sealed class JsonlWorkTaskStore
                     !WorkTaskCoordinator.IsValidApprovedRecoveryEvent(item)) ||
                 (WorkTaskCoordinator.HasApprovalMetadata(item) &&
                     !WorkTaskCoordinator.IsValidApprovedRecoveryEvent(item)) ||
+                (item.ApprovalReceipt is { } approvalReceipt &&
+                    approvalReceipt.TaskId != snapshot.Request.TaskId) ||
                 (item.Current == WorkTaskStatus.Investigating && item.Previous == WorkTaskStatus.CodeRed &&
                     !WorkTaskCoordinator.IsValidApprovedRecoveryEvent(item)) ||
                 (item.ApprovalReceiptId is not null && snapshot.Events.Take(index)
