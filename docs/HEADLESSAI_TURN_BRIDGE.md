@@ -41,7 +41,7 @@ The task must already be in `Investigating`. The branch must be an isolated Git-
 
 ## Implement the host adapter
 
-Foundry intentionally has no compile-time dependency on the HeadlessAi assembly. The host implements `IHeadlessAiAgentTurnClient` and maps the Foundry request to HeadlessAi's `HeadlessAiAgentTurnEnvelope`. Its `Prepare` method must be local and side-effect-free: create the immutable `HeadlessAiAgentTurnRequest` snapshot once and return it behind `IFoundryHeadlessAiPreparedTurn`, exposing that snapshot's `Fingerprint`. `ExecuteAsync` must execute that exact prepared snapshot rather than reconstructing a second envelope.
+Foundry keeps its workflow core provider-neutral. The separate `Foundry.HeadlessAiHost` project is the concrete in-process adapter and references the pinned HeadlessAi source contract; hosts compose it with a configured `HeadlessAiAgentTurnExecutor`. Its `Prepare` method is local and side-effect-free: it creates the immutable `HeadlessAiAgentTurnRequest` snapshot once and returns it behind `IFoundryHeadlessAiPreparedTurn`, exposing that snapshot's `Fingerprint`. `ExecuteAsync` executes that exact prepared snapshot rather than reconstructing a second envelope.
 
 | Foundry request | HeadlessAi envelope |
 |---|---|
