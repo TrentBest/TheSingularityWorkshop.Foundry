@@ -8,6 +8,7 @@ on:
     branches:
       - development
       - work/code-red-task-lifecycle
+      - feature/foundry-headlessai-turn-seam
   workflow_dispatch:
 
 permissions:
