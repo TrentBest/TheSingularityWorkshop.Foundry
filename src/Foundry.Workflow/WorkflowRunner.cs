@@ -8,9 +8,9 @@ public sealed class WorkflowRunner(WorkflowHandlerRegistry handlers)
 
     public ValueTask<WorkflowResult> RunAsync(
         WorkflowDefinition? definition, CancellationToken cancellationToken = default) =>
-        RunAsync(definition, new WorkflowExecutionContext(), cancellationToken);
+        RunWithContextAsync(definition, new WorkflowExecutionContext(), cancellationToken);
 
-    public async ValueTask<WorkflowResult> RunAsync(
+    public async ValueTask<WorkflowResult> RunWithContextAsync(
         WorkflowDefinition? definition, WorkflowExecutionContext context,
         CancellationToken cancellationToken = default)
     {
