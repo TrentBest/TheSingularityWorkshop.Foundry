@@ -40,7 +40,7 @@ public sealed class JsonlCiAiArtifactNoticeReceiptLedgerTests
             var ledger = new JsonlCiAiArtifactNoticeReceiptLedger(path);
             var acceptedAt = DateTimeOffset.UtcNow;
             var first = ledger.Accept(Notice(), acceptedAt);
-            var changedPayload = ledger.Accept(Notice(digest: 'b'), acceptedAt.AddSeconds(1));
+            var changedPayload = ledger.Accept(Notice(id: "notice-2", key: "request-artifact-1"), acceptedAt.AddSeconds(1));
             var changedKey = ledger.Accept(Notice(key: "other-key"), acceptedAt.AddSeconds(2));
 
             Assert.Equal(CiAiArtifactNoticeReceiptReceiptOutcome.Accepted, first.Outcome);
