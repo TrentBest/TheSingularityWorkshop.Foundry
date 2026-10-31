@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json;
+using System.Security.Cryptography;
 
 namespace TheSingularityWorkshop.Foundry;
 
@@ -12,15 +13,27 @@ public sealed record CiAiArtifactReadyNotice(
     string SenderIdentity,
     string NoticeId,
     string IdempotencyKey,
-    string PayloadSha256)
+    string PayloadUtf8)
 {
+    public string PayloadSha256 => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(PayloadUtf8 ?? string.Empty))).ToLowerInvariant();
+
     public CiAiArtifactReadyNotice Validate()
     {
         ValidateText(SenderIdentity, 128, nameof(SenderIdentity));
         ValidateText(NoticeId, 128, nameof(NoticeId));
         ValidateText(IdempotencyKey, 128, nameof(IdempotencyKey));
-        if (PayloadSha256 is not { Length: 64 } || !PayloadSha256.All(Uri.IsHexDigit))
-            throw new ArgumentException("A full SHA-256 digest of the exact request bytes is required.", nameof(PayloadSha256));
+        if (string.IsNullOrEmpty(PayloadUtf8) || Encoding.UTF8.GetByteCount(PayloadUtf8) > 64 * 1024)
+            throw new ArgumentException("The exact UTF-8 notice body must be non-empty and no larger than 64 KiB.", nameof(PayloadUtf8));
+        try
+        {
+            using var document = JsonDocument.Parse(PayloadUtf8);
+            if (document.RootElement.ValueKind != JsonValueKind.Object)
+                throw new ArgumentException("The exact notice body must be a JSON object.", nameof(PayloadUtf8));
+        }
+        catch (JsonException exception)
+        {
+            throw new ArgumentException("The exact notice body must be valid UTF-8 JSON.", nameof(PayloadUtf8), exception);
+        }
         return this;
     }
 
@@ -46,6 +59,7 @@ public sealed record CiAiArtifactNoticeReceipt(
     string NoticeId,
     string IdempotencyKey,
     string PayloadSha256,
+    string PayloadUtf8,
     DateTimeOffset AcceptedAt)
 {
     public const int CurrentSchemaVersion = 1;
@@ -106,7 +120,8 @@ public sealed class JsonlCiAiArtifactNoticeReceiptLedger
                 notice.SenderIdentity,
                 notice.NoticeId,
                 notice.IdempotencyKey,
-                notice.PayloadSha256.ToLowerInvariant(),
+                notice.PayloadSha256,
+                notice.PayloadUtf8,
                 acceptedAt);
             ValidateReceipt(receipt);
             WriteLine(receipt);
@@ -185,7 +200,10 @@ public sealed class JsonlCiAiArtifactNoticeReceiptLedger
             receipt.AcceptedAt == default)
             throw new ArgumentException("Ingress receipt schema, identifier, or timestamp is invalid.");
         new CiAiArtifactReadyNotice(receipt.SenderIdentity, receipt.NoticeId,
-            receipt.IdempotencyKey, receipt.PayloadSha256).Validate();
+            receipt.IdempotencyKey, receipt.PayloadUtf8).Validate();
+        if (!string.Equals(receipt.PayloadSha256, new CiAiArtifactReadyNotice(receipt.SenderIdentity,
+            receipt.NoticeId, receipt.IdempotencyKey, receipt.PayloadUtf8).PayloadSha256, StringComparison.Ordinal))
+            throw new ArgumentException("Ingress receipt payload digest does not match its exact stored bytes.");
     }
 
     private static string Scope(string sender, string identity) => sender + "\0" + identity;
